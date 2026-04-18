@@ -30,7 +30,7 @@ export default function Home() {
               <span className="text-primary font-serif">in Seconds.</span>
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Upload your resume and let our Gemini-powered engine give you 
+              Upload your resume and let us give you 
               instant feedback on key skills, impact, and improvements.
             </p>
           </div>
@@ -41,7 +41,7 @@ export default function Home() {
         </div>
 
         <footer className="w-full flex items-center justify-center border-t py-12 text-xs text-muted-foreground">
-          <p>© 2024 ResumeAI Analyzer. Powered by Gemini.</p>
+          <p>© 2026 ResumeAI Analyzer</p>
         </footer>
       </div>
     </main>
