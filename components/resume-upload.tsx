@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { createClient } from "@/lib/supabase/client";
 
 export function ResumeUpload() {
     const [isUploading, setIsUploading] = useState(false);
@@ -14,6 +15,7 @@ export function ResumeUpload() {
     const analyzeResume = async (text: string) => {
         setIsAnalyzing(true);
         setAnalysis("");
+        let accumulatedText = "";
 
         try {
             const response = await fetch("/api/chat", {
@@ -24,17 +26,17 @@ export function ResumeUpload() {
                         {
                             role: "user",
                             content: `You are a professional technical recruiter. Compare this Resume with the following Job Description.
-                    
-                    JOB DESCRIPTION:
-                    ${jobDescription}
+                
+                JOB DESCRIPTION:
+                ${jobDescription}
 
-                    RESUME TEXT:
-                    ${text}
+                RESUME TEXT:
+                ${text}
 
-                    Provide:
-                    1. A Match Score (0-100%).
-                    2. Top 3 "Missing Links" (Skills or experiences the JD wants but the resume lacks).
-                    3. 3 specific bullet points to add to the resume to better align with this JD.`
+                Provide:
+                1. A Match Score (0-100%).
+                2. Top 3 "Missing Links" (Skills or experiences the JD wants but the resume lacks).
+                3. 3 specific bullet points to add to the resume to better align with this JD.`
                         },
                     ],
                 }),
@@ -48,8 +50,22 @@ export function ResumeUpload() {
                     const { done, value } = await reader.read();
                     if (done) break;
                     const chunk = decoder.decode(value);
-                    setAnalysis((prev) => prev + chunk);
+                    accumulatedText += chunk;
+                    setAnalysis(accumulatedText);
                 }
+            }
+
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+                await supabase.from("analyses").insert({
+                    user_id: user.id,
+                    resume_text: text,
+                    job_description: jobDescription,
+                    analysis_result: accumulatedText,
+                    short_title: jobDescription.slice(0, 50) || "Resume Analysis"
+                });
             }
         } catch (error) {
             console.error("Analysis failed", error);
@@ -57,6 +73,7 @@ export function ResumeUpload() {
             setIsAnalyzing(false);
         }
     };
+
 
     const handleFile = async (file: File) => {
         if (file.type !== "application/pdf") {
