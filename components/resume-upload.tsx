@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { createClient } from "@/lib/supabase/client";
+import { Download } from "lucide-react";
+import jsPDF from "jspdf";
 
 export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
     const [isUploading, setIsUploading] = useState(false);
@@ -129,6 +131,91 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
         }
     };
 
+    const downloadReport = () => {
+        if (!analysis) return;
+
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        const maxLineWidth = pageWidth - margin * 2;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(30, 40, 60);
+        doc.text("ResumeAI Diagnostic Report", margin, 25);
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, margin, 32);
+
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, 38, pageWidth - margin, 38);
+
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+
+        const lines = analysis.split("\n");
+        let y = 50;
+        let lastLineWasEmpty = false;
+
+        const cleanMarkdown = (text: string) => {
+            return text
+                .replace(/\*\*/g, "")
+                .replace(/\*/g, "")
+                .replace(/#/g, "")
+                .replace(/^- /, "")
+                .replace(/^\* /, "")
+                .trim();
+        };
+
+        lines.forEach((line) => {
+            const trimmedLine = line.trim();
+            const cleanLine = cleanMarkdown(line);
+
+            if (!cleanLine) {
+                if (!lastLineWasEmpty && y < 270) {
+                    y += 5;
+                    lastLineWasEmpty = true;
+                }
+                return;
+            }
+
+            if (y > 275) {
+                doc.addPage();
+                y = 20;
+            }
+
+            if (trimmedLine.startsWith("#")) {
+                y += 5;
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(14);
+                doc.setTextColor(30, 40, 60);
+                doc.text(cleanLine, margin, y);
+                y += 10;
+                lastLineWasEmpty = false;
+            } else if (trimmedLine.startsWith("-") || trimmedLine.startsWith("*")) {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(11);
+                doc.setTextColor(0, 0, 0);
+                const splitText = doc.splitTextToSize(`• ${cleanLine}`, maxLineWidth);
+                doc.text(splitText, margin, y);
+                y += (splitText.length * 6);
+                lastLineWasEmpty = false;
+            } else {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(11);
+                doc.setTextColor(40, 40, 40);
+                const splitText = doc.splitTextToSize(cleanLine, maxLineWidth);
+                doc.text(splitText, margin, y);
+                y += (splitText.length * 6);
+                lastLineWasEmpty = false;
+            }
+        });
+
+        doc.save(`ResumeAI-Analysis-${new Date().getTime()}.pdf`);
+    };
+
     const handleStartAnalysis = async () => {
         if (!extractedText) {
             alert("Please upload a resume first!");
@@ -143,10 +230,10 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
         await analyzeResume(extractedText);
     };
 
-        return (
+    return (
         <div className="w-full max-w-3xl mx-auto space-y-8 animate-in fade-in run-in zoom-in-95 duration-500">
             <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-[2rem] p-8 shadow-xl shadow-black/5">
-                
+
                 <div className="space-y-6">
                     <div className="text-center space-y-2 mb-8">
                         <h2 className="text-2xl font-bold tracking-tight">Configure Analysis</h2>
@@ -163,7 +250,7 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
                             placeholder="Paste the key responsibilities, requirements, and tech stack here..."
                             value={jobDescription}
                             onChange={(e) => setJobDescription(e.target.value)}
-                            disabled={!!selectedId} 
+                            disabled={!!selectedId}
                         />
                     </div>
 
@@ -176,13 +263,12 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => {
                                 e.preventDefault();
-                                if(!selectedId) handleFile(e.dataTransfer.files[0]);
+                                if (!selectedId) handleFile(e.dataTransfer.files[0]);
                             }}
-                            className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 group ${
-                                selectedId 
-                                ? "border-border/40 bg-muted/20 opacity-70" 
+                            className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 group ${selectedId
+                                ? "border-border/40 bg-muted/20 opacity-70"
                                 : "border-primary/20 hover:border-primary hover:bg-primary/5 cursor-pointer bg-background/50 shadow-sm"
-                            }`}
+                                }`}
                         >
                             <input
                                 type="file"
@@ -206,9 +292,9 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
                                     )}
                                 </h3>
                                 {!extractedText && !isUploading && (
-                                     <button className="mt-4 px-6 py-2 rounded-full bg-primary/10 text-primary font-semibold text-sm group-hover:bg-primary group-hover:text-primary-foreground transition-all">
+                                    <span className="mt-4 px-6 py-2 rounded-full bg-primary/10 text-primary font-semibold text-sm group-hover:bg-primary group-hover:text-primary-foreground transition-all inline-block pointer-events-none">
                                         Browse Files
-                                     </button>
+                                    </span>
                                 )}
                             </label>
                         </div>
@@ -248,8 +334,16 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
                                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Generated by Gemini</p>
                             </div>
                         </div>
+
+                        <button
+                            onClick={downloadReport}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-background hover:bg-accent border border-border/50 text-xs font-bold transition-all shadow-sm hover:shadow-md active:scale-95"
+                        >
+                            <Download className="w-3.5 h-3.5" />
+                            Download PDF
+                        </button>
                     </div>
-                    
+
                     <div className="p-8">
                         <div className="prose prose-base sm:prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-primary hover:prose-a:text-primary/80 prose-strong:text-primary">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
