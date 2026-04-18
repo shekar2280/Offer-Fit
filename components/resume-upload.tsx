@@ -1,0 +1,134 @@
+"use client";
+
+import { useState } from "react";
+
+export function ResumeUpload() {
+  const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState("");
+  const [extractedText, setExtractedText] = useState<string | null>(null);
+
+  const analyzeResume = async (text: string) => {
+    setIsAnalyzing(true);
+    setAnalysis("");
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: `You are a professional technical recruiter. Analyze this resume text:
+              
+              1. Give a high-level summary.
+              2. List 3 strengths.
+              3. List 3 specific areas for improvement.
+              
+              Resume Text: ${text}`,
+            },
+          ],
+        }),
+      });
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          setAnalysis((prev) => prev + chunk);
+        }
+      }
+    } catch (error) {
+      console.error("Analysis failed", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleFile = async (file: File) => {
+    if (file.type !== "application/pdf") {
+      alert("Please upload a PDF file.");
+      return;
+    }
+
+    setIsUploading(true);
+    setExtractedText(null);
+    setAnalysis("");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/parse", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.text) {
+        setExtractedText(data.text);
+        await analyzeResume(data.text);
+      }
+    } catch (error) {
+      console.error("Upload failed", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto p-6 space-y-8">
+      <div
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          const file = e.dataTransfer.files[0];
+          handleFile(file);
+        }}
+        className="border-2 border-dashed border-foreground/20 rounded-3xl p-12 text-center hover:border-primary/40 transition-all cursor-pointer bg-accent/30 group"
+      >
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={(e) => e.target.files && handleFile(e.target.files[0])}
+          className="hidden"
+          id="resume-upload"
+        />
+        <label htmlFor="resume-upload" className="cursor-pointer">
+          <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">📄</div>
+          <h3 className="text-lg font-bold">
+            {isUploading ? "Reading PDF..." : isAnalyzing ? "AI is Thinking..." : "Upload Resume"}
+          </h3>
+          <p className="text-sm text-muted-foreground mt-2">
+            Drag & drop your PDF here
+          </p>
+        </label>
+      </div>
+
+      {(isAnalyzing || analysis) && (
+        <div className="p-8 bg-background border-2 border-primary/10 rounded-3xl shadow-xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-xl">
+              ✨
+            </div>
+            <h3 className="text-xl font-black italic tracking-tight">GEMINI INSIGHTS</h3>
+          </div>
+          
+          <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="whitespace-pre-line leading-relaxed text-foreground/90">
+              {analysis}
+              {isAnalyzing && (
+                <span className="inline-block w-2 h-5 ml-1 bg-primary animate-pulse align-middle" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
