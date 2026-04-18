@@ -2,7 +2,7 @@
 
 **ResumeAI Analyzer** is a professional-grade AI platform designed to help job seekers optimize their resumes for specific job descriptions. Using a high-speed intelligence engine, it performs deep-gap analysis, generates actionable insights, and provides a polished history dashboard for tracking progress.
 
-![Mockup](https://via.placeholder.com/1200x600?text=ResumeAI+Analyzer+Dashboard+Preview)
+![ResumeAI Dashboard](./assets/dashboard-mockup.png)
 
 ## ✨ Features
 
