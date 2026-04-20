@@ -66,4 +66,3 @@ This project strictly follows the **Server-Client Component Boundary** patterns 
 - **RLS Protection**: All database queries are guarded by Supabase policies, ensuring only the owner can access their results.
 
 ---
-Built with ❤️ for professional engineers.
