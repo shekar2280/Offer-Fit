@@ -13,6 +13,7 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
     const [analysis, setAnalysis] = useState("");
     const [extractedText, setExtractedText] = useState<string | null>(null);
     const [jobDescription, setJobDescription] = useState("");
+    const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
 
     useEffect(() => {
         if (selectedId) {
@@ -51,20 +52,10 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
                     messages: [
                         {
                             role: "user",
-                            content: `You are a professional technical recruiter. Compare this Resume with the following Job Description.
-                
-                JOB DESCRIPTION:
-                ${jobDescription}
-
-                RESUME TEXT:
-                ${text}
-
-                Provide:
-                1. A Match Score (0-100%).
-                2. Top 3 "Missing Links" (Skills or experiences the JD wants but the resume lacks).
-                3. 3 specific bullet points to add to the resume to better align with this JD.`
+                            content: `Compare this Resume with the following Job Description: ${jobDescription}`,
                         },
                     ],
+                    analysisId: selectedId || currentAnalysisId,
                 }),
             });
 
@@ -84,14 +75,17 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
 
-            if (user) {
-                await supabase.from("analyses").insert({
-                    user_id: user.id,
-                    resume_text: text,
-                    job_description: jobDescription,
-                    analysis_result: accumulatedText,
-                    short_title: jobDescription.slice(0, 50) || "Resume Analysis"
-                });
+            if (user && (selectedId || currentAnalysisId)) {
+                const targetId = selectedId || currentAnalysisId;
+
+                await supabase
+                    .from("analyses")
+                    .update({
+                        job_description: jobDescription,
+                        analysis_result: accumulatedText,
+                        short_title: jobDescription.slice(0, 50) || "Resume Analysis"
+                    })
+                    .eq("id", targetId);
             }
         } catch (error) {
             console.error("Analysis failed", error);
@@ -123,9 +117,11 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
             const data = await res.json();
             if (data.text) {
                 setExtractedText(data.text);
+                setCurrentAnalysisId(data.analysisId);
             }
         } catch (error) {
             console.error("Upload failed", error);
+            alert("Parsing failed. Please check your credentials or network.");
         } finally {
             setIsUploading(false);
         }
@@ -248,7 +244,7 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
                         <textarea
                             className="w-full min-h-[140px] p-5 rounded-2xl bg-background/50 border border-border focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none transition-all resize-none shadow-inner text-sm leading-relaxed"
                             placeholder="Paste the key responsibilities, requirements, and tech stack here..."
-                            value={jobDescription}
+                            value={jobDescription || ""}
                             onChange={(e) => setJobDescription(e.target.value)}
                             disabled={!!selectedId}
                         />
@@ -284,13 +280,22 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
                                 </div>
                                 <h3 className="text-lg font-bold text-foreground tracking-tight">
                                     {isUploading ? (
-                                        <span className="animate-pulse text-primary">Deciphering PDF...</span>
+                                        <span className="flex items-center justify-center gap-2">
+                                            <span className="animate-pulse text-primary">Semantic Indexing...</span>
+                                            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></div>
+                                        </span>
                                     ) : extractedText ? (
-                                        "Resume Loaded Successfully"
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className="text-green-500 font-bold">✨ Semantic Memory Ready</span>
+                                            <span className="text-[10px] text-muted-foreground uppercase">Ready for Analysis</span>
+                                        </div>
                                     ) : (
                                         "Drop your PDF Resume here"
                                     )}
                                 </h3>
+
                                 {!extractedText && !isUploading && (
                                     <span className="mt-4 px-6 py-2 rounded-full bg-primary/10 text-primary font-semibold text-sm group-hover:bg-primary group-hover:text-primary-foreground transition-all inline-block pointer-events-none">
                                         Browse Files
@@ -304,7 +309,7 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
                         <div className="pt-4">
                             <button
                                 onClick={handleStartAnalysis}
-                                disabled={isAnalyzing || isUploading || !extractedText || !jobDescription}
+                                disabled={isAnalyzing || isUploading || !extractedText || !jobDescription || (!currentAnalysisId && !selectedId)}
                                 className="w-full py-5 rounded-2xl bg-primary text-primary-foreground font-black text-lg hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-none disabled:hover:transform-none relative overflow-hidden group"
                             >
                                 <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
