@@ -46,7 +46,7 @@ export function HistorySidebar({ onSelect, selectedId }: { onSelect: (id: string
 
 
     return (
-        <div className="w-[250px] bg-black border-r border-white/10 h-full flex flex-col z-20 shrink-0 relative">
+        <div className="w-[300px] bg-black border-r border-white/10 h-full flex flex-col z-20 shrink-0 relative">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
             <div className="p-6">
@@ -78,14 +78,14 @@ export function HistorySidebar({ onSelect, selectedId }: { onSelect: (id: string
                 )}
                 {history.map((item) => (
                     <div
-                        key={item.id} 
+                        key={item.id}
                         className="group/item relative px-1"
                     >
                         <button
                             onClick={() => onSelect(item.id)}
                             className={`w-full text-left transition-all duration-300 flex items-center px-5 py-4 rounded-xl relative overflow-hidden group ${selectedId === item.id
-                                    ? "bg-white/10 border border-white/10 shadow-2xl"
-                                    : "bg-transparent hover:bg-white/5 border border-transparent"
+                                ? "bg-white/10 border border-white/10 shadow-2xl"
+                                : "bg-transparent hover:bg-white/5 border border-transparent"
                                 }`}
                             title={item.short_title || "Untitled Analysis"}
                         >

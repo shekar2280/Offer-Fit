@@ -4,16 +4,24 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { createClient } from "@/lib/supabase/client";
-import { Download } from "lucide-react";
+import { Download, Upload, Check, FileText, ArrowRight } from "lucide-react";
 import jsPDF from "jspdf";
 
-export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
+export function ResumeUpload({ selectedId, onReset }: { selectedId: string | null, onReset: () => void }) {
     const [isUploading, setIsUploading] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysis, setAnalysis] = useState("");
     const [extractedText, setExtractedText] = useState<string | null>(null);
     const [jobDescription, setJobDescription] = useState("");
     const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
+    const [loadingStep, setLoadingStep] = useState(0);
+
+    const loadingMessages = [
+        "Reading resume...",
+        "Checking job...",
+        "Finding matches...",
+        "Writing report..."
+    ];
 
     useEffect(() => {
         if (selectedId) {
@@ -29,6 +37,7 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
                     setExtractedText(data.resume_text);
                     setJobDescription(data.job_description);
                     setAnalysis(data.analysis_result);
+                    setCurrentAnalysisId(null);
                 }
             };
             fetchSavedAnalysis();
@@ -36,13 +45,19 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
             setExtractedText(null);
             setJobDescription("");
             setAnalysis("");
+            setCurrentAnalysisId(null);
         }
     }, [selectedId]);
 
     const analyzeResume = async (text: string) => {
         setIsAnalyzing(true);
         setAnalysis("");
+        setLoadingStep(0);
         let accumulatedText = "";
+
+        const stepInterval = setInterval(() => {
+            setLoadingStep(prev => (prev < 3 ? prev + 1 : prev));
+        }, 3000);
 
         try {
             const response = await fetch("/api/chat", {
@@ -52,7 +67,7 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
                     messages: [
                         {
                             role: "user",
-                            content: `Compare this Resume with the following Job Description: ${jobDescription}`,
+                            content: `Analyze this resume against this job description: ${jobDescription}`,
                         },
                     ],
                     analysisId: selectedId || currentAnalysisId,
@@ -77,27 +92,26 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
 
             if (user && (selectedId || currentAnalysisId)) {
                 const targetId = selectedId || currentAnalysisId;
-
                 await supabase
                     .from("analyses")
                     .update({
                         job_description: jobDescription,
                         analysis_result: accumulatedText,
-                        short_title: jobDescription.slice(0, 50) || "Resume Analysis"
+                        short_title: jobDescription.slice(0, 50) || "New Analysis"
                     })
                     .eq("id", targetId);
             }
         } catch (error) {
             console.error("Analysis failed", error);
         } finally {
+            clearInterval(stepInterval);
             setIsAnalyzing(false);
         }
     };
 
-
     const handleFile = async (file: File) => {
         if (file.type !== "application/pdf") {
-            alert("Please upload a PDF file.");
+            alert("Please upload a PDF.");
             return;
         }
 
@@ -109,11 +123,7 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
         formData.append("file", file);
 
         try {
-            const res = await fetch("/api/parse", {
-                method: "POST",
-                body: formData,
-            });
-
+            const res = await fetch("/api/parse", { method: "POST", body: formData });
             const data = await res.json();
             if (data.text) {
                 setExtractedText(data.text);
@@ -121,7 +131,6 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
             }
         } catch (error) {
             console.error("Upload failed", error);
-            alert("Parsing failed. Please check your credentials or network.");
         } finally {
             setIsUploading(false);
         }
@@ -129,7 +138,6 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
 
     const downloadReport = () => {
         if (!analysis) return;
-
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 20;
@@ -137,225 +145,184 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
 
         doc.setFont("helvetica", "bold");
         doc.setFontSize(22);
-        doc.setTextColor(30, 40, 60);
-        doc.text("ResumeAI Diagnostic Report", margin, 25);
-
+        doc.text("Analysis Report", margin, 25);
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(100, 100, 100);
         doc.text(`Generated on: ${new Date().toLocaleDateString()}`, margin, 32);
-
-        doc.setDrawColor(200, 200, 200);
         doc.line(margin, 38, pageWidth - margin, 38);
-
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
 
         const lines = analysis.split("\n");
         let y = 50;
-        let lastLineWasEmpty = false;
-
-        const cleanMarkdown = (text: string) => {
-            return text
-                .replace(/\*\*/g, "")
-                .replace(/\*/g, "")
-                .replace(/#/g, "")
-                .replace(/^- /, "")
-                .replace(/^\* /, "")
-                .trim();
-        };
-
         lines.forEach((line) => {
-            const trimmedLine = line.trim();
-            const cleanLine = cleanMarkdown(line);
-
-            if (!cleanLine) {
-                if (!lastLineWasEmpty && y < 270) {
-                    y += 5;
-                    lastLineWasEmpty = true;
-                }
-                return;
-            }
-
-            if (y > 275) {
-                doc.addPage();
-                y = 20;
-            }
-
-            if (trimmedLine.startsWith("#")) {
-                y += 5;
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(14);
-                doc.setTextColor(30, 40, 60);
-                doc.text(cleanLine, margin, y);
-                y += 10;
-                lastLineWasEmpty = false;
-            } else if (trimmedLine.startsWith("-") || trimmedLine.startsWith("*")) {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(11);
-                doc.setTextColor(0, 0, 0);
-                const splitText = doc.splitTextToSize(`• ${cleanLine}`, maxLineWidth);
-                doc.text(splitText, margin, y);
-                y += (splitText.length * 6);
-                lastLineWasEmpty = false;
-            } else {
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(11);
-                doc.setTextColor(40, 40, 40);
-                const splitText = doc.splitTextToSize(cleanLine, maxLineWidth);
-                doc.text(splitText, margin, y);
-                y += (splitText.length * 6);
-                lastLineWasEmpty = false;
-            }
+            const cleanLine = line.replace(/[*#]/g, "").trim();
+            if (!cleanLine) { y += 5; return; }
+            if (y > 275) { doc.addPage(); y = 20; }
+            const splitText = doc.splitTextToSize(cleanLine, maxLineWidth);
+            doc.text(splitText, margin, y);
+            y += (splitText.length * 7);
         });
-
-        doc.save(`ResumeAI-Analysis-${new Date().getTime()}.pdf`);
+        doc.save(`Analysis-${new Date().getTime()}.pdf`);
     };
 
-    const handleStartAnalysis = async () => {
-        if (!extractedText) {
-            alert("Please upload a resume first!");
-            return;
-        }
-
-        if (!jobDescription) {
-            alert("Please paste a job description to compare against.");
-            return;
-        }
-
-        await analyzeResume(extractedText);
+    const handleNewAnalysis = () => {
+        setAnalysis("");
+        setExtractedText(null);
+        setJobDescription("");
+        setCurrentAnalysisId(null);
+        if (onReset) onReset();
     };
 
     return (
-        <div className="w-full max-w-3xl mx-auto space-y-8 animate-in fade-in run-in zoom-in-95 duration-500">
-            <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-[2rem] p-8 shadow-xl shadow-black/5">
+        <div className="w-full max-w-4xl mx-auto  animate-in fade-in duration-1000 relative">
+            
+            <div className="absolute top-[20%] left-[50%] -translate-x-1/2 w-full h-[50%] bg-primary/5 rounded-[100%] blur-[120px] pointer-events-none" />
 
-                <div className="space-y-6">
-                    <div className="text-center space-y-2 mb-8">
-                        <h2 className="text-2xl font-bold tracking-tight">Configure Analysis</h2>
-                        <p className="text-muted-foreground text-sm">Provide your target job and resume to generate a tailored report.</p>
+            {!(isAnalyzing || analysis) && (
+                <div className="space-y-6 relative z-10">
+                    <div className="text-center">
+                        <h1 className="font-heading text-5xl md:text-6xl font-semibold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40 leading-tight">
+                            Optimize Your <span className="text-primary italic font-light drop-shadow-[0_0_30px_rgba(242,170,76,0.3)]">Resume</span>
+                        </h1>
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px]">1</span>
-                            Target Job Description
-                        </label>
-                        <textarea
-                            className="w-full min-h-[140px] p-5 rounded-2xl bg-background/50 border border-border focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none transition-all resize-none shadow-inner text-sm leading-relaxed"
-                            placeholder="Paste the key responsibilities, requirements, and tech stack here..."
-                            value={jobDescription || ""}
-                            onChange={(e) => setJobDescription(e.target.value)}
-                            disabled={!!selectedId}
-                        />
-                    </div>
-
-                    <div className="space-y-3">
-                        <label className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px]">2</span>
-                            Upload Resume
-                        </label>
-                        <div
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={(e) => {
-                                e.preventDefault();
-                                if (!selectedId) handleFile(e.dataTransfer.files[0]);
-                            }}
-                            className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 group ${selectedId
-                                ? "border-border/40 bg-muted/20 opacity-70"
-                                : "border-primary/20 hover:border-primary hover:bg-primary/5 cursor-pointer bg-background/50 shadow-sm"
-                                }`}
-                        >
-                            <input
-                                type="file"
-                                accept=".pdf"
-                                onChange={(e) => e.target.files && handleFile(e.target.files[0])}
-                                className="hidden"
-                                id="resume-upload"
+                    <div className="bg-white/[0.01] border border-white/[0.03] rounded-[3rem] p-8 md:p-10 shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-3xl space-y-6 relative overflow-hidden group/board">
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+                        
+                        <div className="space-y-4 relative z-10">
+                            <h2 className="font-heading text-[11px] font-bold uppercase tracking-[0.3em] text-white/50 flex items-center gap-3">
+                                <span className="w-6 h-[1px] bg-gradient-to-r from-primary/50 to-transparent" />
+                                01. Job Details
+                            </h2>
+                            <textarea
+                                className="w-full h-[80px] bg-black/40 border border-white/10 focus:border-primary rounded-[15px] p-6 text-[15px] leading-relaxed text-white placeholder:text-primary/40 outline-none resize-none scrollbar-hide font-sans transition-colors duration-300"
+                                placeholder="Paste the job description here..."
+                                value={jobDescription}
+                                onChange={(e) => setJobDescription(e.target.value)}
                                 disabled={!!selectedId}
+                                spellCheck={false}
                             />
-                            <label htmlFor={selectedId ? "" : "resume-upload"} className={selectedId ? "cursor-default" : "cursor-pointer"}>
-                                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300 drop-shadow-md">
-                                    {extractedText ? "✅" : "📄"}
-                                </div>
-                                <h3 className="text-lg font-bold text-foreground tracking-tight">
-                                    {isUploading ? (
-                                        <span className="flex items-center justify-center gap-2">
-                                            <span className="animate-pulse text-primary">Semantic Indexing...</span>
-                                            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce"></div>
-                                        </span>
-                                    ) : extractedText ? (
-                                        <div className="flex flex-col items-center gap-1">
-                                            <span className="text-green-500 font-bold">✨ Semantic Memory Ready</span>
-                                            <span className="text-[10px] text-muted-foreground uppercase">Ready for Analysis</span>
-                                        </div>
-                                    ) : (
-                                        "Drop your PDF Resume here"
-                                    )}
-                                </h3>
-
-                                {!extractedText && !isUploading && (
-                                    <span className="mt-4 px-6 py-2 rounded-full bg-primary/10 text-primary font-semibold text-sm group-hover:bg-primary group-hover:text-primary-foreground transition-all inline-block pointer-events-none">
-                                        Browse Files
-                                    </span>
-                                )}
-                            </label>
                         </div>
+
+                        <div className="space-y-4 relative z-10">
+                            <h2 className="font-heading text-[11px] font-bold uppercase tracking-[0.3em] text-white/50 flex items-center gap-3">
+                                <span className="w-6 h-[1px] bg-gradient-to-r from-primary/50 to-transparent" />
+                                02. Resume Upload
+                            </h2>
+                            <div className="relative">
+                                <input
+                                    type="file"
+                                    accept=".pdf"
+                                    onChange={(e) => e.target.files && handleFile(e.target.files[0])}
+                                    className="hidden"
+                                    id="resume-upload"
+                                    disabled={!!selectedId}
+                                />
+                                <label 
+                                    htmlFor={selectedId ? "" : "resume-upload"}
+                                    className={`relative flex flex-col items-center justify-center py-6 px-10 rounded-[20px] transition-all duration-700 overflow-hidden ${
+                                        extractedText 
+                                        ? "bg-primary/[0.02] cursor-default" 
+                                        : "bg-black/40 hover:bg-black/60 cursor-pointer"
+                                    }`}
+                                >
+                                    <div className={`absolute inset-0 border border-dashed rounded-[20px] transition-colors duration-700 pointer-events-none ${extractedText ? 'border-primary/30' : 'border-white/10 group-hover/board:border-white/20'}`} />
+                                    {extractedText && <div className="absolute inset-0 bg-primary/5 shadow-[inset_0_0_100px_rgba(242,170,76,0.1)] pointer-events-none" />}
+
+                                    <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center mb-3 transition-all duration-700 ${extractedText ? 'bg-primary shadow-[0_0_40px_rgba(242,170,76,0.4)]' : 'bg-white/[0.03] border border-white/5'}`}>
+                                        {isUploading ? (
+                                            <div className="w-5 h-5 border-2 border-transparent border-t-black border-r-black rounded-full animate-spin" />
+                                        ) : extractedText ? (
+                                            <Check className="w-5 h-5 text-black" />
+                                        ) : (
+                                            <Upload className="w-5 h-5 text-white/30" />
+                                        )}
+                                    </div>
+                                    <span className={`relative z-10 font-heading text-[11px] font-bold tracking-[0.3em] uppercase transition-colors duration-700 ${extractedText ? "text-primary" : "text-white/40"}`}>
+                                        {isUploading ? "Reading Resume..." : extractedText ? "Ready for Analysis" : "Drop PDF File"}
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {!selectedId && (
+                            <div className="pt-6 relative z-10">
+                                <button
+                                    onClick={() => analyzeResume(extractedText || "")}
+                                    disabled={isAnalyzing || isUploading || !extractedText || !jobDescription}
+                                    className="relative w-full h-14 rounded-[10px] font-heading font-bold text-xs uppercase tracking-[0.4em] transition-all duration-500 overflow-hidden group/submit disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-md opacity-0 group-hover/submit:opacity-100 transition-opacity duration-300" />
+                                    <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 transition-transform duration-500 group-hover/submit:scale-[1.02]" />
+                                    <div className="absolute inset-0 flex items-center justify-center gap-3 text-black z-10">
+                                        Analyze Resume
+                                        <ArrowRight className="w-4 h-4 group-hover/submit:translate-x-2 transition-transform duration-500" />
+                                    </div>
+                                    <div className="absolute inset-[-100%] bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.4)_50%,transparent_75%)] w-[300%] animate-[shimmer_3s_infinite] pointer-events-none mix-blend-overlay" />
+                                </button>
+                            </div>
+                        )}
                     </div>
-
-                    {!selectedId && (
-                        <div className="pt-4">
-                            <button
-                                onClick={handleStartAnalysis}
-                                disabled={isAnalyzing || isUploading || !extractedText || !jobDescription || (!currentAnalysisId && !selectedId)}
-                                className="w-full py-5 rounded-2xl bg-primary text-primary-foreground font-black text-lg hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-none disabled:hover:transform-none relative overflow-hidden group"
-                            >
-                                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                                {isAnalyzing ? (
-                                    <span className="flex items-center justify-center gap-3">
-                                        <div className="w-5 h-5 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-                                        Analyzing Match...
-                                    </span>
-                                ) : (
-                                    "✨ Generate Insight Report"
-                                )}
-                            </button>
-                        </div>
-                    )}
                 </div>
-            </div>
+            )}
 
             {(isAnalyzing || analysis) && (
-                <div className="bg-card/80 backdrop-blur-xl border border-primary/20 rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
-                    <div className="bg-gradient-to-r from-primary/10 via-background to-background p-8 border-b border-border/50 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-                                <span className="text-2xl">⚡</span>
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 pb-20 relative z-10">
+                    <div className="bg-white/[0.03] border border-white/10 backdrop-blur-2xl rounded-[20px] p-5 pr-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+                        <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center relative overflow-hidden">
+                                <FileText className="w-5 h-5 text-primary relative z-10" />
+                                <div className="absolute inset-0 bg-primary/5 blur-lg" />
                             </div>
-                            <div>
-                                <h3 className="text-xl font-black tracking-tight">AI Diagnostic Report</h3>
-                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Generated by Gemini</p>
+                            <div className="space-y-1">
+                                <h2 className="font-heading text-lg font-medium text-white tracking-tight">AI Insights</h2>
+                                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-primary/60 flex items-center gap-2">
+                                    {isAnalyzing && (
+                                        <span className="w-1 h-1 rounded-full bg-primary animate-pulse" />
+                                    )}
+                                    {isAnalyzing ? loadingMessages[loadingStep] : "Scan Complete"}
+                                </p>
                             </div>
                         </div>
-
-                        <button
-                            onClick={downloadReport}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-background hover:bg-accent border border-border/50 text-xs font-bold transition-all shadow-sm hover:shadow-md active:scale-95"
-                        >
-                            <Download className="w-3.5 h-3.5" />
-                            Download PDF
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={downloadReport}
+                                disabled={isAnalyzing}
+                                className="px-6 py-2.5 rounded-[10px] bg-primary overflow-hidden relative group/export transition-all disabled:opacity-20 active:scale-95 shadow-[0_5px_15px_rgba(242,170,76,0.2)]"
+                            >
+                                <div className="absolute inset-[-100%] bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.4)_50%,transparent_75%)] w-[300%] animate-[shimmer_3s_infinite] pointer-events-none mix-blend-overlay" />
+                                <div className="relative z-10 flex items-center gap-2 text-black text-[10px] font-bold uppercase tracking-[0.3em]">
+                                    <Download className="w-3.5 h-3.5" />
+                                    Export
+                                </div>
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="p-8">
-                        <div className="prose prose-base sm:prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-primary hover:prose-a:text-primary/80 prose-strong:text-primary">
+                    <div className="bg-white/[0.02] border border-white/10 backdrop-blur-3xl rounded-[24px] p-8 md:p-14 shadow-[0_40px_120px_rgba(0,0,0,0.7)] relative overflow-hidden group/result">
+                        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-white/[0.02] rounded-full blur-[80px] -ml-20 -mb-20 pointer-events-none" />
+                        
+                        <div className="max-w-none prose prose-invert relative z-10
+                            prose-headings:font-heading prose-headings:text-primary prose-headings:font-medium prose-headings:tracking-tight
+                            prose-h1:text-3xl prose-h2:text-xl prose-h3:text-lg
+                            prose-p:text-white/70 prose-p:leading-[1.7] prose-p:text-[15px] prose-p:font-sans
+                            prose-strong:text-white prose-strong:font-semibold
+                            prose-li:text-white/60 prose-li:text-[15px] prose-li:font-sans
+                            prose-hr:border-white/5
+                            prose-a:text-primary hover:prose-a:text-primary/80
+                            prose-blockquote:border-primary/20 prose-blockquote:bg-white/[0.01]">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {analysis}
                             </ReactMarkdown>
                             {isAnalyzing && (
-                                <span className="inline-block w-3 h-6 ml-1 bg-primary rounded-sm animate-pulse align-middle" />
+                                <div className="mt-12 flex items-center justify-center gap-4 text-primary/40 font-heading font-medium text-[10px] tracking-[0.3em] uppercase">
+                                    <div className="flex gap-1.5">
+                                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                        <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce"></div>
+                                    </div>
+                                    Analyzing Content
+                                </div>
                             )}
                         </div>
                     </div>
@@ -363,5 +330,4 @@ export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
             )}
         </div>
     );
-
 }
