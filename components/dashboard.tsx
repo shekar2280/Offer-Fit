@@ -8,20 +8,17 @@ export function Dashboard() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
     return (
-        <div className="flex-1 w-full flex overflow-hidden">
-            <HistorySidebar onSelect={(id) => setSelectedId(id)} selectedId={selectedId} />
-            <main className="flex-1 overflow-y-auto">
-                <div className="flex-1 flex flex-col gap-12 max-w-5xl w-full p-5 py-20 mx-auto">
-                    <div className="text-center space-y-4">
-                        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
-                            Analyze your Resume <br />
-                            <span className="text-primary font-serif">in Seconds.</span>
-                        </h1>
-                    </div>
-                    
-                    <div className="bg-accent/20 rounded-3xl p-8 border border-foreground/5 shadow-2xl">
-                        <ResumeUpload selectedId={selectedId} />
-                    </div>
+        <div className="flex-1 w-full h-screen overflow-hidden relative bg-background flex selection:bg-primary/30 selection:text-primary">
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[150px] pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+
+            <div className="z-20 h-full backdrop-blur-3xl bg-black/40 border-r border-white/5 shadow-[5px_0_30px_rgba(0,0,0,0.5)]">
+                <HistorySidebar onSelect={(id) => setSelectedId(id)} selectedId={selectedId} />
+            </div>
+
+            <main className="flex-1 h-full overflow-y-auto no-scrollbar relative z-10">
+                <div className="min-h-full flex items-start justify-center p-4 lg:p-4 w-full">
+                    <ResumeUpload selectedId={selectedId} onReset={() => setSelectedId(null)} />
                 </div>
             </main>
         </div>
