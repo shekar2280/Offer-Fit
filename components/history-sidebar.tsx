@@ -12,10 +12,12 @@ interface Analysis {
 
 export function HistorySidebar({ onSelect, selectedId }: { onSelect: (id: string | null) => void, selectedId: string | null }) {
     const [history, setHistory] = useState<Analysis[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const supabase = createClient();
 
     useEffect(() => {
         async function fetchHistory() {
+            setIsLoading(true);
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const { data } = await supabase
@@ -25,6 +27,7 @@ export function HistorySidebar({ onSelect, selectedId }: { onSelect: (id: string
 
                 if (data) setHistory(data);
             }
+            setIsLoading(false);
         }
         fetchHistory();
     }, [selectedId]);
@@ -74,8 +77,8 @@ export function HistorySidebar({ onSelect, selectedId }: { onSelect: (id: string
             </div>
 
             <div className="overflow-y-auto flex-1 px-2 pb-12 space-y-2 no-scrollbar">
-                {history.length === 0 && (
-                    <div className="text-center text-[10px] uppercase tracking-widest font-black text-white/20 p-12 mt-4 border border-dashed border-white/5 rounded-[2rem] bg-white/[0.02]">
+                {!isLoading && history.length === 0 && (
+                    <div className="text-center text-[10px] uppercase tracking-widest font-black text-white/10 p-8 lg:p-4 lg:group-hover/sidebar:p-12 mt-4 border border-dashed border-white/5 rounded-[2rem] bg-white/[0.01] lg:opacity-0 lg:group-hover/sidebar:opacity-100 transition-all duration-500 overflow-hidden whitespace-nowrap">
                         Archive Empty
                     </div>
                 )}
