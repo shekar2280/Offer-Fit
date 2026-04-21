@@ -46,14 +46,13 @@ export function HistorySidebar({ onSelect, selectedId }: { onSelect: (id: string
 
 
     return (
-        <div className="w-[300px] bg-black border-r border-white/10 h-full flex flex-col z-20 shrink-0 relative">
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+        <div className="w-full lg:w-[300px] h-full flex flex-col z-20 shrink-0 relative bg-black lg:bg-transparent">
 
             <div className="p-6">
                 <button
                     onClick={() => onSelect(null)}
                     className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-bold uppercase tracking-widest transition-all duration-500 ${selectedId === null
-                        ? "bg-primary text-black shadow-[0_0_20px_rgba(242,170,76,0.3)] scale-95"
+                        ? "bg-primary text-black"
                         : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
                         }`}
                     title="New Analysis"
@@ -100,7 +99,7 @@ export function HistorySidebar({ onSelect, selectedId }: { onSelect: (id: string
 
                         <button
                             onClick={(e) => deleteAnalysis(e, item.id)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 p-2 hover:bg-destructive/20 hover:text-destructive rounded-lg transition-all duration-300 backdrop-blur-md"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 opacity-100 lg:opacity-0 lg:group-hover/item:opacity-100 p-2 hover:bg-destructive/20 hover:text-destructive rounded-lg transition-all duration-300 backdrop-blur-md sm:translate-x-0"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
                         </button>
