@@ -11,7 +11,6 @@ export async function generateChunks(text: string): Promise<string[]> {
   for (const section of sections) {
     const lines = section.trim().split('\n');
     const header = lines[0].trim(); 
-    const lowerHeader = header.toLowerCase();
 
     if (noiseKeywords.some(kw => lowerSection(section).includes(kw))) continue;
 
