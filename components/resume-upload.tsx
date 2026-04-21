@@ -31,6 +31,15 @@ export function ResumeUpload({ selectedId, onReset }: { selectedId: string | nul
     ];
 
     useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const urlCompany = params.get("company");
+        const urlRole = params.get("role");
+        const urlJd = params.get("jd");
+
+        if (urlCompany) setCompanyName(urlCompany);
+        if (urlRole) setPosition(urlRole);
+        if (urlJd) setJobDescription(urlJd);
+
         const checkExisting = async () => {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
@@ -72,10 +81,10 @@ export function ResumeUpload({ selectedId, onReset }: { selectedId: string | nul
             fetchSavedAnalysis();
         } else {
             checkExisting();
-            setJobDescription("");
+            if (!urlJd) setJobDescription("");
+            if (!urlCompany) setCompanyName("");
+            if (!urlRole) setPosition("");
             setAnalysis("");
-            setCompanyName("");
-            setPosition("");
         }
     }, [selectedId]);
 
