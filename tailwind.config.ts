@@ -13,6 +13,8 @@ export default {
       fontFamily: {
         sans: ['var(--font-inter)', 'sans-serif'],
         heading: ['var(--font-outfit)', 'sans-serif'],
+        display: ['var(--font-syne)', 'sans-serif'],
+        serif: ['var(--font-cormorant)', 'serif'],
       },
       colors: {
         background: "hsl(var(--background))",
