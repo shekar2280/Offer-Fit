@@ -6,6 +6,10 @@ import remarkGfm from "remark-gfm";
 import { createClient } from "@/lib/supabase/client";
 import { Download, Upload, Check, FileText, ArrowRight } from "lucide-react";
 import jsPDF from "jspdf";
+import { 
+    GoogleLogo, MicrosoftLogo, AmazonLogo, MetaLogo, NetflixLogo, 
+    AppleLogo, UberLogo, AirbnbLogo, TeslaLogo, StripeLogo, SpotifyLogo 
+} from "./logos";
 
 export function ResumeUpload({ selectedId, onReset }: { selectedId: string | null, onReset: () => void }) {
     const [isUploading, setIsUploading] = useState(false);
@@ -179,10 +183,44 @@ export function ResumeUpload({ selectedId, onReset }: { selectedId: string | nul
 
             {!(isAnalyzing || analysis) && (
                 <div className="space-y-6 sm:space-y-10 relative z-10">
-                    <div className="text-center px-4">
+                    <div className="text-center px-4 space-y-8">
                         <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40 leading-tight">
                             Optimize Your <span className="text-primary italic font-light drop-shadow-[0_0_30px_rgba(242,170,76,0.3)]">Resume</span>
                         </h1>
+
+                        <div className="space-y-4 overflow-hidden py-4 relative">
+                            <div className="flex gap-12 sm:gap-20 animate-marquee-right whitespace-nowrap">
+                                {[1, 2].map((i) => (
+                                    <div key={i} className="flex gap-12 sm:gap-20 items-center shrink-0">
+                                        <GoogleLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <MicrosoftLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <AppleLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <AmazonLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <MetaLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <NetflixLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <UberLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <AirbnbLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <TeslaLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <StripeLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <SpotifyLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.4em] text-primary/40 pt-4">
+                                Crack your dream company
+                            </p>
+
+                            <style jsx>{`
+                                @keyframes marquee-right {
+                                    0% { transform: translateX(-50%); }
+                                    100% { transform: translateX(0); }
+                                }
+                                .animate-marquee-right {
+                                    animation: marquee-right 30s linear infinite;
+                                }
+                            `}</style>
+                        </div>
                     </div>
 
                     <div className="bg-white/[0.01] border border-white/[0.03] rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 md:p-12 shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-3xl space-y-6 sm:space-y-8 relative overflow-hidden group/board">
@@ -194,7 +232,7 @@ export function ResumeUpload({ selectedId, onReset }: { selectedId: string | nul
                                 01. Job Details
                             </h2>
                             <textarea
-                                className="w-full h-24 sm:h-[80px] bg-black/40 border border-white/10 focus:border-primary rounded-[15px] p-5 sm:p-6 text-sm sm:text-[15px] leading-relaxed text-white placeholder:text-primary/40 outline-none resize-none scrollbar-hide font-sans transition-colors duration-300"
+                                className="w-full h-32 sm:h-[180px] bg-black/40 border border-white/10 focus:border-primary rounded-[15px] p-5 sm:p-6 text-sm sm:text-base leading-relaxed text-white placeholder:text-primary/40 outline-none resize-none scrollbar-hide font-sans transition-colors duration-300 shadow-inner"
                                 placeholder="Paste the job description here..."
                                 value={jobDescription}
                                 onChange={(e) => setJobDescription(e.target.value)}
@@ -219,7 +257,7 @@ export function ResumeUpload({ selectedId, onReset }: { selectedId: string | nul
                                 />
                                 <label 
                                     htmlFor={selectedId ? "" : "resume-upload"}
-                                    className={`relative flex flex-col items-center justify-center py-5 sm:py-6 px-6 sm:px-10 rounded-[20px] transition-all duration-700 overflow-hidden ${
+                                    className={`relative flex flex-col items-center justify-center py-6 sm:py-8 px-6 sm:px-10 rounded-[20px] transition-all duration-700 overflow-hidden ${
                                         extractedText 
                                         ? "bg-primary/[0.02] cursor-default" 
                                         : "bg-black/40 hover:bg-black/60 cursor-pointer"
@@ -228,7 +266,7 @@ export function ResumeUpload({ selectedId, onReset }: { selectedId: string | nul
                                     <div className={`absolute inset-0 border border-dashed rounded-[20px] transition-colors duration-700 pointer-events-none ${extractedText ? 'border-primary/30' : 'border-white/10 group-hover/board:border-white/20'}`} />
                                     {extractedText && <div className="absolute inset-0 bg-primary/5 shadow-[inset_0_0_100px_rgba(242,170,76,0.1)] pointer-events-none" />}
 
-                                    <div className={`relative z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-3 transition-all duration-700 ${extractedText ? 'bg-primary shadow-[0_0_40px_rgba(242,170,76,0.4)]' : 'bg-white/[0.03] border border-white/5'}`}>
+                                    <div className={`relative z-10 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mb-3 transition-all duration-700 ${extractedText ? 'bg-primary shadow-[0_0_40px_rgba(242,170,76,0.4)]' : 'bg-white/[0.03] border border-white/5'}`}>
                                         {isUploading ? (
                                             <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-transparent border-t-black border-r-black rounded-full animate-spin" />
                                         ) : extractedText ? (
@@ -249,7 +287,7 @@ export function ResumeUpload({ selectedId, onReset }: { selectedId: string | nul
                                 <button
                                     onClick={() => analyzeResume(extractedText || "")}
                                     disabled={isAnalyzing || isUploading || !extractedText || !jobDescription}
-                                    className="relative w-full h-12 sm:h-14 rounded-[10px] font-heading font-bold text-[10px] sm:text-xs uppercase tracking-[0.3em] sm:tracking-[0.4em] transition-all duration-500 overflow-hidden group/submit disabled:opacity-30 disabled:cursor-not-allowed"
+                                    className="relative w-full h-14 sm:h-16 rounded-[10px] font-heading font-bold text-xs sm:text-[13px] uppercase tracking-[0.3em] sm:tracking-[0.4em] transition-all duration-500 overflow-hidden group/submit disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                     <div className="absolute inset-0 bg-primary/20 backdrop-blur-md opacity-0 group-hover/submit:opacity-100 transition-opacity duration-300" />
                                     <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 transition-transform duration-500 group-hover/submit:scale-[1.02]" />
@@ -337,3 +375,4 @@ export function ResumeUpload({ selectedId, onReset }: { selectedId: string | nul
         </div>
     );
 }
+
