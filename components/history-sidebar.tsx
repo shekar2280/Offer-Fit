@@ -46,26 +46,30 @@ export function HistorySidebar({ onSelect, selectedId }: { onSelect: (id: string
 
 
     return (
-        <div className="w-full lg:w-[300px] h-full flex flex-col z-20 shrink-0 relative bg-black lg:bg-transparent">
+        <div className="w-full lg:w-full h-full flex flex-col z-20 shrink-0 relative bg-black lg:bg-transparent">
 
-            <div className="p-6">
+            <div className="p-3 sm:p-6 transition-all duration-500">
                 <button
                     onClick={() => onSelect(null)}
-                    className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-bold uppercase tracking-widest transition-all duration-500 ${selectedId === null
-                        ? "bg-primary text-black"
+                    className={`w-full flex lg:aspect-square lg:group-hover/sidebar:aspect-auto items-center justify-center lg:gap-0 lg:group-hover/sidebar:gap-3 py-4 lg:py-3 lg:px-3 lg:group-hover/sidebar:py-4 rounded-xl font-bold uppercase tracking-widest transition-all duration-500 ${selectedId === null
+                        ? "bg-primary text-black shadow-[0_10px_20px_rgba(242,170,76,0.2)]"
                         : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
                         }`}
                     title="New Analysis"
                 >
-                    <Plus className="w-5 h-5" />
-                    <span className="text-[10px] whitespace-nowrap">New Analysis</span>
+                    <Plus className="w-5 h-5 shrink-0" />
+                    <span className="text-[10px] whitespace-nowrap lg:opacity-0 lg:group-hover/sidebar:opacity-100 lg:w-0 lg:group-hover/sidebar:w-auto transition-all duration-500 overflow-hidden">
+                        New Analysis
+                    </span>
                 </button>
             </div>
 
-            <div className="px-6 py-2">
+            <div className="px-4 sm:px-6 py-2 transition-all duration-500">
                 <div className="text-[10px] font-black tracking-[0.3em] uppercase text-primary/60 flex items-center gap-3">
-                    <div className="w-8 h-[1px] bg-primary/20"></div>
-                    Archive
+                    <div className="w-8 h-[1px] bg-primary/20 shrink-0"></div>
+                    <span className="lg:opacity-0 lg:group-hover/sidebar:opacity-100 transition-opacity duration-500 whitespace-nowrap">
+                        Archive
+                    </span>
                 </div>
             </div>
 
@@ -82,17 +86,18 @@ export function HistorySidebar({ onSelect, selectedId }: { onSelect: (id: string
                     >
                         <button
                             onClick={() => onSelect(item.id)}
-                            className={`w-full text-left transition-all duration-300 flex items-center px-5 py-4 rounded-xl relative overflow-hidden group ${selectedId === item.id
+                            className={`w-full text-left transition-all duration-500 flex items-center px-5 py-4 rounded-xl relative overflow-hidden group/item ${selectedId === item.id
                                 ? "bg-white/10 border border-white/10 shadow-2xl"
                                 : "bg-transparent hover:bg-white/5 border border-transparent"
                                 }`}
                             title={item.short_title || "Untitled Analysis"}
                         >
+                            <FileText className="w-5 h-5 shrink-0 sm:mr-3 lg:mr-0 lg:group-hover/sidebar:mr-3 transition-all duration-500 text-primary/40" />
                             {selectedId === item.id && (
                                 <div className="absolute left-0 top-3 bottom-3 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(242,170,76,0.8)] animate-pulse"></div>
                             )}
                             
-                            <div className={`text-xs font-medium leading-tight truncate transition-colors duration-300 ${selectedId === item.id ? "text-primary" : "text-white/60 group-hover/item:text-white"}`}>
+                            <div className={`text-xs font-medium leading-tight truncate transition-all duration-500 ${selectedId === item.id ? "text-primary" : "text-white/60 group-hover/item:text-white"} lg:opacity-0 lg:group-hover/sidebar:opacity-100 lg:w-0 lg:group-hover/sidebar:w-auto`}>
                                 {item.short_title || "Untitled Analysis"}
                             </div>
                         </button>

@@ -27,7 +27,7 @@ export function Dashboard({ user }: { user: any }) {
 
     return (
         <div className="flex flex-col h-screen w-full bg-background text-foreground overflow-hidden">
-            <header className="w-full border-b border-white/5 h-[72px] shrink-0 sticky top-0 z-50 bg-background/80 backdrop-blur-xl">
+            <header className="w-full h-[72px] shrink-0 sticky top-0 z-50 bg-background/80 backdrop-blur-xl">
                 <div className="w-full px-4 sm:px-6 h-full flex justify-between items-center text-sm max-w-[1600px] mx-auto">
                     <div className="flex items-center gap-3 flex-1">
                         <div className="flex items-center gap-2 sm:gap-3 font-black text-2xl tracking-tighter">
@@ -66,10 +66,9 @@ export function Dashboard({ user }: { user: any }) {
 
                 <div className={`
                     fixed inset-y-0 left-0 z-[60] lg:relative lg:inset-auto lg:z-20 
-                    w-[75%] sm:w-[40%] lg:w-[300px]
+                    w-[75%] sm:w-[40%] lg:w-[80px] lg:hover:w-[300px]
                     h-full backdrop-blur-3xl bg-black/95 lg:bg-black/40 
-                    border-r border-white/5 shadow-[20px_0_60px_rgba(0,0,0,0.8)]
-                    transition-transform duration-500 ease-soft-in-out
+                    transition-all duration-500 ease-in-out group/sidebar
                     ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
                 `}>
                     <button 
