@@ -5,29 +5,73 @@ import { getRelevantContext } from "@/lib/supabase/rag";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function POST(req: Request) {
-  const { messages, analysisId } = await req.json();
+  const { messages, analysisId, companyName, position } = await req.json();
   const supabase = await createClient();
 
   const lastMessage = messages[messages.length - 1].content;
 
   const context = await getRelevantContext(supabase, analysisId, lastMessage);
 
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-2.5-flash-lite", 
+  });
 
   const augmentedPrompt = `
-    You are a professional technical recruiter. 
-    Using ONLY the following retrieved segments from the candidate's resume, compare them against the Job Description.
+    ROLE: You are a Distinguished Technical Strategist and Executive Recruiter in the high-stakes 2026 environment.
+    OBJECTIVE: Conduct a "Systemic Hiring Audit" of the candidate against the target role. 
+    TONE: Professional, analytical, and uncompromisingly honest. 
 
-    CANDIDATE RESUME CONTEXT:
-    ${context || "No relevant segments found in the resume."}
+    TARGET ENTITY: ${companyName || "Target Organization"}
+    TARGET ROLE: ${position || "Specialized Position"}
 
-    JOB DESCRIPTION / REQUEST:
+    CANDIDATE BIOGRAPHY (Segments):
+    ${context || "Baseline resume context unavailable."}
+
+    JD / MARKET CONTEXT:
     ${lastMessage}
 
-    Provide:
-    1. A Match Score (0-100%).
-    2. Top 3 "Missing Links" (Skills or experiences the JD wants but these segments lack).
-    3. 3 specific bullet points to add to the resume to better align with this JD using the context provided.
+    INSTRUCTIONS:
+    Evaluate the candidate not just on keywords, but on "Project Scale" and "Technical Depth." 
+    If the candidate is a fit, explain the ROI of hiring them. If not, define the "Opportunity Cost" of their missing skills.
+
+    RESPONSE STRUCTURE (Markdown):
+
+    # VERDICT: [APPLY / PASS]
+    # OVERALL STRATEGIC MATCH: [XX]%
+    
+    ## 📊 Hiring Alignment Analysis
+    - **Cultural Infusion (Company Fit):** [XX]% — [One sentence on brand/value alignment]
+
+    ## 🎙️ The Recruiter’s Private Assessment
+    > [!NOTE]
+    > **Strategic Whisper:** "[Write a thought-provoking, high-level analysis of the candidate's biggest unique advantage and their most concerning hidden risk for this specific role.]"
+
+    ## 🎡 Career Trajectory Forecast
+    - **Brand Power:** [XX]% 
+    - **Technical Growth:** [XX]% 
+    - **AI-Safety (Future-Proofing):** [XX]% 
+    - **Network Leverage:** [XX]% 
+
+    ## 🔍 Deep Identity Analysis
+    - **Company Dynamics:** [A deep, 2-sentence look at the company’s current roadmap and why this role exists.]
+    - **Role Impact:** [The true influence of this position within the organization.]
+
+    ## ⚔️ The Gap Audit (Non-Negotiable)
+    > [!CAUTION]
+    > **Critical Deficit:** [Identify 1-2 major conceptual or technical gaps that could cause an interview failure.]
+    
+    - **Skill Divergence:** [List specific mismatches]
+    - **Experience Scale:** [Analysis of whether their past projects match the target's scale]
+
+    ## 📈 Visual Skill Map (Era 2026)
+    - Core Tech Match: [▓▓▓▓▓░░░░░] 50%
+    - Leadership Match: [▓▓▓▓▓▓▓▓░░] 80%
+    - Future-Proofing: [▓▓▓░░░░░░░] 30%
+
+    ## 🚀 Execution Strategy
+    1. **Immediate Resume Refactor:** [A high-impact instruction to change one specific part of the resume.]
+    2. **High-Value Interview Hook:** [The "Hero Story" the candidate must tell during the interview.]
+    3. **2026 Market Edge:** [A secret tip for winning in the current high-competition landscape.]
   `;
 
   const result = await model.generateContentStream({
@@ -46,3 +90,4 @@ export async function POST(req: Request) {
 
   return new Response(responseStream);
 }
+
