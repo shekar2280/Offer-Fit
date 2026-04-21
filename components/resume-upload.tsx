@@ -192,17 +192,17 @@ export function ResumeUpload({ selectedId, onReset }: { selectedId: string | nul
                             <div className="flex gap-12 sm:gap-20 animate-marquee-right whitespace-nowrap">
                                 {[1, 2].map((i) => (
                                     <div key={i} className="flex gap-12 sm:gap-20 items-center shrink-0">
-                                        <GoogleLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
-                                        <MicrosoftLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
-                                        <AppleLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
-                                        <AmazonLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
-                                        <MetaLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
-                                        <NetflixLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
-                                        <UberLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
-                                        <AirbnbLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
-                                        <TeslaLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
-                                        <StripeLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
-                                        <SpotifyLogo className="h-5 sm:h-7 w-auto opacity-20 hover:opacity-100 transition-opacity duration-500" />
+                                        <GoogleLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
+                                        <MicrosoftLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
+                                        <AppleLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
+                                        <AmazonLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
+                                        <MetaLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
+                                        <NetflixLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
+                                        <UberLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
+                                        <AirbnbLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
+                                        <TeslaLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
+                                        <StripeLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
+                                        <SpotifyLogo className="h-5 sm:h-7 w-auto opacity-100 hover:scale-110 transition-all duration-500" />
                                     </div>
                                 ))}
                             </div>
