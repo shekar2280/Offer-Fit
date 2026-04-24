@@ -31,7 +31,7 @@ export function Dashboard({ user }: { user: any }) {
                 <div className="w-full px-4 sm:px-6 h-full flex justify-between items-center text-sm max-w-[1600px] mx-auto">
                     <div className="flex items-center gap-3 flex-1">
                         <div className="flex items-center gap-2 sm:gap-3 font-black text-2xl tracking-tighter">
-                            <button 
+                            <button
                                 onClick={() => setIsSidebarOpen(true)}
                                 className="lg:hidden p-2 hover:bg-white/5 rounded-lg text-primary transition-colors shrink-0"
                             >
@@ -50,10 +50,18 @@ export function Dashboard({ user }: { user: any }) {
                     </div>
 
                     <div className="flex items-center gap-3 sm:gap-4 justify-end flex-1">
-                        <div className="flex items-center justify-center sm:justify-start gap-2 bg-white/5 w-9 h-9 sm:w-auto sm:h-9 sm:px-3 rounded-full border border-white/10 text-foreground transition-all hover:bg-white/10 hover:border-primary/30 shadow-[0_4px_12px_rgba(0,0,0,0.1)] shrink-0">
-                            <UserCircle className="w-4 h-4 text-primary" />
-                            <span className="text-xs font-medium hidden sm:inline-block truncate max-w-[100px]">{username}</span>
-                        </div>
+                        <Link
+                            href="/protected/profile"
+                            className="flex items-center justify-center sm:justify-start gap-2 bg-white/5 h-9 px-3 rounded-full border border-white/10 text-foreground transition-all hover:bg-white/10 hover:border-primary/30 shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"
+                        >
+                            <div className="relative">
+                                <UserCircle className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full border-2 border-background animate-pulse" />
+                            </div>
+                            <span className="text-xs font-medium hidden sm:inline-block truncate max-w-[100px]">
+                                {username}
+                            </span>
+                        </Link>
                         <LogoutButton />
                     </div>
                 </div>
@@ -71,7 +79,7 @@ export function Dashboard({ user }: { user: any }) {
                     transition-all duration-500 ease-in-out group/sidebar
                     ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
                 `}>
-                    <button 
+                    <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="lg:hidden absolute top-6 right-6 p-2 rounded-xl bg-white/5 text-white/40 hover:text-white"
                     >
@@ -81,13 +89,13 @@ export function Dashboard({ user }: { user: any }) {
                 </div>
 
                 {isSidebarOpen && (
-                    <div 
+                    <div
                         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[55] lg:hidden"
                         onClick={() => setIsSidebarOpen(false)}
                     />
                 )}
-                
-                <main 
+
+                <main
                     ref={scrollContainerRef}
                     className="flex-1 h-full overflow-y-auto no-scrollbar relative z-10"
                 >

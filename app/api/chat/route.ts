@@ -7,6 +7,33 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 export async function POST(req: Request) {
   const { messages, analysisId, companyName, position } = await req.json();
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let profileContext = "";
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (profile) {
+      profileContext = `
+    CANDIDATE PROFILE:
+    - Headline: ${profile.headline}
+    - Total Experience: ${profile.years_experience} years
+    - Core Skills: ${profile.primary_skills}
+    - Education: ${profile.university} in ${profile.field_of_study} (${profile.graduation_year})
+    - Strategic "Why Me" Pitch: ${profile.hire_pitch}
+    - Work Authorization: ${profile.work_authorization}
+    
+    STRATEGIC PREFERENCES:
+    - Ideal Culture: ${profile.ideal_culture}
+    - Work Mode: ${profile.work_preference}
+    - Non-Negotiables: ${profile.non_negotiables}
+      `;
+    }
+  }
 
   const lastMessage = messages[messages.length - 1].content;
 
@@ -24,15 +51,18 @@ export async function POST(req: Request) {
     TARGET ENTITY: ${companyName || "Target Organization"}
     TARGET ROLE: ${position || "Specialized Position"}
 
-    CANDIDATE BIOGRAPHY (Segments):
+    ${profileContext}
+
+    CANDIDATE RESUME SEGMENTS:
     ${context || "Baseline resume context unavailable."}
 
     JD / MARKET CONTEXT:
     ${lastMessage}
 
     INSTRUCTIONS:
-    Evaluate the candidate not just on keywords, but on "Project Scale" and "Technical Depth." 
-    If the candidate is a fit, explain the ROI of hiring them. If not, define the "Opportunity Cost" of their missing skills.
+    Evaluate the candidate on "Project Scale" and "Technical Depth." 
+    Factor in the candidate's STRATEGIC PREFERENCES. If the job mode or culture conflicts with their preferences, highlight this as a risk.
+    Use the Profile data to cross-verify.
 
     RESPONSE STRUCTURE (Markdown):
 
