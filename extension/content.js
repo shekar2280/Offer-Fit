@@ -1,44 +1,55 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "extractJobData") {
-    const jobData = extractJobInfo();
-    sendResponse(jobData);
+    const jobData = ScraperEngine.extract();
+    sendResponse({
+      ...jobData,
+      url: window.location.href
+    });
+  } else if (request.action === "performAutofill") {
+    autofillForm(request.profile);
+    sendResponse({ success: true });
   }
   return true; 
 });
 
-function extractJobInfo() {
-  const url = window.location.href;
-  let company = "";
-  let role = "";
-  let description = "";
+function autofillForm(profile) {
+  const inputs = document.querySelectorAll('input, textarea');
+  inputs.forEach(input => {
+    const label = findLabel(input).toLowerCase();
+    const name = (input.name || '').toLowerCase();
+    const id = (input.id || '').toLowerCase();
+    const placeholder = (input.placeholder || '').toLowerCase();
+    const context = `${label} ${name} ${id} ${placeholder}`;
 
-  if (url.includes("linkedin.com")) {
-    role = document.querySelector('.job-details-jobs-unified-top-card__job-title')?.innerText || 
-           document.querySelector('.jobs-unified-top-card__job-title')?.innerText || 
-           document.querySelector('h1')?.innerText || 
-           document.querySelector('h2.t-24')?.innerText || "";
+    if (matches(context, ['name', 'full name', 'first name', 'last name'])) {
+      fill(input, profile.name);
+    } else if (matches(context, ['email', 'e-mail', 'address'])) {
+      fill(input, profile.email);
+    } else if (matches(context, ['phone', 'mobile', 'cell', 'contact'])) {
+      fill(input, profile.phone);
+    } else if (matches(context, ['linkedin', 'social', 'profile'])) {
+      fill(input, profile.linkedin);
+    }
+  });
+}
 
-    company = document.querySelector('.job-details-jobs-unified-top-card__company-name')?.innerText || 
-              document.querySelector('.jobs-unified-top-card__company-name')?.innerText || 
-              document.querySelector('.app-indicator-card__title')?.innerText || 
-              document.querySelector('.company-name')?.innerText || "";
-
-    description = document.querySelector('#job-details')?.innerText || 
-                  document.querySelector('.jobs-description-content__text')?.innerText || 
-                  document.querySelector('.jobs-box__html-content')?.innerText || "";
-                  
-  } else if (url.includes("indeed.com")) {
-    role = document.querySelector('.jobsearch-JobInfoHeader-title')?.innerText || 
-           document.querySelector('h1')?.innerText || "";
-    company = document.querySelector('.jobsearch-CompanyReview--heading')?.innerText || 
-              document.querySelector('[data-company-name="true"]')?.innerText || "";
-    description = document.querySelector('#jobDescriptionText')?.innerText || "";
+function findLabel(input) {
+  if (input.labels && input.labels.length > 0) return input.labels[0].innerText;
+  const id = input.id;
+  if (id) {
+    const label = document.querySelector(`label[for="${id}"]`);
+    if (label) return label.innerText;
   }
+  return '';
+}
 
-  return {
-    company: company.trim().split('\n')[0], 
-    role: role.trim(),
-    description: description.trim(),
-    url: url
-  };
+function matches(text, keywords) {
+  return keywords.some(kw => text.includes(kw));
+}
+
+function fill(input, value) {
+  if (!value) return;
+  input.value = value;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
 }
