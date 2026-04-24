@@ -1,31 +1,87 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   
-  if (!tab.url.includes('linkedin.com') && !tab.url.includes('indeed.com')) {
-    document.getElementById('no-job').style.display = 'block';
-    document.getElementById('job-info').style.display = 'none';
-    return;
-  }
+  const tabSync = document.getElementById('tab-sync');
+  const tabProfile = document.getElementById('tab-profile');
+  const viewSync = document.getElementById('view-sync');
+  const viewProfile = document.getElementById('view-profile');
+
+  tabSync.addEventListener('click', () => {
+    tabSync.style.color = '#F2AA4C';
+    tabProfile.style.color = 'rgba(255,255,255,0.4)';
+    viewSync.style.display = 'block';
+    viewProfile.style.display = 'none';
+  });
+
+  tabProfile.addEventListener('click', () => {
+    tabProfile.style.color = '#F2AA4C';
+    tabSync.style.color = 'rgba(255,255,255,0.4)';
+    viewSync.style.display = 'none';
+    viewProfile.style.display = 'block';
+  });
+
+  chrome.storage.local.get(['profile'], (result) => {
+    if (result.profile) {
+      document.getElementById('p-name').value = result.profile.name || '';
+      document.getElementById('p-email').value = result.profile.email || '';
+      document.getElementById('p-phone').value = result.profile.phone || '';
+      document.getElementById('p-linkedin').value = result.profile.linkedin || '';
+    }
+  });
+
+  document.getElementById('save-profile').addEventListener('click', () => {
+    const profile = {
+      name: document.getElementById('p-name').value,
+      email: document.getElementById('p-email').value,
+      phone: document.getElementById('p-phone').value,
+      linkedin: document.getElementById('p-linkedin').value,
+    };
+    chrome.storage.local.set({ profile }, () => {
+      alert('Profile saved!');
+      tabSync.click();
+    });
+  });
 
   document.getElementById('no-job').style.display = 'none';
   document.getElementById('job-info').style.display = 'block';
 
   chrome.tabs.sendMessage(tab.id, { action: "extractJobData" }, (response) => {
-    if (response) {
+    if (chrome.runtime.lastError) {
+      document.getElementById('no-job').style.display = 'block';
+      document.getElementById('job-info').style.display = 'none';
+      return;
+    }
+
+    if (response && response.role) {
       document.getElementById('company').innerText = response.company || "Unknown Company";
-      document.getElementById('role').innerText = response.role || "Unknown Role";
+      document.getElementById('role').innerText = response.role || "Unknown Position";
       
-      const syncBtn = document.getElementById('sync-btn');
-      syncBtn.addEventListener('click', () => {
+      document.getElementById('sync-btn').onclick = () => {
         const baseUrl = "http://localhost:3000"; 
         const params = new URLSearchParams({
           company: response.company,
           role: response.role,
           jd: response.description
         });
-        
         chrome.tabs.create({ url: `${baseUrl}?${params.toString()}` });
-      });
+      };
+    } else {
+      document.getElementById('no-job').style.display = 'block';
+      document.getElementById('job-info').style.display = 'none';
     }
+  });
+
+  document.getElementById('autofill-btn').addEventListener('click', () => {
+    chrome.storage.local.get(['profile'], (result) => {
+      if (!result.profile) {
+        alert('Please fill out your profile first!');
+        tabProfile.click();
+        return;
+      }
+      chrome.tabs.sendMessage(tab.id, { 
+        action: "performAutofill", 
+        profile: result.profile 
+      });
+    });
   });
 });

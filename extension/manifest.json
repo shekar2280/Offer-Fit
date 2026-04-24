@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Hiring Intelligence Sync",
   "version": "1.0",
-  "description": "Instantly sync job descriptions to your Resume Analyzer.",
-  "permissions": ["activeTab", "scripting"],
+  "description": "Premium AI-powered job extraction for 100+ platforms.",
+  "permissions": ["activeTab", "scripting", "storage"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
@@ -15,8 +15,8 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.linkedin.com/jobs/*", "*://*.indeed.com/*", "*://*.glassdoor.com/*"],
-      "js": ["content.js"]
+      "matches": ["<all_urls>"],
+      "js": ["scraper.js", "content.js"]
     }
   ]
 }
