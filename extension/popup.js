@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('p-name').value = result.profile.name || '';
       document.getElementById('p-email').value = result.profile.email || '';
       document.getElementById('p-phone').value = result.profile.phone || '';
-      document.getElementById('p-linkedin').value = result.profile.linkedin || '';
+      document.getElementById('p-githubLink').value = result.profile.githubLink || '';
     }
   });
 
@@ -34,11 +34,39 @@ document.addEventListener('DOMContentLoaded', async () => {
       name: document.getElementById('p-name').value,
       email: document.getElementById('p-email').value,
       phone: document.getElementById('p-phone').value,
-      linkedin: document.getElementById('p-linkedin').value,
+      githubLink: document.getElementById('p-githubLink').value,
     };
     chrome.storage.local.set({ profile }, () => {
       alert('Profile saved!');
       tabSync.click();
+    });
+  });
+
+  document.getElementById('sync-web-profile').addEventListener('click', () => {
+    chrome.tabs.sendMessage(tab.id, { action: "scrapeWebProfile" }, (response) => {
+      if (response && response.success) {
+        chrome.storage.local.get(['profile'], (result) => {
+          const currentProfile = result.profile || {};
+
+          const updatedProfile = {
+            name: response.data.full_name || currentProfile.name || '',
+            email: response.data.email || currentProfile.email || '',
+            phone: response.data.phone_number || currentProfile.phone || '',
+            githubLink: response.data.portfolio_url || currentProfile.githubLink || ''
+          };
+
+          document.getElementById('p-name').value = updatedProfile.name;
+          document.getElementById('p-email').value = updatedProfile.email;
+          document.getElementById('p-phone').value = updatedProfile.phone;
+          document.getElementById('p-githubLink').value = updatedProfile.githubLink;
+
+          chrome.storage.local.set({ profile: updatedProfile }, () => {
+            alert('Intelligence Sync: Partial data merged successfully!');
+          });
+        });
+      } else {
+        alert('Could not find profile data. Make sure you are on your website profile page!');
+      }
     });
   });
 
