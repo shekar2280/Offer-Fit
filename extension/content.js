@@ -8,9 +8,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === "performAutofill") {
     autofillForm(request.profile);
     sendResponse({ success: true });
+  } else if (request.action === "scrapeWebProfile") {
+    const data = scrapeProfileData();
+    sendResponse({ success: true, data });
   }
   return true; 
 });
+
+function scrapeProfileData() {
+  const data = {};
+  const inputs = document.querySelectorAll('input, textarea, select');
+  
+  inputs.forEach(input => {
+    const id = (input.id || '').toLowerCase();
+    const label = findLabel(input).toLowerCase();
+    const placeholder = (input.placeholder || '').toLowerCase();
+    
+    if (id === 'full_name' || label.includes('full name') || placeholder.includes('john doe')) {
+      data.full_name = input.value;
+    } else if (id === 'email' || label.includes('email address')) {
+      data.email = input.value;
+    } else if (id === 'phone_number' || label.includes('phone number') || placeholder.includes('+91')) {
+      data.phone_number = input.value;
+    } else if (id === 'portfolio_url' || label.includes('portfolio') || placeholder.includes('https://')) {
+      data.portfolio_url = input.value;
+    }
+  });
+  return data;
+}
 
 function autofillForm(profile) {
   const inputs = document.querySelectorAll('input, textarea');

@@ -85,16 +85,16 @@ export function ProfileForm({ initialData, user }: { initialData?: any, user: an
                         </header>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-white/30">Full Name</label>
-                                <input value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all" placeholder="John Doe" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-white/30" htmlFor="full_name">Full Name</label>
+                                <input id="full_name" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all" placeholder="John Doe" />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-white/30">Email Address</label>
-                                <input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all" />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-white/30" htmlFor="email">Email Address</label>
+                                <input id="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all" />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-white/30">Phone Number</label>
-                                <input value={formData.phone_number} onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all" placeholder="+91 ..." />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-white/30" htmlFor="phone_number">Phone Number</label>
+                                <input id="phone_number" value={formData.phone_number} onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all" placeholder="+91 ..." />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-white/30">Date of Birth</label>
@@ -124,8 +124,8 @@ export function ProfileForm({ initialData, user }: { initialData?: any, user: an
                                 <input type="number" value={formData.years_experience} onChange={(e) => setFormData({ ...formData, years_experience: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all" placeholder="5" />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-white/30">Portfolio / GitHub URL</label>
-                                <input value={formData.portfolio_url} onChange={(e) => setFormData({ ...formData, portfolio_url: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all" placeholder="https://..." />
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-white/30" htmlFor="portfolio_url">Portfolio / GitHub URL</label>
+                                <input id="portfolio_url" value={formData.portfolio_url} onChange={(e) => setFormData({ ...formData, portfolio_url: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-primary outline-none transition-all" placeholder="https://..." />
                             </div>
                             <div className="space-y-2 md:col-span-2">
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-white/30">Primary Skills</label>
