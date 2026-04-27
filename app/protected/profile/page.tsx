@@ -1,4 +1,4 @@
-import { ProfileForm } from "@/components/profile-form";
+import { ProfileForm } from "@/components/features/profile/profile-form";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";

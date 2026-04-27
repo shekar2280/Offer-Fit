@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { HistorySidebar } from "./history-sidebar";
-import { ResumeUpload } from "./resume-upload";
-import { Menu, X, Sparkles, UserCircle } from "lucide-react";
+import { HistorySidebar } from "@/components/layout/history-sidebar";
+import { ResumeUpload } from "@/components/features/resume/resume-upload";
+import { Menu, X, Sparkles, UserCircle, Target } from "lucide-react";
 import Link from "next/link";
-import { LogoutButton } from "./logout-button";
+import { LogoutButton } from "../features/auth/logout-button";
 
-export function Dashboard({ user }: { user: any }) {
+export function DashboardShell({ user }: { user: any }) {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -50,6 +50,14 @@ export function Dashboard({ user }: { user: any }) {
                     </div>
 
                     <div className="flex items-center gap-3 sm:gap-4 justify-end flex-1">
+                        <Link
+                            href="/protected/practice"
+                            className="hidden md:flex items-center gap-2 bg-primary/10 h-9 px-4 rounded-full border border-primary/20 text-primary transition-all hover:bg-primary/20 hover:scale-105 shadow-sm group"
+                        >
+                            <Target className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Practice</span>
+                        </Link>
+
                         <Link
                             href="/protected/profile"
                             className="flex items-center justify-center sm:justify-start gap-2 bg-white/5 h-9 px-3 rounded-full border border-white/10 text-foreground transition-all hover:bg-white/10 hover:border-primary/30 shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"

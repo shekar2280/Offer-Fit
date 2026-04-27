@@ -1,4 +1,4 @@
-import { Dashboard } from "@/components/dashboard";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { createClient } from "@/lib/supabase/server";
 import { Suspense } from "react";
 
@@ -16,5 +16,5 @@ async function DashboardContainer() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  return <Dashboard user={user} />;
+  return <DashboardShell user={user} />;
 }
