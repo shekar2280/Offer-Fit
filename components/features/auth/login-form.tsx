@@ -3,35 +3,33 @@
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function UpdatePasswordForm({
+export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const supabase = createClient();
     setIsLoading(true);
     setError(null);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) throw error;
       router.push("/protected");
     } catch (error: unknown) {
@@ -49,25 +47,46 @@ export function UpdatePasswordForm({
         <div className="relative z-10 space-y-8">
           <div className="space-y-3">
             <h1 className="font-heading text-3xl font-semibold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40">
-              New Password
+              Welcome Back
             </h1>
             <p className="text-sm text-white/40 font-medium">
-              Create a secure password for your account
+              Enter your credentials to access your dashboard
             </p>
           </div>
 
-          <form onSubmit={handleForgotPassword} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-[10px] uppercase tracking-[0.2em] text-white/50 ml-1">New Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-12 bg-black/40 border-white/10 rounded-xl focus:border-primary transition-colors"
-                placeholder="••••••••"
-              />
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-[10px] uppercase tracking-[0.2em] text-white/50 ml-1">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@company.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-12 bg-black/40 border-white/10 rounded-xl focus:border-primary transition-colors placeholder:text-white/10"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between ml-1">
+                  <Label htmlFor="password" className="text-[10px] uppercase tracking-[0.2em] text-white/50">Password</Label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-[10px] uppercase tracking-[0.1em] text-primary/60 hover:text-primary transition-colors"
+                  >
+                    Forgot?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 bg-black/40 border-white/10 rounded-xl focus:border-primary transition-colors"
+                />
+              </div>
             </div>
 
             {error && (
@@ -83,9 +102,21 @@ export function UpdatePasswordForm({
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-              ) : "Update Password"}
+              ) : "Sign In"}
             </Button>
           </form>
+
+          <div className="pt-4 text-center">
+            <p className="text-xs text-white/30">
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/auth/sign-up"
+                className="text-primary/60 hover:text-primary font-bold transition-colors ml-1"
+              >
+                Create Account
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
