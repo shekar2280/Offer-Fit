@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { HistorySidebar } from "./history-sidebar";
-import { ResumeUpload } from "./resume-upload";
+import { HistorySidebar } from "@/components/layout/history-sidebar";
+import { ResumeUpload } from "@/components/features/resume/resume-upload";
 import { Menu, X, Sparkles, UserCircle } from "lucide-react";
 import Link from "next/link";
-import { LogoutButton } from "./logout-button";
+import { LogoutButton } from "../features/auth/logout-button";
 
-export function Dashboard({ user }: { user: any }) {
+export function DashboardShell({ user }: { user: any }) {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);

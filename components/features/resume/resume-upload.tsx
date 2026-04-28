@@ -9,7 +9,7 @@ import jsPDF from "jspdf";
 import { 
     GoogleLogo, MicrosoftLogo, AmazonLogo, MetaLogo, NetflixLogo, 
     AppleLogo, UberLogo, AirbnbLogo, TeslaLogo, StripeLogo, SpotifyLogo 
-} from "./logos";
+} from "@/components/icons/brand";
 
 export function ResumeUpload({ selectedId, onReset }: { selectedId: string | null, onReset: () => void }) {
     const [isUploading, setIsUploading] = useState(false);
@@ -714,4 +714,3 @@ export function ResumeUpload({ selectedId, onReset }: { selectedId: string | nul
         </div>
     );
 }
-
