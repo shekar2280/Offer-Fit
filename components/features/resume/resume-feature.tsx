@@ -4,10 +4,12 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import jsPDF from "jspdf";
-import { Search, FileText } from "lucide-react";
-import { ActiveWorkspace } from "./components/active-workspace";
+import { toast } from "sonner";
+import { ResumeUpload } from "./resume-upload";
 import { AnalysisReport } from "./components/analysis-report";
+import { ActiveWorkspace } from "./components/active-workspace";
 import { Navbar } from "@/components/layout/navbar";
+import { FileText, Search } from "lucide-react";
 
 export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analysis" | "customize", selectedId?: string | null }) {
     const searchParams = useSearchParams();
@@ -238,10 +240,9 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
 
             if (error) throw error;
             setHasExistingResume(true);
-            alert("Master LaTeX saved to your profile!");
+            toast.success("Master LaTeX saved to your profile!");
         } catch (error) {
-            console.error("Failed to save baseline", error);
-            alert("Failed to save to profile.");
+            toast.error("Failed to save to profile.");
         }
     };
 
@@ -362,7 +363,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                 }).eq("id", targetId);
             }
         } catch (error) {
-            console.error("Analysis failed", error);
+            toast.error("Analysis failed. Please check your JD and try again.");
         } finally {
             clearInterval(stepInterval);
             setIsAnalyzing(false);
