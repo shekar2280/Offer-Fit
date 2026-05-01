@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractText } from "unpdf";
 import { createClient } from "@/lib/supabase/server";
-import { embedAndStore } from "@/lib/supabase/rag";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -12,13 +11,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    const parsedResult = await extractText(arrayBuffer);
-
-    const text = Array.isArray(parsedResult.text)
-      ? parsedResult.text.join("\n")
-      : parsedResult.text;
-    const totalPages = parsedResult.totalPages;
+    const isPdf = file.type === "application/pdf";
+    let text = "";
+    
+    if (isPdf) {
+        const arrayBuffer = await file.arrayBuffer();
+        const parsedResult = await extractText(arrayBuffer);
+        text = Array.isArray(parsedResult.text)
+            ? parsedResult.text.join("\n")
+            : parsedResult.text;
+    } else {
+        text = await file.text();
+    }
 
     const supabase = await createClient();
     const {
@@ -29,29 +33,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: analysis, error: insertError } = await supabase
-      .from("analyses")
-      .insert({
-        user_id: user.id,
-        resume_text: text,
-        short_title: file.name.replace(".pdf", ""),
-      })
-      .select()
-      .single();
+    const profileUpdate: any = { 
+        id: user.id,
+        updated_at: new Date().toISOString() 
+    };
+    if (isPdf) profileUpdate.resume_text = text;
+    else profileUpdate.latex_source = text;
 
-    if (insertError) throw insertError;
-
-    await embedAndStore(supabase, analysis.id, text);
+    await supabase.from("profiles").upsert(profileUpdate);
 
     return NextResponse.json({
       text: text,
-      total: totalPages,
-      analysisId: analysis.id,
+      isLatex: !isPdf
     });
   } catch (error) {
-    console.error("PDF Parsing/Indexing Error:", error);
+    console.error("PDF Parsing Error:", error);
     return NextResponse.json(
-      { error: "Failed to parse or index PDF" },
+      { error: "Failed to parse file" },
       { status: 500 },
     );
   }

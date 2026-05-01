@@ -85,11 +85,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('role').innerText = response.role || "Unknown Position";
       
       document.getElementById('sync-btn').onclick = () => {
-        const baseUrl = "http://localhost:3000"; 
+        const baseUrl = "http://localhost:3000/analyze"; 
         const params = new URLSearchParams({
-          company: response.company,
-          role: response.role,
-          jd: response.description
+          company: response.company || "",
+          role: response.role || "",
+          jd: response.description || ""
         });
         chrome.tabs.create({ url: `${baseUrl}?${params.toString()}` });
       };
