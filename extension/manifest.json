@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Hiring Intelligence Sync",
+  "name": "Hiring Data Sync",
   "version": "1.0",
   "description": "Premium AI-powered job extraction for 100+ platforms.",
   "permissions": ["activeTab", "scripting", "storage"],
