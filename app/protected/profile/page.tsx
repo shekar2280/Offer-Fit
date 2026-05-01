@@ -10,7 +10,7 @@ export default function ProfilePage() {
             <nav className="h-[72px] flex items-center max-w-7xl mx-auto">
                 <Link href="/" className="flex items-center gap-2 text-white/40 hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest">
                     <ArrowLeft className="w-4 h-4" />
-                    Back to Hub
+                    Back
                 </Link>
             </nav>
             
