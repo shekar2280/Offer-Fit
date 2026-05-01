@@ -30,8 +30,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased selection:bg-primary/30 selection:text-primary`}>
+    <html lang="en" suppressHydrationWarning className="dark no-scrollbar">
+      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased selection:bg-primary/30 selection:text-primary no-scrollbar overflow-x-hidden`}>
         {children}
       </body>
     </html>
