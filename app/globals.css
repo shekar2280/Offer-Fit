@@ -31,8 +31,15 @@
   * {
     @apply border-border;
   }
+  
+  html, body {
+    @apply antialiased selection:bg-primary/30 selection:text-primary overflow-x-hidden;
+    background-color: black;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary;
     background-image: radial-gradient(
       circle at top center,
       rgba(242, 170, 76, 0.05) 0%,
@@ -40,7 +47,12 @@
     );
     background-attachment: fixed;
   }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
 }
+
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
