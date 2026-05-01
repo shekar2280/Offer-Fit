@@ -1,38 +1,38 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "sonner";
 
-const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(defaultUrl),
-  title: "ResumeAI Analyzer",
-  description: "Advanced RAG-based resume analysis",
+  title: "Intelligence Vault | AI Resume Analyzer",
+  description: "Advanced career intelligence and resume optimization engine.",
 };
-
-const inter = Inter({
-  variable: "--font-inter",
-  display: "swap",
-  subsets: ["latin"],
-});
-
-const outfit = Outfit({
-  variable: "--font-outfit",
-  display: "swap",
-  subsets: ["latin"],
-});
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark no-scrollbar">
-      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased selection:bg-primary/30 selection:text-primary no-scrollbar overflow-x-hidden`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} bg-[#020202] text-white antialiased`}>
         {children}
+        <Toaster 
+          position="bottom-right" 
+          theme="dark" 
+          closeButton 
+          richColors 
+          toastOptions={{
+            style: {
+              background: 'rgba(8, 8, 8, 0.8)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '1.25rem',
+            }
+          }}
+        />
       </body>
     </html>
   );
