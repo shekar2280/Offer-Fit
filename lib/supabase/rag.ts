@@ -3,26 +3,39 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function generateChunks(text: string): Promise<string[]> {
-   const sections = text.split(/\n(?=[A-Z\s&/-]{4,}\n)/g);
-  
-  const noiseKeywords = ["education", "university", "college", "degree", "school", "cgpa", "nationality", "gender", "dob"];
+  const sections = text.split(/\n(?=[A-Z\s&/-]{4,}\n)/g);
+
+  const noiseKeywords = [
+    "education",
+    "university",
+    "college",
+    "degree",
+    "school",
+    "cgpa",
+    "nationality",
+    "gender",
+    "dob",
+  ];
   const processedChunks: string[] = [];
 
   for (const section of sections) {
-    const lines = section.trim().split('\n');
-    const header = lines[0].trim(); 
+    const lines = section.trim().split("\n");
+    const header = lines[0].trim();
 
-    if (noiseKeywords.some(kw => lowerSection(section).includes(kw))) continue;
+    if (noiseKeywords.some((kw) => lowerSection(section).includes(kw)))
+      continue;
 
-    const content = lines.slice(1).join('\n');
-    const subBlocks = content.split(/\n\n/g).filter(b => b.trim().length > 30);
+    const content = lines.slice(1).join("\n");
+    const subBlocks = content
+      .split(/\n\n/g)
+      .filter((b) => b.trim().length > 30);
 
     for (const block of subBlocks) {
       const lowerBlock = block.toLowerCase();
 
       const hasEmail = lowerBlock.includes("@") || lowerBlock.includes(".com");
-      const hasPhone = /(\+?\d{10,})/.test(block.replace(/[\s-]/g, ''));
-      
+      const hasPhone = /(\+?\d{10,})/.test(block.replace(/[\s-]/g, ""));
+
       if (!hasEmail && !hasPhone) {
         processedChunks.push(`[${header}] ${block.trim()}`);
       }
@@ -32,21 +45,19 @@ export async function generateChunks(text: string): Promise<string[]> {
   return processedChunks.length > 0 ? processedChunks : [text];
 }
 
-function lowerSection(s: string) { return s.toLowerCase(); }
-
-
-
+function lowerSection(s: string) {
+  return s.toLowerCase();
+}
 
 export async function embedAndStore(
   supabase: any,
   analysisId: string,
   text: string,
 ) {
-  const chunks = await generateChunks(text);
+  await supabase.from("resume_chunks").delete().eq("analysis_id", analysisId);
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-embedding-2-preview",
-  });
+  const chunks = await generateChunks(text);
+  const model = genAI.getGenerativeModel({ model: "gemini-embedding-2-preview" });
 
   for (const [index, chunk] of chunks.entries()) {
     try {

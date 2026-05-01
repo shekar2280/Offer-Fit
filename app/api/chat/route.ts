@@ -5,119 +5,84 @@ import { getRelevantContext } from "@/lib/supabase/rag";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function POST(req: Request) {
-  const { messages, analysisId, companyName, position } = await req.json();
+  const { messages, companyName, position, resumeText, goal } = await req.json();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   let profileContext = "";
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
+    const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
     if (profile) {
-      profileContext = `
-    CANDIDATE PROFILE:
-    - Headline: ${profile.headline}
-    - Total Experience: ${profile.years_experience} years
-    - Core Skills: ${profile.primary_skills}
-    - Education: ${profile.university} in ${profile.field_of_study} (${profile.graduation_year})
-    - Strategic "Why Me" Pitch: ${profile.hire_pitch}
-    - Work Authorization: ${profile.work_authorization}
-    
-    STRATEGIC PREFERENCES:
-    - Ideal Culture: ${profile.ideal_culture}
-    - Work Mode: ${profile.work_preference}
-    - Non-Negotiables: ${profile.non_negotiables}
-      `;
+      profileContext = `CANDIDATE BASELINE: ${profile.hire_pitch || "Standard profile"}.`;
     }
   }
 
-  const lastMessage = messages[messages.length - 1].content;
+  const jd = messages[messages.length - 1].content;
+  const context = resumeText || (user ? await getRelevantContext(supabase, user.id, jd) : "");
+  
+  const isLatex = context?.includes("\\documentclass") || context?.includes("\\section{");
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
-  const context = await getRelevantContext(supabase, analysisId, lastMessage);
+  if (goal === 'optimize' && isLatex) {
+    const optimizePrompt = `
+      ROLE: Elite LaTeX Surgeon.
+      TASK: Optimize the provided LaTeX resume source for the JD below.
+      
+      JD:
+      ${jd}
+      
+      LATEX SOURCE:
+      ${context}
 
-  const model = genAI.getGenerativeModel({ 
-    model: "gemini-2.5-flash-lite", 
-  });
+      INSTRUCTIONS:
+      1. Keep EXACT same LaTeX structure and styling.
+      2. Rewrite 3-5 critical bullet points to align with JD.
+      3. Return ONLY raw LaTeX code. No markdown.
+    `;
+    const result = await model.generateContent(optimizePrompt);
+    return new Response(result.response.text());
+  }
 
-  const augmentedPrompt = `
-    ROLE: You are a Distinguished Technical Strategist and Executive Recruiter in the high-stakes 2026 environment.
-    OBJECTIVE: Conduct a "Systemic Hiring Audit" of the candidate against the target role. 
-    TONE: Professional, analytical, and uncompromisingly honest. 
-
-    TARGET ENTITY: ${companyName || "Target Organization"}
-    TARGET ROLE: ${position || "Specialized Position"}
-
+  const masterPrompt = `
+    ROLE: Elite Technical Hiring Manager & Career Strategist.
+    CONTEXT: ${companyName} | ${position}
+    CANDIDATE RESUME: ${context}
+    TARGET JD: ${jd}
     ${profileContext}
 
-    CANDIDATE RESUME SEGMENTS:
-    ${context || "Baseline resume context unavailable."}
+    TASK: Perform a deep-dive analysis. Return ONLY a single valid JSON object. No markdown fences.
 
-    JD / MARKET CONTEXT:
-    ${lastMessage}
-
-    INSTRUCTIONS:
-    Evaluate the candidate on "Project Scale" and "Technical Depth." 
-    Factor in the candidate's STRATEGIC PREFERENCES. If the job mode or culture conflicts with their preferences, highlight this as a risk.
-    Use the Profile data to cross-verify.
-
-    RESPONSE STRUCTURE (Markdown):
-
-    # VERDICT: [APPLY / PASS]
-    # OVERALL STRATEGIC MATCH: [XX]%
-    
-    ## 📊 Hiring Alignment Analysis
-    - **Cultural Infusion (Company Fit):** [XX]% — [One sentence on brand/value alignment]
-
-    ## 🎙️ The Recruiter’s Private Assessment
-    > [!NOTE]
-    > **Strategic Whisper:** "[Write a thought-provoking, high-level analysis of the candidate's biggest unique advantage and their most concerning hidden risk for this specific role.]"
-
-    ## 🎡 Career Trajectory Forecast
-    - **Brand Power:** [XX]% 
-    - **Technical Growth:** [XX]% 
-    - **AI-Safety (Future-Proofing):** [XX]% 
-    - **Network Leverage:** [XX]% 
-
-    ## 🔍 Deep Identity Analysis
-    - **Company Dynamics:** [A deep, 2-sentence look at the company’s current roadmap and why this role exists.]
-    - **Role Impact:** [The true influence of this position within the organization.]
-
-    ## ⚔️ The Gap Audit (Non-Negotiable)
-    > [!CAUTION]
-    > **Critical Deficit:** [Identify 1-2 major conceptual or technical gaps that could cause an interview failure.]
-    
-    - **Skill Divergence:** [List specific mismatches]
-    - **Experience Scale:** [Analysis of whether their past projects match the target's scale]
-
-    ## 📈 Visual Skill Map (Era 2026)
-    - Core Tech Match: [▓▓▓▓▓░░░░░] 50%
-    - Leadership Match: [▓▓▓▓▓▓▓▓░░] 80%
-    - Future-Proofing: [▓▓▓░░░░░░░] 30%
-
-    ## 🚀 Execution Strategy
-    1. **Immediate Resume Refactor:** [A high-impact instruction to change one specific part of the resume.]
-    2. **High-Value Interview Hook:** [The "Hero Story" the candidate must tell during the interview.]
-    3. **2026 Market Edge:** [A secret tip for winning in the current high-competition landscape.]
+    JSON STRUCTURE:
+    {
+      "verdict": "APPLY | STRETCH | PASS",
+      "matchScore": number (0-100),
+      "atsScore": number (0-100),
+      "keywordDensity": number (0-100),
+      "matchedSkills": ["Skill 1", "Skill 2"...],
+      "missingSkills": ["Gap 1", "Gap 2"...],
+      "salaryInsight": {
+        "range": "e.g. $120k - $160k",
+        "currency": "USD/INR",
+        "seniority": "Junior/Mid/Senior/Staff"
+      },
+      "redFlags": ["Potential issue 1", "Issue 2"...],
+      "interviewQuestions": [
+        {"q": "Technical Question 1", "intent": "Why they ask this"},
+        {"q": "Behavioral Question 2", "intent": "Context"}
+      ],
+      "outreachEmail": "A professional 3-paragraph cold email draft",
+      "analysisResult": "Full, brutal markdown analysis text (at least 400 words) focusing on tactical gaps and strategic fit."
+    }
   `;
 
-  const result = await model.generateContentStream({
-    contents: [{ role: "user", parts: [{ text: augmentedPrompt }] }],
-  });
-
-  const responseStream = new ReadableStream({
-    async start(controller) {
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        controller.enqueue(new TextEncoder().encode(chunkText));
-      }
-      controller.close();
-    },
-  });
-
-  return new Response(responseStream);
+  try {
+    const result = await model.generateContent(masterPrompt);
+    const text = result.response.text().trim();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("JSON not found");
+    return new Response(jsonMatch[0]);
+  } catch (error) {
+    console.error("Unified Analysis Error:", error);
+    return new Response(JSON.stringify({ error: "Analysis failed" }), { status: 500 });
+  }
 }
-
