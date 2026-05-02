@@ -11,6 +11,7 @@ interface Analysis {
     created_at: string;
     analysis_result?: string;
     latex_source?: string;
+    has_customization?: boolean;
 }
 
 export function HistoryView() {
@@ -25,7 +26,7 @@ export function HistoryView() {
             if (user) {
                 const { data } = await supabase
                     .from("analyses")
-                    .select("id, short_title, created_at, analysis_result, latex_source")
+                    .select("id, short_title, created_at, analysis_result, latex_source, has_customization")
                     .order("created_at", { ascending: false });
 
                 if (data) setHistory(data);
@@ -89,7 +90,7 @@ export function HistoryView() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {history.map((item) => {
                         const hasAnalysis = !!item.analysis_result;
-                        const hasCustomization = !!item.latex_source && item.latex_source.includes("\\documentclass");
+                        const hasCustomization = !!item.has_customization;
 
                         return (
                             <div
