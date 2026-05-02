@@ -82,9 +82,9 @@ export function ActiveWorkspace({
     }, [jobDescription]);
 
     return (
-        <div className="w-full h-full flex flex-col relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 overflow-x-hidden">
-            <div className="w-full max-w-5xl mx-auto flex-1 relative z-10 pb-8 min-h-0">
-                <div className="bg-black/40 border border-white/[0.05] rounded-[3rem] pt-4 px-8 pb-10 sm:pt-6 sm:px-10 sm:pb-12 shadow-[inset_0_0_80px_rgba(0,0,0,0.5)] backdrop-blur-2xl relative overflow-x-hidden overflow-y-auto h-full no-scrollbar">
+        <div className="w-full flex flex-col relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            <div className="w-full max-w-5xl mx-auto relative z-10 pb-4">
+                <div className="bg-black/40 border border-white/[0.05] rounded-[3rem] pt-4 px-8 pb-8 sm:pt-6 sm:px-10 sm:pb-8 shadow-[inset_0_0_80px_rgba(0,0,0,0.5)] backdrop-blur-2xl relative">
                     
                     <div className="flex justify-between items-center mb-6 relative z-20">
                          <div />
