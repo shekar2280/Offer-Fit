@@ -34,6 +34,8 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
     const [user, setUser] = useState<any>(null);
     const [cachedAnalysis, setCachedAnalysis] = useState<string>("");
     const [cachedCustomize, setCachedCustomize] = useState<string>("");
+    const [hasCustomization, setHasCustomization] = useState(false);
+    const [serverError, setServerError] = useState<string | null>(null);
     const [insights, setInsights] = useState<{
         matchScore: number;
         verdict: string;
@@ -83,7 +85,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
             }
         }
         window.history.pushState({}, "", url);
-        if (!currentAnalysisId) {
+        if (!currentAnalysisId || (newMode === "customize" && !cachedCustomize)) {
             analyzeResume(newMode === "customize" ? (latexText || extractedText || "") : (extractedText || ""), newMode);
         }
     };
@@ -158,6 +160,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                         const customizeContent = data.latex_source || "";
                         setCachedAnalysis(analysisContent);
                         setCachedCustomize(customizeContent);
+                        setHasCustomization(data.has_customization || false);
                         setAnalysis(mode === "customize" ? customizeContent : analysisContent);
 
                         const atsScore = data.ats_score ?? 0;
@@ -197,16 +200,21 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
             setCachedCustomize("");
             setCurrentAnalysisId(null);
         } else {
-            if (prevJobRef.current.company || prevJobRef.current.role || prevJobRef.current.id) {
-                prevJobRef.current = { company: "", role: "", jd: "", id: "" };
-                setJobDescription("");
-                setCompanyName("");
-                setPosition("");
-                setAnalysis("");
-                setCachedAnalysis("");
-                setCachedCustomize("");
-                setCurrentAnalysisId(null);
-            }
+            // Unconditionally wipe all state to guarantee a fresh workspace on bare route navigation
+            prevJobRef.current = { company: "", role: "", jd: "", id: "" };
+            setJobDescription("");
+            setCompanyName("");
+            setPosition("");
+            setAnalysis("");
+            setCachedAnalysis("");
+            setCachedCustomize("");
+            setCurrentAnalysisId(null);
+            setInsights(null);
+            setExtractedText(null);
+            setLatexText("");
+            setHasExistingResume(false);
+            setHasCustomization(false);
+            setServerError(null);
         }
     }, [selectedId, user, searchParams]);
 
@@ -222,6 +230,8 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
         setCurrentAnalysisId(null);
         setHasExistingResume(false);
         setInsights(null);
+        setHasCustomization(false);
+        setServerError(null);
         prevJobRef.current = { company: "", role: "", jd: "", id: "" };
     };
 
@@ -249,6 +259,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
     const analyzeResume = async (text: string, targetMode?: "analysis" | "customize") => {
         setIsAnalyzing(true);
         setAnalysis("");
+        setServerError(null);
         setLoadingStep(0);
         let accumulatedText = "";
         const effectiveMode = targetMode || mode;
@@ -278,11 +289,11 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                         .insert({
                             user_id: user.id,
                             resume_text: extractedText || "",
-                            latex_source: latexText || "",
                             job_description: jobDescription,
                             company_name: companyName,
                             position: position,
-                            short_title: `${companyName} - ${position}`
+                            short_title: `${companyName} - ${position}`,
+                            has_customization: false
                         })
                         .select()
                         .single();
@@ -314,42 +325,54 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                 }),
             });
 
-            if (effectiveMode === "customize") {
-                const text = await response.text();
-                setAnalysis(text);
-                setCachedCustomize(text);
-                accumulatedText = text;
-            } else {
-                const data = await response.json();
-                setAnalysis(data.analysisResult || "");
-                setCachedAnalysis(data.analysisResult || "");
-                setInsights({
-                    matchScore: data.matchScore ?? 0,
-                    verdict: (data.verdict || "").toUpperCase(),
-                    atsScore: data.atsScore ?? 0,
-                    keywordDensity: data.keywordDensity ?? 0,
-                    matchedSkills: data.matchedSkills || [],
-                    missingSkills: data.missingSkills || [],
-                    salaryInsight: data.salaryInsight,
-                    redFlags: data.redFlags,
-                    interviewQuestions: data.interviewQuestions,
-                    outreachEmail: data.outreachEmail
-                });
-                accumulatedText = data.analysisResult || "";
+            if (!response.body) throw new Error("No response body");
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let done = false;
+            let fullText = "";
 
-                if (targetId) {
-                    await supabase.from("analyses").update({
-                        analysis_result: data.analysisResult,
-                        resume_text: extractedText,
-                        ats_score: data.atsScore,
-                        keyword_density: data.keywordDensity,
-                        matched_skills: data.matchedSkills,
-                        missing_skills: data.missingSkills,
-                        salary_insight: data.salaryInsight,
-                        red_flags: data.redFlags,
-                        interview_questions: data.interviewQuestions,
-                        outreach_email: data.outreachEmail
-                    }).eq("id", targetId);
+            while (!done) {
+                const { value, done: doneReading } = await reader.read();
+                done = doneReading;
+                const chunk = decoder.decode(value, { stream: !done });
+                fullText += chunk;
+
+                if (effectiveMode === "customize") {
+                    setAnalysis(fullText);
+                } else {
+                    // Only show the part before metadata
+                    const displayPart = fullText.split("---METADATA---")[0];
+                    setAnalysis(displayPart);
+                }
+            }
+
+            accumulatedText = fullText;
+
+            if (effectiveMode === "customize") {
+                setCachedCustomize(fullText);
+            } else {
+                const parts = fullText.split("---METADATA---");
+                const markdown = parts[0].trim();
+                const jsonStr = parts[1]?.trim() || "{}";
+                
+                try {
+                    const data = JSON.parse(jsonStr.match(/\{[\s\S]*\}/)?.[0] || "{}");
+                    setCachedAnalysis(markdown);
+                    setInsights({
+                        matchScore: data.matchScore ?? 0,
+                        verdict: (data.verdict || "").toUpperCase(),
+                        atsScore: data.atsScore ?? 0,
+                        keywordDensity: data.keywordDensity ?? 0,
+                        matchedSkills: data.matchedSkills || [],
+                        missingSkills: data.missingSkills || [],
+                        salaryInsight: data.salaryInsight,
+                        redFlags: data.redFlags,
+                        interviewQuestions: data.interviewQuestions,
+                        outreachEmail: data.outreachEmail,
+                        // Note: strengths, weaknesses, bulletSuggestions are new but we can keep them in the state if needed
+                    } as any);
+                } catch (e) {
+                    console.error("Failed to parse metadata", e);
                 }
             }
 
@@ -359,11 +382,15 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                     company_name: companyName,
                     position: position,
                     short_title: `${companyName} - ${position}`,
-                    latex_source: accumulatedText
+                    latex_source: accumulatedText,
+                    has_customization: true
                 }).eq("id", targetId);
+                setHasCustomization(true);
             }
         } catch (error) {
-            toast.error("Analysis failed. Please check your JD and try again.");
+            console.error(error);
+            setServerError("The Intelligence Vault API is currently experiencing unusually high demand (503 Service Unavailable). This is typically a temporary spike. Please wait a moment and try again.");
+            toast.error("Generation failed due to high server demand.");
         } finally {
             clearInterval(stepInterval);
             setIsAnalyzing(false);
@@ -453,7 +480,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
         <div className="flex flex-col min-h-screen w-full bg-background relative overflow-x-hidden no-scrollbar">
             <Navbar username={username} showMenuButton={false} />
 
-            <main className="flex-1 relative z-10 flex items-start justify-center p-0 md:px-4 md:pt-2 md:pb-0 overflow-x-hidden">
+            <main className="relative z-10 flex items-start justify-center p-0 md:px-4 md:pt-2 md:pb-0 overflow-x-hidden">
                 <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
                 <div className="absolute bottom-[-10%] right-[-5%] w-[30%] h-[30%] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
 
@@ -473,7 +500,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                     </div>
                 ) : (
                     <div className="max-w-[1400px] mx-auto flex flex-col w-full overflow-x-hidden">
-                        <div className={analysis || isAnalyzing ? "block" : "hidden"}>
+                        <div className={analysis || isAnalyzing || serverError ? "block" : "hidden"}>
                             <AnalysisReport
                                 analysis={analysis}
                                 isAnalyzing={isAnalyzing}
@@ -486,10 +513,12 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                                 mode={mode}
                                 onSwitchMode={handleSwitchMode}
                                 isHistoryMode={!!currentAnalysisId}
+                                hasCustomization={hasCustomization}
                                 insights={insights}
+                                serverError={serverError}
                             />
                         </div>
-                        <div className={!analysis && !isAnalyzing ? "block" : "hidden"}>
+                        <div className={!analysis && !isAnalyzing && !serverError ? "block" : "hidden"}>
                             <ActiveWorkspace
                                 mainTab={mode}
                                 onBack={() => window.location.href = "/"}
