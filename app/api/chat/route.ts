@@ -5,7 +5,7 @@ import { getRelevantContext } from "@/lib/supabase/rag";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function POST(req: Request) {
-  const { messages, companyName, position, resumeText, goal } = await req.json();
+  const { messages, companyName, position, resumeText, goal, analysisId } = await req.json();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -50,9 +50,12 @@ export async function POST(req: Request) {
     TARGET JD: ${jd}
     ${profileContext}
 
-    TASK: Perform a deep-dive analysis. Return ONLY a single valid JSON object. No markdown fences.
-
-    JSON STRUCTURE:
+    TASK: Perform a deep-dive analysis. 
+    
+    OUTPUT FORMAT:
+    1. Start with a detailed, brutal markdown analysis (at least 400 words). Focus on tactical gaps and strategic fit.
+    2. End with the delimiter: "---METADATA---"
+    3. Finally, return a single valid JSON object with the following structure:
     {
       "verdict": "APPLY | STRETCH | PASS",
       "matchScore": number (0-100),
@@ -60,27 +63,70 @@ export async function POST(req: Request) {
       "keywordDensity": number (0-100),
       "matchedSkills": ["Skill 1", "Skill 2"...],
       "missingSkills": ["Gap 1", "Gap 2"...],
-      "salaryInsight": {
-        "range": "e.g. $120k - $160k",
-        "currency": "USD/INR",
-        "seniority": "Junior/Mid/Senior/Staff"
-      },
-      "redFlags": ["Potential issue 1", "Issue 2"...],
-      "interviewQuestions": [
-        {"q": "Technical Question 1", "intent": "Why they ask this"},
-        {"q": "Behavioral Question 2", "intent": "Context"}
-      ],
-      "outreachEmail": "A professional 3-paragraph cold email draft",
-      "analysisResult": "Full, brutal markdown analysis text (at least 400 words) focusing on tactical gaps and strategic fit."
+      "strengths": ["Strength 1", "Strength 2"...],
+      "weaknesses": ["Weakness 1", "Weakness 2"...],
+      "bulletSuggestions": ["Original Bullet -> Rewritten Bullet"...],
+      "salaryInsight": { "range": "...", "currency": "...", "seniority": "..." },
+      "redFlags": ["..."],
+      "interviewQuestions": [{"q": "...", "intent": "..."}],
+      "outreachEmail": "..."
     }
   `;
 
+  const startTime = Date.now();
+
   try {
-    const result = await model.generateContent(masterPrompt);
-    const text = result.response.text().trim();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("JSON not found");
-    return new Response(jsonMatch[0]);
+    const result = await model.generateContentStream(masterPrompt);
+    
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        let fullText = "";
+        
+        for await (const chunk of result.stream) {
+          const chunkText = chunk.text();
+          fullText += chunkText;
+          controller.enqueue(encoder.encode(chunkText));
+        }
+
+        const duration = Date.now() - startTime;
+        
+        try {
+          const parts = fullText.split("---METADATA---");
+          const markdown = parts[0].trim();
+          const jsonStr = parts[1]?.trim() || "{}";
+          const data = JSON.parse(jsonStr.match(/\{[\s\S]*\}/)?.[0] || "{}");
+
+          if (analysisId) {
+            await supabase.from("analyses").update({
+              analysis_result: markdown,
+              ats_score: data.atsScore,
+              keyword_density: data.keywordDensity,
+              matched_skills: data.matchedSkills,
+              missing_skills: data.missingSkills,
+              salary_insight: data.salaryInsight,
+              red_flags: data.redFlags,
+              interview_questions: data.interviewQuestions,
+              outreach_email: data.outreachEmail,
+              response_time_ms: duration,
+              strengths: data.strengths,
+              weaknesses: data.weaknesses,
+              bullet_suggestions: data.bulletSuggestions
+            }).eq("id", analysisId);
+          }
+        } catch (e) {
+          console.error("Error parsing/saving final metadata:", e);
+        }
+        
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+      },
+    });
   } catch (error) {
     console.error("Unified Analysis Error:", error);
     return new Response(JSON.stringify({ error: "Analysis failed" }), { status: 500 });
