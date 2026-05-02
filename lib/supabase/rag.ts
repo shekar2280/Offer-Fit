@@ -57,7 +57,9 @@ export async function embedAndStore(
   await supabase.from("resume_chunks").delete().eq("analysis_id", analysisId);
 
   const chunks = await generateChunks(text);
-  const model = genAI.getGenerativeModel({ model: "gemini-embedding-2-preview" });
+  const model = genAI.getGenerativeModel({
+    model: "gemini-embedding-2-preview",
+  });
 
   for (const [index, chunk] of chunks.entries()) {
     try {
@@ -73,13 +75,11 @@ export async function embedAndStore(
         embedding: embedding,
       });
 
-      if (error)
-        console.error(
-          `❌ Supabase Insert Error (Chunk ${index}):`,
-          error.message,
-        );
+      if (error) {
+        // Silently continue or handle error as needed
+      }
     } catch (e: any) {
-      console.error(`❌ Embedding Error (Chunk ${index}):`, e.message);
+      // Silently continue
     }
   }
 }
