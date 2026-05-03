@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { ResumeUpload } from "./resume-upload";
 import { AnalysisReport } from "./components/analysis-report";
@@ -200,7 +199,6 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
             setCachedCustomize("");
             setCurrentAnalysisId(null);
         } else {
-            // Unconditionally wipe all state to guarantee a fresh workspace on bare route navigation
             prevJobRef.current = { company: "", role: "", jd: "", id: "" };
             setJobDescription("");
             setCompanyName("");
@@ -340,7 +338,6 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                 if (effectiveMode === "customize") {
                     setAnalysis(fullText);
                 } else {
-                    // Only show the part before metadata
                     const displayPart = fullText.split("---METADATA---")[0];
                     setAnalysis(displayPart);
                 }
@@ -369,7 +366,6 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                         redFlags: data.redFlags,
                         interviewQuestions: data.interviewQuestions,
                         outreachEmail: data.outreachEmail,
-                        // Note: strengths, weaknesses, bulletSuggestions are new but we can keep them in the state if needed
                     } as any);
                 } catch (e) {
                     console.error("Failed to parse metadata", e);
@@ -389,7 +385,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
             }
         } catch (error) {
             console.error(error);
-            setServerError("The Intelligence Vault API is currently experiencing unusually high demand (503 Service Unavailable). This is typically a temporary spike. Please wait a moment and try again.");
+            setServerError("The resume scanning API is currently experiencing unusually high demand (503 Service Unavailable). This is typically a temporary spike. Please wait a moment and try again.");
             toast.error("Generation failed due to high server demand.");
         } finally {
             clearInterval(stepInterval);
@@ -426,46 +422,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
         }
     };
 
-    const downloadReport = () => {
-        if (!analysis) return;
 
-        const safeCompanyName = (companyName || "Resume")
-            .trim()
-            .replace(/[^a-z0-9]/gi, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_+|_+$/g, '');
-
-        if (mode === "customize") {
-            const blob = new Blob([analysis], { type: "text/plain" });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${safeCompanyName}.tex`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-            return;
-        }
-
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 20;
-        const maxLineWidth = pageWidth - margin * 2;
-        doc.setFont("helvetica", "bold").setFontSize(22).text("Analysis Report", margin, 25);
-        const lines = analysis.split("\n");
-        let y = 50;
-        lines.forEach((line) => {
-            const cleanLine = line.replace(/[*#]/g, "").trim();
-            if (!cleanLine) { y += 5; return; }
-            if (y > 275) { doc.addPage(); y = 20; }
-            const splitText = doc.splitTextToSize(cleanLine, maxLineWidth);
-            doc.text(splitText, margin, y);
-            y += (splitText.length * 7);
-        });
-
-        doc.save(`${safeCompanyName}_Analysis.pdf`);
-    };
 
     const handleNewAnalysis = () => {
         setAnalysis("");
@@ -494,7 +451,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                             </div>
                         </div>
                         <div className="flex flex-col items-center space-y-2">
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/60">Restoring Intelligence</h2>
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/60">Restoring Archive</h2>
                             <p className="text-[9px] font-medium uppercase tracking-[0.3em] text-white/20">Synchronizing Vault Session...</p>
                         </div>
                     </div>
@@ -509,7 +466,6 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                                 companyName={companyName}
                                 position={position}
                                 onReset={resetSession}
-                                downloadReport={downloadReport}
                                 mode={mode}
                                 onSwitchMode={handleSwitchMode}
                                 isHistoryMode={!!currentAnalysisId}
