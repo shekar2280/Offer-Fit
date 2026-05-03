@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { FileText, Download, Target, Activity, Search, AlertCircle, DollarSign, Copy, CheckCircle2, XCircle } from "lucide-react";
+import { FileText, Target, Activity, Search, AlertCircle, DollarSign, Copy, CheckCircle2, XCircle } from "lucide-react";
 import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -13,7 +13,6 @@ interface AnalysisReportProps {
     companyName: string;
     position: string;
     onReset: () => void;
-    downloadReport: () => void;
     mode?: "analysis" | "customize";
     onSwitchMode: (newMode: "analysis" | "customize") => void;
     isHistoryMode?: boolean;
@@ -41,7 +40,6 @@ export function AnalysisReport({
     companyName,
     position,
     onReset,
-    downloadReport,
     mode = "analysis",
     onSwitchMode,
     isHistoryMode = false,
@@ -136,13 +134,15 @@ export function AnalysisReport({
             ) : (
                 <div className="relative group/code my-6">
                     <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
-                         <button 
-                            onClick={() => copyText(String(children), "Code")}
-                            className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/40 hover:text-primary hover:border-primary/30 transition-all opacity-0 group-hover/code:opacity-100 backdrop-blur-xl"
-                            title="Copy Code"
-                         >
-                            <span className="text-[10px] font-bold uppercase tracking-widest px-2">Copy</span>
-                         </button>
+                         {mode !== "customize" && (
+                             <button 
+                                onClick={() => copyText(String(children), "Code")}
+                                className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/40 hover:text-primary hover:border-primary/30 transition-all opacity-0 group-hover/code:opacity-100 backdrop-blur-xl"
+                                title="Copy Code"
+                             >
+                                <span className="text-[10px] font-bold uppercase tracking-widest px-2">Copy</span>
+                             </button>
+                         )}
                     </div>
                     <pre className="bg-black/40 border border-white/5 rounded-xl p-6 overflow-x-auto font-mono text-[13px] text-white/70 no-scrollbar">
                         <code {...props}>{children}</code>
@@ -161,19 +161,19 @@ export function AnalysisReport({
                 <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${serverError ? 'bg-red-500' : 'bg-primary'} animate-pulse`} />
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">
-                        {serverError ? "Analysis Failed" : isAnalyzing ? "Processing Intelligence" : "Analysis Complete"}
+                        {serverError ? "Analysis Failed" : isAnalyzing ? "Scanning Resume" : "Analysis Complete"}
                     </span>
                 </div>
                 <div className="flex items-center gap-3">
                     {!isAnalyzing && (
                         <button 
                             onClick={() => onSwitchMode(mode === "analysis" ? "customize" : "analysis")}
-                            className={`min-w-[160px] h-10 px-6 rounded-full border transition-all backdrop-blur-md group/mode flex items-center justify-center ${mode === "analysis" ? "border-primary/30 bg-primary/10 hover:bg-primary/20" : "border-white/10 bg-white/[0.02] hover:bg-white/[0.08]"}`}
+                            className="min-w-[160px] h-10 px-6 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/20 transition-all backdrop-blur-md group/mode flex items-center justify-center"
                         >
-                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${mode === "analysis" ? "text-primary" : "text-white/40 group-hover/mode:text-white"}`}>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
                                 {mode === "analysis" 
-                                    ? (hasCustomization ? "Show Customized" : "Customize Resume") 
-                                    : "Show Analysis"
+                                    ? (hasCustomization ? "Show Customized Resume" : "Customize Resume") 
+                                    : "Show Analysis Report"
                                 }
                             </span>
                         </button>
@@ -188,18 +188,10 @@ export function AnalysisReport({
                             </span>
                         </button>
                     )}
-                    <button 
-                        onClick={downloadReport} 
-                        disabled={isAnalyzing || !analysis} 
-                        className="min-w-[160px] h-10 px-6 rounded-full bg-gradient-to-r from-primary to-primary/80 text-black font-black text-[10px] uppercase tracking-[0.15em] shadow-[0_0_20px_rgba(242,170,76,0.3)] hover:shadow-[0_0_30px_rgba(242,170,76,0.5)] hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100 flex items-center justify-center gap-2"
-                    >
-                        <Download className="w-3.5 h-3.5 stroke-[3]" />
-                        <span>Download</span>
-                    </button>
                 </div>
             </div>
 
-            <div className="bg-black/80 border border-white/15 ring-1 ring-primary/10 rounded-[2.5rem] p-6 md:p-8 backdrop-blur-3xl relative shadow-2xl overflow-hidden mb-6">
+            <div id="analysis-report-content" className="bg-black/80 border border-white/15 ring-1 ring-primary/10 rounded-[2.5rem] p-6 md:p-8 backdrop-blur-3xl relative shadow-2xl overflow-hidden mb-6">
 
                 {serverError ? (
                     <div className="bg-red-500/5 border border-red-500/20 rounded-[2.5rem] p-12 text-center space-y-6 relative overflow-hidden">
@@ -222,10 +214,9 @@ export function AnalysisReport({
                     <>
                         {(analysis || isAnalyzing) && mode === "analysis" && (
                             <div className="space-y-8">
-                                {/* Header Card */}
                                 <div className="relative overflow-hidden bg-white/[0.02] border border-primary/10 rounded-[2.5rem] p-6 md:p-8 group/header shadow-2xl">
-                                    <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/10 blur-[100px] rounded-full pointer-events-none group-hover/header:bg-primary/20 transition-all duration-1000" />
-                                    <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-primary/5 blur-[100px] rounded-full pointer-events-none" />
+                                    <div data-html2canvas-ignore className="absolute -right-20 -top-20 w-64 h-64 bg-primary/10 blur-[100px] rounded-full pointer-events-none group-hover/header:bg-primary/20 transition-all duration-1000" />
+                                    <div data-html2canvas-ignore className="absolute -left-20 -bottom-20 w-64 h-64 bg-primary/5 blur-[100px] rounded-full pointer-events-none" />
 
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
                                 <div className="lg:col-span-3 flex justify-center lg:justify-start">
@@ -247,15 +238,15 @@ export function AnalysisReport({
 
                                 <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
                                     <div className="space-y-3">
-                                        <div className="flex items-center justify-center lg:justify-start gap-3">
-                                            <div className="h-px w-8 bg-primary/30" />
-                                            <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">
+                                        <div className="flex items-center justify-center lg:justify-start gap-4">
+                                            <div className="h-px w-12 bg-primary/40" />
+                                            <span className="text-[11px] font-mono uppercase tracking-[0.5em] text-primary font-black">
                                                 Match Summary
                                             </span>
                                         </div>
-                                        <h1 className="font-heading text-5xl md:text-7xl font-black text-white tracking-tighter leading-[0.85]">
+                                        <h1 className="font-heading text-6xl md:text-8xl font-black text-white tracking-tight leading-[0.95]">
                                             Hiring<br />
-                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/20 italic font-light">
+                                            <span className="text-primary italic font-light">
                                                 Probability.
                                             </span>
                                         </h1>
@@ -476,23 +467,32 @@ export function AnalysisReport({
                 )}
 
                 {mode === "customize" && !isAnalyzing && analysis && (
-                    <div className="mb-12 mt-16 text-center lg:text-left">
-                        <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
-                            <div className="h-px w-8 bg-primary/30" />
-                        <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">Customization Result</span>
+                    <div className="mb-12 mt-16 flex flex-col lg:flex-row items-center lg:items-end justify-between gap-6">
+                        <div className="text-center lg:text-left">
+                            <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
+                                <div className="h-px w-8 bg-primary/30" />
+                            <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">Customization Result</span>
+                            </div>
+                            <h1 className="font-heading text-5xl md:text-7xl font-black text-white tracking-tighter leading-[0.9]">
+                                {companyName} <span className="italic font-light text-primary/50">Resume.</span>
+                            </h1>
+                            <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.4em] text-white/40">
+                                AI-generated customization for this role
+                            </p>
                         </div>
-                        <h1 className="font-heading text-5xl md:text-7xl font-black text-white tracking-tighter leading-[0.9]">
-                            {companyName} <span className="italic font-light text-primary/50">Resume.</span>
-                        </h1>
-                        <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.4em] text-white/40">
-                            AI-generated customization for this role
-                        </p>
+                        <button 
+                            onClick={() => copyText(analysis, "LaTeX Code")}
+                            className="px-8 py-4 rounded-2xl bg-primary text-black text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(242,170,76,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-3 shrink-0"
+                        >
+                            <Copy className="w-4 h-4" />
+                            Copy LaTeX Code
+                        </button>
                     </div>
                 )}
 
                 <div className="relative z-10 w-full mt-6 pt-6 border-t border-white/10">
                     {analysis && (
-                        <div className={mode === "customize" ? "mt-4" : "relative"}>
+                        <div className="relative">
                             <ReactMarkdown remarkPlugins={[remarkGfm]} components={customComponents}>
                                 {mode === "customize" ? `\`\`\`latex\n${analysis}\n\`\`\`` : cleanAnalysis}
                             </ReactMarkdown>
@@ -526,7 +526,7 @@ export function AnalysisReport({
                             <div className="space-y-6 text-center max-w-xs">
                                 <div className="space-y-2">
                                     <div className="text-[10px] font-mono uppercase tracking-[0.5em] text-primary animate-pulse">
-                                        Initializing Core Intelligence
+                                        Extracting Information
                                     </div>
                                     <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                                         <div className="h-full bg-primary animate-[loading_2s_ease-in-out_infinite]" style={{ width: '40%' }} />
