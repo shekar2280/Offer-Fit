@@ -78,6 +78,18 @@ export function MatchHeader({
                                 Target: {companyName}
                             </p>
                         )}
+                        {!isAnalyzing && insights?.toolUsed && insights.toolUsed.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-3 justify-center lg:justify-start">
+                                {insights.toolUsed.map((tool, idx) => (
+                                    <div key={idx} className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                        <span className="text-[9px] font-mono uppercase tracking-widest">
+                                            {tool.replace(/_/g, " ")}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
