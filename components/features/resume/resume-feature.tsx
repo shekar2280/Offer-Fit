@@ -8,86 +8,21 @@ import { ResumeUpload } from "./resume-upload";
 import { AnalysisReport } from "./components/analysis-report";
 import { ActiveWorkspace } from "./components/active-workspace";
 import { Navbar } from "@/components/layout/navbar";
-import { FileText, Search } from "lucide-react";
+import { FileText, Search, Cpu } from "lucide-react";
+import { useResumeProfile } from "./hooks/use-resume-profile";
+import { useResumeHistory } from "./hooks/use-resume-history";
 
 export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analysis" | "customize", selectedId?: string | null }) {
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const [mode, setMode] = useState(initialMode);
-    useEffect(() => {
-        if (pathname.includes("/customize")) setMode("customize");
-        else if (pathname.includes("/analyze")) setMode("analysis");
-    }, [pathname]);
-    const [latexText, setLatexText] = useState("");
-    const [isUploading, setIsUploading] = useState(false);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [analysis, setAnalysis] = useState("");
-    const [extractedText, setExtractedText] = useState<string | null>(null);
-    const [jobDescription, setJobDescription] = useState("");
-    const [companyName, setCompanyName] = useState("");
-    const [position, setPosition] = useState("");
-    const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
-    const [loadingStep, setLoadingStep] = useState(0);
-    const [isHistoryLoading, setIsHistoryLoading] = useState(!!selectedId);
-    const [hasExistingResume, setHasExistingResume] = useState(false);
     const [user, setUser] = useState<any>(null);
-    const [cachedAnalysis, setCachedAnalysis] = useState<string>("");
-    const [cachedCustomize, setCachedCustomize] = useState<string>("");
-    const [hasCustomization, setHasCustomization] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [loadingStep, setLoadingStep] = useState(0);
     const [serverError, setServerError] = useState<string | null>(null);
-    const [insights, setInsights] = useState<{
-        matchScore: number;
-        verdict: string;
-        atsScore: number;
-        keywordDensity: number;
-        matchedSkills: string[];
-        missingSkills: string[];
-        salaryInsight?: { range: string; currency: string; seniority: string };
-        redFlags?: string[];
-        interviewQuestions?: { q: string; intent: string }[];
-        outreachEmail?: string;
-    } | null>(null);
-
-    const handleSwitchMode = async (newMode: "analysis" | "customize") => {
-        if (newMode === mode) return;
-
-        if (newMode === "customize" && cachedCustomize) {
-            setMode("customize");
-            setAnalysis(cachedCustomize);
-            window.scrollTo({ top: 0, behavior: "instant" });
-            return;
-        }
-        if (newMode === "analysis" && cachedAnalysis) {
-            setMode("analysis");
-            setAnalysis(cachedAnalysis);
-            window.scrollTo({ top: 0, behavior: "instant" });
-            return;
-        }
-
-        setMode(newMode);
-        window.scrollTo({ top: 0, behavior: "instant" });
-        let url: string;
-        if (currentAnalysisId) {
-            url = `/${newMode}?id=${currentAnalysisId}`;
-        } else {
-            const company = searchParams.get("company");
-            const role = searchParams.get("role");
-            const jd = searchParams.get("jd");
-            if (company || role || jd) {
-                const params = new URLSearchParams();
-                if (company) params.set("company", company);
-                if (role) params.set("role", role);
-                if (jd) params.set("jd", jd);
-                url = `/${newMode}?${params.toString()}`;
-            } else {
-                url = `/${newMode}`;
-            }
-        }
-        window.history.pushState({}, "", url);
-        if (!currentAnalysisId || (newMode === "customize" && !cachedCustomize)) {
-            analyzeResume(newMode === "customize" ? (latexText || extractedText || "") : (extractedText || ""), newMode);
-        }
-    };
+    const [jobLocation, setJobLocation] = useState("");
+    const [jobType, setJobType] = useState("");
 
     const loadingMessages = [
         "Indexing resume context...",
@@ -95,7 +30,6 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
         "Finding matches...",
         "Optimizing LaTeX..."
     ];
-
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -106,160 +40,69 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
         fetchUser();
     }, []);
 
-    useEffect(() => {
-        if (!user) return;
-        const fetchProfile = async () => {
-            const supabase = createClient();
-            const { data: profile } = await supabase
-                .from("profiles")
-                .select("resume_text, latex_source")
-                .eq("id", user.id)
-                .maybeSingle();
+    const { 
+        extractedText, setExtractedText, 
+        latexText, setLatexText, 
+        hasExistingResume, setHasExistingResume 
+    } = useResumeProfile(user);
 
-            if (profile) {
-                if (profile.resume_text) {
-                    setExtractedText(profile.resume_text);
-                    setHasExistingResume(true);
-                }
-                if (profile.latex_source) setLatexText(profile.latex_source);
+    const { 
+        isHistoryLoading, 
+        jobData, setJobData, 
+        analysisState, setAnalysisState 
+    } = useResumeHistory(selectedId, user, mode);
+
+    useEffect(() => {
+        if (searchParams) {
+            const company = searchParams.get("company");
+            const role = searchParams.get("role");
+            const location = searchParams.get("location");
+            const type = searchParams.get("jobType");
+            const jd = searchParams.get("jd");
+            
+            if (company || role || jd) {
+                setJobData(p => ({
+                    ...p,
+                    company: company || p.company,
+                    role: role || p.role,
+                    description: jd || p.description
+                }));
             }
-        };
-        fetchProfile();
-    }, [user]);
-
-    const prevJobRef = React.useRef({ company: "", role: "", jd: "", id: "" });
+            if (location) setJobLocation(location);
+            if (type) setJobType(type);
+        }
+    }, [searchParams, setJobData]);
 
     useEffect(() => {
-        if (!user) return;
+        if (pathname.includes("/customize")) setMode("customize");
+        else if (pathname.includes("/analyze")) setMode("analysis");
+    }, [pathname]);
 
-        const jdParam = searchParams.get("jd") || "";
-        const companyParam = searchParams.get("company") || "";
-        const roleParam = searchParams.get("role") || "";
+    const handleSwitchMode = async (newMode: "analysis" | "customize") => {
+        if (newMode === mode) return;
 
-        if (selectedId) {
-            if (prevJobRef.current.id === selectedId) return;
-            prevJobRef.current = { company: "", role: "", jd: "", id: selectedId };
-
-            const fetchSavedAnalysis = async () => {
-                try {
-                    setIsHistoryLoading(true);
-                    const supabase = createClient();
-                    const { data } = await supabase
-                        .from("analyses")
-                        .select("*")
-                        .eq("id", selectedId)
-                        .single();
-
-                    if (data) {
-                        setJobDescription(data.job_description);
-                        setCompanyName(data.company_name || "");
-                        setPosition(data.position || "");
-                        setCurrentAnalysisId(data.id);
-                        const analysisContent = data.analysis_result || "";
-                        const customizeContent = data.latex_source || "";
-                        setCachedAnalysis(analysisContent);
-                        setCachedCustomize(customizeContent);
-                        setHasCustomization(data.has_customization || false);
-                        setAnalysis(mode === "customize" ? customizeContent : analysisContent);
-
-                        const atsScore = data.ats_score ?? 0;
-                        const derivedVerdict = atsScore >= 70 ? "APPLY" : atsScore >= 50 ? "STRETCH" : "PASS";
-                        if (data.ats_score != null || data.matched_skills?.length) {
-                            setInsights({
-                                matchScore: atsScore,
-                                verdict: derivedVerdict,
-                                atsScore: atsScore,
-                                keywordDensity: data.keyword_density ?? 0,
-                                matchedSkills: data.matched_skills || [],
-                                missingSkills: data.missing_skills || [],
-                                salaryInsight: data.salary_insight || undefined,
-                                redFlags: data.red_flags || [],
-                                interviewQuestions: data.interview_questions || [],
-                                outreachEmail: data.outreach_email || undefined,
-                            });
-                        }
-                    }
-                } finally {
-                    setIsHistoryLoading(false);
-                }
-            };
-            fetchSavedAnalysis();
-        } else if (jdParam || companyParam || roleParam) {
-            const isNewJob = companyParam !== prevJobRef.current.company ||
-                             roleParam !== prevJobRef.current.role ||
-                             jdParam !== prevJobRef.current.jd;
-            if (!isNewJob) return;
-            prevJobRef.current = { company: companyParam, role: roleParam, jd: jdParam, id: "" };
-
-            if (jdParam) setJobDescription(jdParam);
-            if (companyParam) setCompanyName(companyParam);
-            if (roleParam) setPosition(roleParam);
-            setAnalysis("");
-            setCachedAnalysis("");
-            setCachedCustomize("");
-            setCurrentAnalysisId(null);
-        } else {
-            prevJobRef.current = { company: "", role: "", jd: "", id: "" };
-            setJobDescription("");
-            setCompanyName("");
-            setPosition("");
-            setAnalysis("");
-            setCachedAnalysis("");
-            setCachedCustomize("");
-            setCurrentAnalysisId(null);
-            setInsights(null);
-            setExtractedText(null);
-            setLatexText("");
-            setHasExistingResume(false);
-            setHasCustomization(false);
-            setServerError(null);
+        if (newMode === "customize" && analysisState.cachedCustomize) {
+            setMode("customize");
+            setAnalysisState(prev => ({ ...prev, analysis: prev.cachedCustomize }));
+            return;
         }
-    }, [selectedId, user, searchParams]);
+        if (newMode === "analysis" && analysisState.cachedAnalysis) {
+            setMode("analysis");
+            setAnalysisState(prev => ({ ...prev, analysis: prev.cachedAnalysis }));
+            return;
+        }
 
-    const resetSession = () => {
-        setExtractedText(null);
-        setLatexText("");
-        setJobDescription("");
-        setCompanyName("");
-        setPosition("");
-        setAnalysis("");
-        setCachedAnalysis("");
-        setCachedCustomize("");
-        setCurrentAnalysisId(null);
-        setHasExistingResume(false);
-        setInsights(null);
-        setHasCustomization(false);
-        setServerError(null);
-        prevJobRef.current = { company: "", role: "", jd: "", id: "" };
-    };
-
-    const saveBaselineLatex = async () => {
-        if (!user || !latexText) return;
-        
-        try {
-            const supabase = createClient();
-            const { error } = await supabase
-                .from("profiles")
-                .upsert({ 
-                    id: user.id,
-                    latex_source: latexText,
-                    email: user.email 
-                }, { onConflict: 'id' });
-
-            if (error) throw error;
-            setHasExistingResume(true);
-            toast.success("Master LaTeX saved to your profile!");
-        } catch (error) {
-            toast.error("Failed to save to profile.");
+        setMode(newMode);
+        if (!analysisState.currentAnalysisId || (newMode === "customize" && !analysisState.cachedCustomize)) {
+            analyzeResume(newMode === "customize" ? (latexText || extractedText || "") : (extractedText || ""), newMode);
         }
     };
 
     const analyzeResume = async (text: string, targetMode?: "analysis" | "customize") => {
         setIsAnalyzing(true);
-        setAnalysis("");
+        setAnalysisState(prev => ({ ...prev, analysis: "" }));
         setServerError(null);
         setLoadingStep(0);
-        let accumulatedText = "";
         const effectiveMode = targetMode || mode;
 
         const stepInterval = setInterval(() => {
@@ -268,125 +111,54 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
 
         try {
             const supabase = createClient();
-            let targetId = null;
+            let targetId = analysisState.currentAnalysisId;
 
-            if (user && companyName && position) {
-                const { data: existingAnalysis } = await supabase
+            if (!targetId && user && jobData.company && jobData.role) {
+                const { data: newAnalysis } = await supabase
                     .from("analyses")
-                    .select("id")
-                    .eq("user_id", user.id)
-                    .eq("company_name", companyName)
-                    .eq("position", position)
-                    .maybeSingle();
-
-                if (existingAnalysis) {
-                    targetId = existingAnalysis.id;
-                } else {
-                    const { data: newAnalysis, error: insertError } = await supabase
-                        .from("analyses")
-                        .insert({
-                            user_id: user.id,
-                            resume_text: extractedText || "",
-                            job_description: jobDescription,
-                            company_name: companyName,
-                            position: position,
-                            short_title: `${companyName} - ${position}`,
-                            has_customization: false
-                        })
-                        .select()
-                        .single();
-
-                    if (!insertError && newAnalysis) {
-                        targetId = newAnalysis.id;
-                    }
-                }
-            }
-
-            if (targetId) {
-                await fetch("/api/index", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ analysisId: targetId, text: extractedText || latexText || text })
-                });
+                    .insert({
+                        user_id: user.id,
+                        resume_text: extractedText || "",
+                        job_description: jobData.description,
+                        company_name: jobData.company,
+                        position: jobData.role,
+                        short_title: `${jobData.company} - ${jobData.role}`,
+                    })
+                    .select()
+                    .single();
+                if (newAnalysis) targetId = newAnalysis.id;
             }
 
             const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    messages: [{ role: "user", content: jobDescription }],
+                    messages: [{ role: "user", content: jobData.description }],
                     analysisId: targetId,
-                    companyName,
-                    position,
+                    companyName: jobData.company,
+                    position: jobData.role,
+                    location: jobLocation,
+                    jobType,
                     resumeText: effectiveMode === "customize" ? (latexText || extractedText) : extractedText,
-                    goal: effectiveMode === "customize" ? "optimize" : "analyze"
                 }),
             });
 
-            if (!response.body) throw new Error("No response body");
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let done = false;
-            let fullText = "";
-
-            while (!done) {
-                const { value, done: doneReading } = await reader.read();
-                done = doneReading;
-                const chunk = decoder.decode(value, { stream: !done });
-                fullText += chunk;
-
-                if (effectiveMode === "customize") {
-                    setAnalysis(fullText);
-                } else {
-                    const displayPart = fullText.split("---METADATA---")[0];
-                    setAnalysis(displayPart);
-                }
-            }
-
-            accumulatedText = fullText;
-
+            if (!response.ok) throw new Error("Server error");
+            const resData = await response.json();
+            
             if (effectiveMode === "customize") {
-                setCachedCustomize(fullText);
+                setAnalysisState(prev => ({ ...prev, analysis: resData.analysis, cachedCustomize: resData.analysis }));
             } else {
-                const parts = fullText.split("---METADATA---");
-                const markdown = parts[0].trim();
-                const jsonStr = parts[1]?.trim() || "{}";
-                
-                try {
-                    const data = JSON.parse(jsonStr.match(/\{[\s\S]*\}/)?.[0] || "{}");
-                    setCachedAnalysis(markdown);
-                    setInsights({
-                        matchScore: data.matchScore ?? 0,
-                        verdict: (data.verdict || "").toUpperCase(),
-                        atsScore: data.atsScore ?? 0,
-                        keywordDensity: data.keywordDensity ?? 0,
-                        matchedSkills: data.matchedSkills || [],
-                        missingSkills: data.missingSkills || [],
-                        salaryInsight: data.salaryInsight,
-                        redFlags: data.redFlags,
-                        interviewQuestions: data.interviewQuestions,
-                        outreachEmail: data.outreachEmail,
-                    } as any);
-                } catch (e) {
-                    console.error("Failed to parse metadata", e);
-                }
-            }
-
-            if (targetId && effectiveMode === "customize") {
-                await supabase.from("analyses").update({
-                    job_description: jobDescription,
-                    company_name: companyName,
-                    position: position,
-                    short_title: `${companyName} - ${position}`,
-                    latex_source: accumulatedText,
-                    has_customization: true
-                }).eq("id", targetId);
-                setHasCustomization(true);
+                setAnalysisState(prev => ({ 
+                    ...prev, 
+                    analysis: resData.analysis, 
+                    cachedAnalysis: resData.analysis,
+                    insights: { ...resData.metadata, toolUsed: resData.toolUsed !== "none" ? resData.toolUsed.split(", ") : [] }
+                }));
             }
         } catch (error) {
-            console.error(error);
-            setServerError("The resume scanning API is currently experiencing unusually high demand (503 Service Unavailable). This is typically a temporary spike. Please wait a moment and try again.");
-            toast.error("Generation failed due to high server demand.");
+            setServerError("Analysis failed. Please try again.");
+            toast.error("Generation failed.");
         } finally {
             clearInterval(stepInterval);
             setIsAnalyzing(false);
@@ -394,41 +166,43 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
     };
 
     const handleFile = async (file: File) => {
-        const isPdf = file.type === "application/pdf";
-        const isLatex = file.name.endsWith(".tex") || file.name.endsWith(".txt");
-        if (!isPdf && !isLatex) return;
-
         setIsUploading(true);
         const formData = new FormData();
         formData.append("file", file);
-
         try {
-            const res = await fetch("/api/parse", {
-                method: "POST",
-                body: formData,
-            });
+            const res = await fetch("/api/parse", { method: "POST", body: formData });
             const data = await res.json();
             if (data.text) {
-                if (isPdf) {
-                    setExtractedText(data.text);
-                } else {
-                    setLatexText(data.text);
-                }
+                if (file.type === "application/pdf") setExtractedText(data.text);
+                else setLatexText(data.text);
             }
         } catch (error) {
-            console.error("Upload failed", error);
-        } finally {
-            setIsUploading(false);
-        }
+            toast.error("Upload failed");
+        } finally { setIsUploading(false); }
     };
 
-
-
-    const handleNewAnalysis = () => {
-        setAnalysis("");
+    const resetSession = () => {
         setExtractedText(null);
-        setJobDescription("");
-        setCurrentAnalysisId(null);
+        setLatexText("");
+        setJobLocation("");
+        setJobType("");
+        setJobData({ company: "", role: "", description: "" });
+        setAnalysisState({ analysis: "", cachedAnalysis: "", cachedCustomize: "", currentAnalysisId: null, hasCustomization: false, insights: null });
+        setHasExistingResume(false);
+        setServerError(null);
+    };
+
+    const saveBaselineLatex = async () => {
+        if (!user || !latexText) return;
+        try {
+            const supabase = createClient();
+            const { error } = await supabase
+                .from("profiles")
+                .upsert({ id: user.id, latex_source: latexText, email: user.email }, { onConflict: 'id' });
+            if (error) throw error;
+            setHasExistingResume(true);
+            toast.success("Master LaTeX saved to your profile!");
+        } catch (error) { toast.error("Failed to save to profile."); }
     };
 
     const username = user?.email?.split('@')[0] || "User";
@@ -436,11 +210,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
     return (
         <div className="flex flex-col min-h-screen w-full bg-background relative overflow-x-hidden no-scrollbar">
             <Navbar username={username} showMenuButton={false} />
-
             <main className="relative z-10 flex items-start justify-center p-0 md:px-4 md:pt-2 md:pb-0 overflow-x-hidden">
-                <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute bottom-[-10%] right-[-5%] w-[30%] h-[30%] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-
                 {isHistoryLoading ? (
                     <div className="w-full flex flex-col items-center justify-center pt-32 space-y-8 animate-in fade-in duration-700">
                         <div className="relative w-24 h-24 flex items-center justify-center">
@@ -450,40 +220,41 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                                 <Search className="w-6 h-6 text-primary drop-shadow-[0_0_10px_rgba(242,170,76,0.4)]" />
                             </div>
                         </div>
-                        <div className="flex flex-col items-center space-y-2">
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/60">Restoring Archive</h2>
-                            <p className="text-[9px] font-medium uppercase tracking-[0.3em] text-white/20">Synchronizing Vault Session...</p>
-                        </div>
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/60">Restoring Archive</h2>
                     </div>
                 ) : (
                     <div className="max-w-[1400px] mx-auto flex flex-col w-full overflow-x-hidden">
-                        <div className={analysis || isAnalyzing || serverError ? "block" : "hidden"}>
+                        <div className={analysisState.analysis || isAnalyzing || serverError ? "block" : "hidden"}>
                             <AnalysisReport
-                                analysis={analysis}
+                                analysis={analysisState.analysis}
                                 isAnalyzing={isAnalyzing}
                                 loadingStep={loadingStep}
                                 loadingMessages={loadingMessages}
-                                companyName={companyName}
-                                position={position}
+                                companyName={jobData.company}
+                                position={jobData.role}
                                 onReset={resetSession}
                                 mode={mode}
                                 onSwitchMode={handleSwitchMode}
-                                isHistoryMode={!!currentAnalysisId}
-                                hasCustomization={hasCustomization}
-                                insights={insights}
+                                isHistoryMode={!!analysisState.currentAnalysisId}
+                                hasCustomization={analysisState.hasCustomization}
+                                insights={analysisState.insights}
                                 serverError={serverError}
                             />
                         </div>
-                        <div className={!analysis && !isAnalyzing && !serverError ? "block" : "hidden"}>
+                        <div className={!analysisState.analysis && !isAnalyzing && !serverError ? "block" : "hidden"}>
                             <ActiveWorkspace
                                 mainTab={mode}
                                 onBack={() => window.location.href = "/"}
-                                companyName={companyName}
-                                setCompanyName={setCompanyName}
-                                position={position}
-                                setPosition={setPosition}
-                                jobDescription={jobDescription}
-                                setJobDescription={setJobDescription}
+                                companyName={jobData.company}
+                                setCompanyName={(v) => setJobData(p => ({ ...p, company: v }))}
+                                position={jobData.role}
+                                setPosition={(v) => setJobData(p => ({ ...p, role: v }))}
+                                location={jobLocation}
+                                setLocation={setJobLocation}
+                                jobType={jobType}
+                                setJobType={setJobType}
+                                jobDescription={jobData.description}
+                                setJobDescription={(v) => setJobData(p => ({ ...p, description: v }))}
                                 latexText={latexText}
                                 setLatexText={setLatexText}
                                 extractedText={extractedText}
@@ -494,7 +265,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                                 setExtractedText={setExtractedText}
                                 setHasExistingResume={setHasExistingResume}
                                 analyzeResume={analyzeResume}
-                                selectedId={currentAnalysisId}
+                                selectedId={analysisState.currentAnalysisId}
                                 onReset={resetSession}
                                 saveBaselineLatex={saveBaselineLatex}
                                 onSwitchMode={handleSwitchMode}
