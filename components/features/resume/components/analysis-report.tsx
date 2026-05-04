@@ -6,7 +6,7 @@ import { AnalysisReportProps } from "./types";
 import { ReportToolbar } from "./report/report-toolbar";
 import { ErrorView } from "./report/error-view";
 import { MatchHeader } from "./report/match-header";
-import { ScoreMetrics, SkillsView, RedFlags, InterviewQuestions, OutreachEmail } from "./report/insights-cards";
+import { ScoreMetrics, SkillsView, RedFlags, InterviewQuestions, OutreachEmail, SalaryInsight, MarketTrends } from "./report/insights-cards";
 import { MarkdownViewer } from "./report/markdown-viewer";
 import { LoadingScanning } from "./report/loading-scanning";
 
@@ -77,13 +77,13 @@ export function AnalysisReport(props: AnalysisReportProps) {
                 onReset={onReset}
             />
 
-            <div id="analysis-report-content" className="bg-black/80 border border-white/15 ring-1 ring-primary/10 rounded-[2.5rem] p-6 md:p-8 backdrop-blur-3xl relative shadow-2xl overflow-hidden mb-6">
+            <div id="analysis-report-content" className="bg-black/60 border border-primary/40 ring-1 ring-primary/20 rounded-[2.5rem] p-6 md:p-8 backdrop-blur-3xl relative shadow-[0_0_100px_-20px_rgba(242,170,76,0.15)] overflow-hidden mb-6">
                 {serverError ? (
                     <ErrorView error={serverError} onReset={onReset} />
                 ) : (
                     <>
                         {(analysis || isAnalyzing) && mode === "analysis" && (
-                            <div className="space-y-8">
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                                 <MatchHeader 
                                     score={score}
                                     verdict={verdict}
@@ -96,24 +96,38 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                     bgColorClass={bgColorClass}
                                 />
 
-                                <ScoreMetrics insights={insights} isAnalyzing={isAnalyzing} />
+                                {isAnalyzing && !analysis && (
+                                    <div className="py-8">
+                                        <LoadingScanning mode={mode} />
+                                    </div>
+                                )}
 
-                                <div className="space-y-6">
-                                    <SkillsView 
-                                        matched={insights?.matchedSkills || []} 
-                                        missing={insights?.missingSkills || []} 
-                                    />
-                                    <RedFlags flags={insights?.redFlags || []} />
-                                    <InterviewQuestions 
-                                        questions={insights?.interviewQuestions || []} 
-                                        onCopy={copyText} 
-                                    />
-                                    {insights?.outreachEmail && (
-                                        <OutreachEmail email={insights.outreachEmail} onCopy={copyText} />
-                                    )}
-                                </div>
+                                {analysis && (
+                                    <>
+                                        <ScoreMetrics insights={insights} isAnalyzing={isAnalyzing} />
+                                        <SalaryInsight data={insights?.salaryInsight} />
+
+                                        <div className="space-y-6">
+                                            <SkillsView 
+                                                matched={insights?.matchedSkills || []} 
+                                                missing={insights?.missingSkills || []} 
+                                            />
+                                            <RedFlags flags={insights?.redFlags || []} />
+                                            <InterviewQuestions 
+                                                questions={insights?.interviewQuestions || []} 
+                                                onCopy={copyText} 
+                                            />
+                                            {insights?.outreachEmail && (
+                                                <OutreachEmail email={insights.outreachEmail} onCopy={copyText} />
+                                            )}
+                                            <MarketTrends toolUsed={insights?.toolUsed} />
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )}
+
+
 
                         {mode === "customize" && !isAnalyzing && analysis && (
                             <div className="mb-12 mt-16 flex flex-col lg:flex-row items-center lg:items-end justify-between gap-6">
@@ -139,7 +153,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
                             </div>
                         )}
 
-                        <div className="relative z-10 w-full mt-6 pt-6 border-t border-white/10">
+                        <div className="relative z-10 w-full mt-8 pt-8 border-t border-white/5">
                             {analysis && (
                                 <MarkdownViewer 
                                     content={mode === "customize" ? analysis : cleanAnalysis} 
@@ -148,7 +162,6 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                     onCopy={copyText} 
                                 />
                             )}
-                            {isAnalyzing && !analysis && <LoadingScanning mode={mode} />}
                         </div>
                     </>
                 )}
