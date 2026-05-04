@@ -18,6 +18,10 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
         setJobDescription,
         latexText,
         setLatexText,
+        location,
+        setLocation,
+        jobType,
+        setJobType,
         extractedText,
         handleFile,
         isUploading,
@@ -57,6 +61,10 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                             setPosition={setPosition}
                             jobDescription={jobDescription}
                             setJobDescription={setJobDescription}
+                            location={location}
+                            setLocation={setLocation}
+                            jobType={jobType}
+                            setJobType={setJobType}
                             selectedId={selectedId}
                         />
 

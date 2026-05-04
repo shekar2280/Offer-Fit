@@ -20,6 +20,7 @@ export interface AnalysisInsights {
     redFlags?: string[];
     interviewQuestions?: InterviewQuestion[];
     outreachEmail?: string;
+    toolUsed?: string[];
 }
 
 export interface AnalysisReportProps {

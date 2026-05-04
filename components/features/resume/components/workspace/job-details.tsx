@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Building2, Briefcase } from "lucide-react";
+import { Building2, Briefcase, MapPin, Clock } from "lucide-react";
 import { FloatingInput } from "./floating-input";
 
 interface JobDetailsProps {
@@ -9,6 +9,10 @@ interface JobDetailsProps {
     setPosition: (val: string) => void;
     jobDescription: string;
     setJobDescription: (val: string) => void;
+    location: string;
+    setLocation: (val: string) => void;
+    jobType: string;
+    setJobType: (val: string) => void;
     selectedId: string | null;
 }
 
@@ -19,6 +23,10 @@ export function JobDetails({
     setPosition,
     jobDescription,
     setJobDescription,
+    location,
+    setLocation,
+    jobType,
+    setJobType,
     selectedId
 }: JobDetailsProps) {
     const jdRef = useRef<HTMLTextAreaElement>(null);
@@ -46,6 +54,20 @@ export function JobDetails({
                     label="Target Role" 
                     disabled={!!selectedId} 
                     icon={Briefcase} 
+                />
+                <FloatingInput 
+                    value={location} 
+                    onChange={setLocation} 
+                    label="Job Location (e.g. Hyderabad)" 
+                    disabled={!!selectedId} 
+                    icon={MapPin} 
+                />
+                <FloatingInput 
+                    value={jobType} 
+                    onChange={setJobType} 
+                    label="Job Type (e.g. Full-time, Internship)" 
+                    disabled={!!selectedId} 
+                    icon={Clock} 
                 />
             </div>
 

@@ -7,6 +7,10 @@ export interface ActiveWorkspaceProps {
     setPosition: (val: string) => void;
     jobDescription: string;
     setJobDescription: (val: string) => void;
+    location: string;
+    setLocation: (val: string) => void;
+    jobType: string;
+    setJobType: (val: string) => void;
     latexText: string;
     setLatexText: (val: string) => void;
     extractedText: string | null;
