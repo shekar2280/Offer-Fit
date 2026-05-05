@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Missing context" }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro-latest" });
 
     const prompt = `
 You are an ATS (Applicant Tracking System) engine and keyword analyst.
