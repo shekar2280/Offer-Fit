@@ -20,7 +20,7 @@ export function FloatingInput({ value, onChange, label, disabled = false, icon: 
                 onChange={e => onChange(e.target.value)}
                 disabled={disabled}
                 placeholder=" "
-                className="block w-full px-12 py-5 text-sm text-white bg-transparent appearance-none focus:outline-none focus:ring-0 peer disabled:opacity-50 h-16"
+                className="block w-full px-12 py-5 text-sm text-white bg-transparent appearance-none focus:outline-none focus:ring-0 peer h-16"
             />
             <label className="absolute text-sm text-white/40 duration-300 transform -translate-y-3 scale-75 top-4 left-12 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-primary pointer-events-none">
                 {label}

@@ -77,6 +77,20 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
         else if (pathname.includes("/analyze")) setMode("analysis");
     }, [pathname]);
 
+    useEffect(() => {
+        const canAutoStart = 
+            mode === "customize" && 
+            !isHistoryLoading && 
+            !isAnalyzing && 
+            !analysisState.analysis && 
+            jobData.description && 
+            (latexText || extractedText);
+
+        if (canAutoStart) {
+            analyzeResume(latexText || extractedText || "");
+        }
+    }, [mode, isHistoryLoading, isAnalyzing, analysisState.analysis, jobData.description, latexText, extractedText]);
+
     const handleSwitchMode = async (newMode: "analysis" | "customize") => {
         if (newMode === mode) return;
 

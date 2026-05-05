@@ -76,7 +76,7 @@ export function JobDetails({
                 <div className="relative group/jd">
                     <textarea
                         ref={jdRef}
-                        className="block w-full min-h-[140px] px-8 py-6 text-sm leading-relaxed text-white bg-white/[0.02] border border-white/10 rounded-[2rem] focus:outline-none focus:ring-0 focus:border-primary focus:bg-white/[0.04] transition-all resize-none no-scrollbar disabled:opacity-50 overflow-hidden"
+                        className="block w-full min-h-[140px] px-8 py-6 text-sm leading-relaxed text-white bg-white/[0.02] border border-white/10 rounded-[2rem] focus:outline-none focus:ring-0 focus:border-primary focus:bg-white/[0.04] transition-all resize-none no-scrollbar overflow-hidden"
                         placeholder="Paste the complete job description here to start analysis..."
                         value={jobDescription}
                         onChange={(e) => setJobDescription(e.target.value)}
