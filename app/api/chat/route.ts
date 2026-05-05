@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getRelevantContext } from "@/lib/supabase/rag";
 import { runAgenticAnalysis } from "@/lib/ai/agent";
+import { logSystemEvent } from "@/lib/supabase/logger";
 
 export async function POST(req: Request) {
   try {
@@ -55,7 +56,6 @@ export async function POST(req: Request) {
     );
 
     if (analysisId) {
-      console.log(`[API] Updating analysis ${analysisId}. Mode: ${agentMode}`);
       const updatePayload: Record<string, any> = {
         match_score: data.match_score || 0,
         verdict: data.verdict || "PASS",
@@ -72,7 +72,6 @@ export async function POST(req: Request) {
       if (agentMode === "customize") {
         const latexSource = data.tailored_latex || markdown;
         updatePayload.customized_latex = latexSource;
-        console.log(`[API] Saving customized LaTeX (${latexSource.length} chars)`);
       } else {
         updatePayload.analysis_result = markdown;
       }
@@ -83,13 +82,6 @@ export async function POST(req: Request) {
         .eq("id", analysisId)
         .select();
 
-      if (updateError) {
-        console.error("[API] Database update failed:", updateError);
-      } else {
-        console.log("[API] Database update successful:", updateData?.[0]?.id);
-      }
-    } else {
-      console.warn("[API] No analysisId provided, skipping database update.");
     }
 
     return new Response(JSON.stringify({
@@ -108,8 +100,13 @@ export async function POST(req: Request) {
       },
       toolUsed
     }));
-  } catch (error) {
-    console.error("Agentic Analysis Error:", error);
+  } catch (error: any) {
+    await logSystemEvent({
+      level: "ERROR",
+      source: "API_CHAT",
+      message: error.message || "Analysis failed",
+      details: { error }
+    });
     return new Response(JSON.stringify({ error: "Analysis failed" }), { status: 500 });
   }
 }

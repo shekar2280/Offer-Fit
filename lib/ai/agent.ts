@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { toolDefinitions, toolHandlers } from "./tools";
 import { evaluateAnalysis } from "./evaluator";
 import { ANALYSIS_PROMPT, JUDGE_CORRECTION_PROMPT } from "./prompts";
+import { logSystemEvent } from "../supabase/logger";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -86,15 +87,20 @@ export async function runAgenticAnalysis(
       }
       
       if (response) break;
-    } catch (error) {
-      console.error(`Model ${modelId} failed, trying next...`);
+    } catch (error: any) {
+      await logSystemEvent({
+        level: "WARN",
+        source: "AGENT_AI",
+        message: `Model ${modelId} failed`,
+        details: { error: error.message }
+      });
       continue;
     }
   }
 
   if (!response) throw new Error("All AI models failed to respond.");
 
-  const parseResponse = (text: string): { markdown: string; data: AnalysisData } => {
+  const parseResponse = async (text: string): Promise<{ markdown: string; data: AnalysisData }> => {
     let markdown = text;
     let data: AnalysisData = {};
     
@@ -110,7 +116,6 @@ export async function runAgenticAnalysis(
         try {
           data = JSON.parse(jsonStr);
         } catch (parseError) {
-          console.warn("Standard JSON parse failed, attempting sanitization...");
           const sanitized = jsonStr
             .replace(/\n/g, "\\n")
             .replace(/\\(?!"|\\|\/|b|f|n|r|t|u)/g, "\\\\");
@@ -125,14 +130,19 @@ export async function runAgenticAnalysis(
           markdown = text.replace(jsonMatch[0], "").trim();
         }
       }
-    } catch (e) {
-      console.error("JSON Parse failed:", e);
+    } catch (e: any) {
+      await logSystemEvent({
+        level: "ERROR",
+        source: "AGENT_PARSER",
+        message: "JSON Parse failed",
+        details: { error: e.message, text }
+      });
     }
     
     return { markdown, data };
   };
 
-  let { markdown, data } = parseResponse(response.text());
+  let { markdown, data } = await parseResponse(response.text());
 
   if (mode === "customize") {
     return {
@@ -153,12 +163,11 @@ export async function runAgenticAnalysis(
         const correctionResult = await chat.sendMessage(
           JUDGE_CORRECTION_PROMPT(evaluation.score, evaluation.critique)
         );
-        const corrected = parseResponse(correctionResult.response.text());
+        const corrected = await parseResponse(correctionResult.response.text());
         markdown = corrected.markdown;
         data = corrected.data;
         break;
       } catch (e) {
-        console.error(`Correction failed with ${modelId}, using original.`);
       }
     }
   }

@@ -1,4 +1,5 @@
 import { SchemaType, FunctionDeclaration } from "@google/generative-ai";
+import { logSystemEvent } from "../supabase/logger";
 
 export const toolDefinitions: FunctionDeclaration[] = [
   {
@@ -26,6 +27,7 @@ export const toolDefinitions: FunctionDeclaration[] = [
   },
 ];
 
+
 async function performSearch(query: string) {
   try {
     const response = await fetch("https://api.tavily.com/search", {
@@ -45,8 +47,13 @@ async function performSearch(query: string) {
       content: r.content,
       url: r.url
     }));
-  } catch (error) {
-    console.error("Search Error:", error);
+  } catch (error: any) {
+    await logSystemEvent({
+      level: "ERROR",
+      source: "TOOLS_SEARCH",
+      message: `Search failed for: ${query}`,
+      details: { error: error.message }
+    });
     return [];
   }
 }
@@ -54,7 +61,6 @@ async function performSearch(query: string) {
 export const toolHandlers = {
   get_market_insights: async (args: { role: string; location?: string }) => {
     const query = `${args.role} salary and job market demand in ${args.location || "Global"} 2026`;
-    console.log(`📊 Fetching live market data for: "${query}"...`);
     
     const results = await performSearch(query);
     return {
@@ -65,7 +71,6 @@ export const toolHandlers = {
     };
   },
   web_search: async (args: { query: string }) => {
-    console.log(`🌐 Searching Tavily for: "${args.query}"...`);
     const results = await performSearch(args.query);
     return { results };
   },

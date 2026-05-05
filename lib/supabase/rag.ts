@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { logSystemEvent } from "./logger";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -74,8 +75,13 @@ export async function embedAndStore(
         content: chunk,
         embedding: embedding,
       });
-    } catch (e) {
-      console.error("Embedding chunk failed:", e);
+    } catch (e: any) {
+      await logSystemEvent({
+        level: "ERROR",
+        source: "SUPABASE_RAG",
+        message: "Embedding chunk failed",
+        details: { error: e.message }
+      });
     }
   }
 }
