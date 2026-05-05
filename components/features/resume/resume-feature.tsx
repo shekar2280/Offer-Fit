@@ -122,7 +122,6 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                     .single();
 
                 if (error) {
-                    console.error("Analysis Insert Error:", error);
                 }
                 if (newAnalysis) {
                     targetId = newAnalysis.id;
