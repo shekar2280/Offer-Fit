@@ -27,32 +27,37 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
           .single();
 
         if (data) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const urlJd = urlParams.get("jd");
+          const urlCompany = urlParams.get("company");
+          const urlRole = urlParams.get("role");
+
           setJobData({
-            company: data.company_name || "",
-            role: data.position || "",
-            description: data.job_description || ""
+            company: urlCompany || data.company_name || "",
+            role: urlRole || data.position || "",
+            description: urlJd || data.jd_text || ""
           });
           
           const atsScore = data.ats_score ?? 0;
           const derivedVerdict = atsScore >= 70 ? "APPLY" : atsScore >= 50 ? "STRETCH" : "PASS";
           
           setAnalysisState({
-            analysis: mode === "customize" ? (data.latex_source || "") : (data.analysis_result || ""),
+            analysis: mode === "customize" ? (data.customized_latex || "") : (data.analysis_result || ""),
             cachedAnalysis: data.analysis_result || "",
-            cachedCustomize: data.latex_source || "",
+            cachedCustomize: data.customized_latex || "",
             currentAnalysisId: data.id,
-            hasCustomization: data.has_customization || false,
+            hasCustomization: !!data.customized_latex,
             insights: {
-              matchScore: atsScore,
-              verdict: derivedVerdict,
-              atsScore: atsScore,
-              keywordDensity: data.keyword_density ?? 0,
-              matchedSkills: data.matched_skills || [],
-              missingSkills: data.missing_skills || [],
-              salaryInsight: data.salary_insight || undefined,
-              redFlags: data.red_flags || [],
-              interviewQuestions: data.interview_questions || [],
-              outreachEmail: data.outreach_email || undefined,
+              match_score: data.match_score || atsScore,
+              verdict: data.verdict || derivedVerdict,
+              ats_score: atsScore,
+              keyword_density: data.keyword_density ?? 0,
+              matched_skills: data.matched_skills || [],
+              missing_skills: data.missing_skills || [],
+              salary_insight: data.salary_insight || undefined,
+              red_flags: data.red_flags || [],
+              interview_questions: data.interview_questions || [],
+              outreach_email: data.outreach_email || undefined,
             }
           });
         }
