@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Intelligence Vault | AI Resume Analyzer",
+  title: "AI Resume Analyzer",
   description: "Advanced career intelligence and resume optimization engine.",
 };
 

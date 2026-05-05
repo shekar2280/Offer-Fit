@@ -17,7 +17,6 @@ export async function evaluateAnalysis(
       const result = await model.generateContent(prompt);
       return JSON.parse(result.response.text().match(/\{[\s\S]*\}/)?.[0] || "{}");
     } catch (error) {
-      console.error(`Evaluator failed with ${modelId}, trying next...`);
       continue;
     }
   }
