@@ -7,11 +7,11 @@ import Link from "next/link";
 
 interface Analysis {
     id: string;
-    short_title: string;
+    company_name: string;
+    position: string;
     created_at: string;
     analysis_result?: string;
-    latex_source?: string;
-    has_customization?: boolean;
+    customized_latex?: string;
 }
 
 export function HistoryView() {
@@ -26,7 +26,7 @@ export function HistoryView() {
             if (user) {
                 const { data } = await supabase
                     .from("analyses")
-                    .select("id, short_title, created_at, analysis_result, latex_source, has_customization")
+                    .select("id, company_name, position, created_at, analysis_result, customized_latex")
                     .order("created_at", { ascending: false });
 
                 if (data) setHistory(data);
@@ -90,7 +90,7 @@ export function HistoryView() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {history.map((item) => {
                         const hasAnalysis = !!item.analysis_result;
-                        const hasCustomization = !!item.has_customization;
+                        const hasCustomization = !!item.customized_latex;
 
                         return (
                             <div
@@ -126,7 +126,7 @@ export function HistoryView() {
                                         </span>
                                     </div>
                                     <h3 className="font-heading text-lg sm:text-xl font-bold text-white leading-tight pr-10">
-                                        {item.short_title || "Untitled Application"}
+                                        {item.company_name} <span className="text-primary/50 font-light italic"> - {item.position}</span>
                                     </h3>
                                 </div>
 
@@ -148,7 +148,7 @@ export function HistoryView() {
                                         </Link>
                                     )}
 
-                                    {hasCustomization && (
+                                    {hasCustomization ? (
                                         <Link
                                             href={`/customize?id=${item.id}`}
                                             className="flex items-center justify-between px-4 py-3 rounded-xl transition-all group/btn"
@@ -159,9 +159,24 @@ export function HistoryView() {
                                         >
                                             <div className="flex items-center gap-3">
                                                 <Sparkles className="w-4 h-4 text-primary/50 group-hover/btn:text-primary transition-colors" />
-                                                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60 group-hover/btn:text-primary transition-colors">Open Customization</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60 group-hover/btn:text-primary transition-colors">Open Customized Resume</span>
                                             </div>
                                             <ArrowRight className="w-3 h-3 text-primary/30 opacity-0 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />
+                                        </Link>
+                                    ) : hasAnalysis && (
+                                        <Link
+                                            href={`/customize?id=${item.id}`}
+                                            className="flex items-center justify-between px-4 py-3 rounded-xl transition-all group/btn"
+                                            style={{
+                                                background: "rgba(242,170,76,0.03)",
+                                                border: "1px dashed rgba(242,170,76,0.20)"
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Sparkles className="w-4 h-4 text-primary/30 group-hover/btn:text-primary/70 transition-colors" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/40 group-hover/btn:text-primary/80 transition-colors">Customize Resume</span>
+                                            </div>
+                                            <ArrowRight className="w-3 h-3 text-primary/20 opacity-0 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />
                                         </Link>
                                     )}
 
