@@ -51,17 +51,17 @@ function lowerSection(s: string) {
 
 export async function embedAndStore(
   supabase: any,
-  analysisId: string,
+  userId: string,
   text: string,
 ) {
-  await supabase.from("resume_chunks").delete().eq("analysis_id", analysisId);
+  await supabase.from("resume_chunks").delete().eq("user_id", userId);
 
   const chunks = await generateChunks(text);
   const model = genAI.getGenerativeModel({
     model: "gemini-embedding-2-preview",
   });
 
-  for (const [index, chunk] of chunks.entries()) {
+  for (const chunk of chunks) {
     try {
       const result = await model.embedContent({
         content: { role: "user", parts: [{ text: chunk }] },
@@ -69,24 +69,20 @@ export async function embedAndStore(
       } as any);
       const embedding = result.embedding.values;
 
-      const { error } = await supabase.from("resume_chunks").insert({
-        analysis_id: analysisId,
+      await supabase.from("resume_chunks").insert({
+        user_id: userId,
         content: chunk,
         embedding: embedding,
       });
-
-      if (error) {
-        // Silently continue or handle error as needed
-      }
-    } catch (e: any) {
-      // Silently continue
+    } catch (e) {
+      console.error("Embedding chunk failed:", e);
     }
   }
 }
 
 export async function getRelevantContext(
   supabase: any,
-  analysisId: string,
+  userId: string,
   query: string,
 ): Promise<string> {
   const model = genAI.getGenerativeModel({
@@ -102,7 +98,7 @@ export async function getRelevantContext(
     query_embedding: embedding,
     match_threshold: 0.1,
     match_count: 5,
-    target_analysis_id: analysisId,
+    target_user_id: userId,
   });
 
   if (error || !chunks) return "";
