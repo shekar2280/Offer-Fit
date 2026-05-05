@@ -75,8 +75,8 @@ export function AnalysisReport(props: AnalysisReportProps) {
                     <ErrorView error={serverError} onReset={onReset} />
                 ) : (
                     <>
-                        {(analysis || isAnalyzing) && mode === "analysis" && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                            {((mode === "analysis" && (analysis || isAnalyzing)) || (mode === "customize" && isAnalyzing)) && (
                                 <MatchHeader 
                                     score={score}
                                     verdict={verdict}
@@ -88,104 +88,100 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                     verdictColorClass={verdictColorClass}
                                     bgColorClass={bgColorClass}
                                 />
+                            )}
 
-                                {isAnalyzing && !analysis && (
-                                    <div className="py-8">
-                                        <LoadingScanning mode={mode} />
-                                    </div>
-                                )}
-
-                                {analysis && (
-                                    <>
-                                        <ScoreMetrics insights={insights} isAnalyzing={isAnalyzing} />
-                                        <SalaryInsight data={insights?.salary_insight} />
-
-                                        <div className="space-y-6">
-                                            <SkillsView 
-                                                matched={insights?.matched_skills || []} 
-                                                missing={insights?.missing_skills || []} 
-                                            />
-                                            <RedFlags flags={insights?.red_flags || []} />
-                                            <InterviewQuestions 
-                                                questions={insights?.interview_questions || []} 
-                                                onCopy={copyText} 
-                                            />
-                                            {insights?.outreach_email && (
-                                                <OutreachEmail email={insights.outreach_email} onCopy={copyText} />
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        )}
-
-                        {mode === "customize" && !isAnalyzing && analysis && (
-                            <div className="space-y-12 pb-24">
-                                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-px w-12 bg-primary/40" />
-                                        <span className="text-[11px] font-mono uppercase tracking-[0.5em] text-primary font-black">
-                                            Customization Complete
-                                        </span>
-                                    </div>
-                                    <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[0.95] max-w-full">
-                                        <div className="truncate" title={companyName}>{companyName}</div>
-                                        <span className="text-primary italic font-light">
-                                            Resume.
-                                        </span>
-                                    </h1>
-                                    <div className="flex flex-col space-y-1 pt-4">
-                                        <p className="text-white/60 text-lg font-medium tracking-tight line-clamp-1">
-                                            {position}
-                                        </p>
-
-                                    </div>
+                            {isAnalyzing && !analysis && (
+                                <div className="py-8">
+                                    <LoadingScanning mode={mode} />
                                 </div>
+                            )}
 
-                                <div className="space-y-6">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-px w-8 bg-primary/30" />
-                                            <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">Tailored LaTeX Source</span>
-                                        </div>
-                                        <button 
-                                            onClick={() => copyText(analysis.split("###")[0].trim(), "LaTeX Code")}
-                                            className="px-6 py-2 rounded-xl bg-primary text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/10 flex items-center gap-2"
-                                        >
-                                            <Copy className="w-3 h-3" />
-                                            Copy Code
-                                        </button>
+                            {analysis && mode === "analysis" && (
+                                <>
+                                    <ScoreMetrics insights={insights} isAnalyzing={isAnalyzing} />
+                                    <SalaryInsight data={insights?.salary_insight} />
+
+                                    <div className="space-y-6">
+                                        <SkillsView 
+                                            matched={insights?.matched_skills || []} 
+                                            missing={insights?.missing_skills || []} 
+                                        />
+                                        <RedFlags flags={insights?.red_flags || []} />
+                                        <InterviewQuestions 
+                                            questions={insights?.interview_questions || []} 
+                                            onCopy={copyText} 
+                                        />
+                                        {insights?.outreach_email && (
+                                            <OutreachEmail email={insights.outreach_email} onCopy={copyText} />
+                                        )}
                                     </div>
-                                    <div className="bg-slate-950/50 border border-white/5 rounded-3xl p-8 overflow-hidden relative">
-                                        <pre className="text-[13px] font-mono text-white/70 leading-relaxed overflow-x-auto relative z-10">
-                                            {analysis.split("###")[0].trim()}
-                                        </pre>
-                                    </div>
-                                </div>
-                                
-                                {analysis.includes("###") && (
-                                    <div className="pt-8 border-t border-white/5">
+                                    <div className="relative z-10 w-full mt-8 pt-8 border-t border-white/5">
                                         <MarkdownViewer 
-                                            content={"###" + analysis.split("###").slice(1).join("###")} 
+                                            content={cleanAnalysis} 
                                             mode={mode} 
                                             isAnalyzing={isAnalyzing} 
                                             onCopy={copyText} 
                                         />
                                     </div>
-                                )}
-                            </div>
-                        )}
+                                </>
+                            )}
 
-                        {mode === "analysis" && analysis && (
-                            <div className="relative z-10 w-full mt-8 pt-8 border-t border-white/5">
-                                <MarkdownViewer 
-                                    content={cleanAnalysis} 
-                                    mode={mode} 
-                                    isAnalyzing={isAnalyzing} 
-                                    onCopy={copyText} 
-                                />
-                            </div>
-                        )}
+                            {mode === "customize" && !isAnalyzing && analysis && (
+                                <div className="space-y-12 pb-24">
+                                    <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-px w-12 bg-primary/40" />
+                                            <span className="text-[11px] font-mono uppercase tracking-[0.5em] text-primary font-black">
+                                                Customization Complete
+                                            </span>
+                                        </div>
+                                        <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[0.95] max-w-full">
+                                            <div className="truncate" title={companyName}>{companyName}</div>
+                                            <span className="text-primary italic font-light">
+                                                Resume.
+                                            </span>
+                                        </h1>
+                                        <div className="flex flex-col space-y-1 pt-4">
+                                            <p className="text-white/60 text-lg font-medium tracking-tight line-clamp-1">
+                                                {position}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-px w-8 bg-primary/30" />
+                                                <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">Tailored LaTeX Source</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => copyText(analysis.split("###")[0].trim(), "LaTeX Code")}
+                                                className="px-6 py-2 rounded-xl bg-primary text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/10 flex items-center gap-2"
+                                            >
+                                                <Copy className="w-3 h-3" />
+                                                Copy Code
+                                            </button>
+                                        </div>
+                                        <div className="bg-slate-950/50 border border-white/5 rounded-3xl p-8 overflow-hidden relative">
+                                            <pre className="text-[13px] font-mono text-white/70 leading-relaxed overflow-x-auto relative z-10">
+                                                {analysis.split("###")[0].trim()}
+                                            </pre>
+                                        </div>
+                                    </div>
+                                    
+                                    {analysis.includes("###") && (
+                                        <div className="pt-8 border-t border-white/5">
+                                            <MarkdownViewer 
+                                                content={"###" + analysis.split("###").slice(1).join("###")} 
+                                                mode={mode} 
+                                                isAnalyzing={isAnalyzing} 
+                                                onCopy={copyText} 
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </>
                 )}
             </div>

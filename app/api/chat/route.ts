@@ -55,6 +55,7 @@ export async function POST(req: Request) {
     );
 
     if (analysisId) {
+      console.log(`[API] Updating analysis ${analysisId}. Mode: ${agentMode}`);
       const updatePayload: Record<string, any> = {
         match_score: data.match_score || 0,
         verdict: data.verdict || "PASS",
@@ -69,19 +70,26 @@ export async function POST(req: Request) {
       };
 
       if (agentMode === "customize") {
-        updatePayload.customized_latex = data.tailored_latex || markdown;
+        const latexSource = data.tailored_latex || markdown;
+        updatePayload.customized_latex = latexSource;
+        console.log(`[API] Saving customized LaTeX (${latexSource.length} chars)`);
       } else {
         updatePayload.analysis_result = markdown;
       }
 
-      const { error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from("analyses")
         .update(updatePayload)
-        .eq("id", analysisId);
+        .eq("id", analysisId)
+        .select();
 
       if (updateError) {
-        console.error("Database update failed:", updateError);
+        console.error("[API] Database update failed:", updateError);
+      } else {
+        console.log("[API] Database update successful:", updateData?.[0]?.id);
       }
+    } else {
+      console.warn("[API] No analysisId provided, skipping database update.");
     }
 
     return new Response(JSON.stringify({
