@@ -10,17 +10,17 @@ export interface InterviewQuestion {
 }
 
 export interface AnalysisInsights {
-    matchScore?: number;
-    verdict?: string;
-    atsScore: number;
-    keywordDensity: number;
-    matchedSkills: string[];
-    missingSkills: string[];
-    salaryInsight?: SalaryInsight;
-    redFlags?: string[];
-    interviewQuestions?: InterviewQuestion[];
-    outreachEmail?: string;
-    toolUsed?: string[];
+    match_score: number;
+    verdict: string;
+    ats_score: number;
+    keyword_density: number;
+    matched_skills: string[];
+    missing_skills: string[];
+    salary_insight?: SalaryInsight;
+    red_flags?: string[];
+    interview_questions?: InterviewQuestion[];
+    outreach_email?: string;
+    tool_used?: string[];
 }
 
 export interface AnalysisReportProps {
