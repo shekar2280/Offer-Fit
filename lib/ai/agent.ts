@@ -19,6 +19,13 @@ export interface AnalysisData {
   tailored_latex?: string;
 }
 
+const GEMINI_MODELS = [
+  "gemini-3.1-flash-lite-preview",
+  "gemini-2.5-flash",
+  "gemini-3-flash-preview",
+  "gemini-2.5-flash-lite"
+];
+
 export async function runAgenticAnalysis(
   companyName: string,
   position: string,
@@ -28,92 +35,123 @@ export async function runAgenticAnalysis(
   jobType?: string,
   mode?: "analyze" | "customize"
 ): Promise<{ markdown: string; data: AnalysisData; toolUsed: string }> {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-flash-latest",
-    tools: [{ functionDeclarations: toolDefinitions }],
-  });
+  let response;
+  let finalToolCalls: string[] = [];
 
-  const chat = model.startChat();
-  const prompt = ANALYSIS_PROMPT(
-    companyName,
-    position,
-    context,
-    jd,
-    location,
-    jobType,
-    mode
-  );
+  for (const modelId of GEMINI_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelId,
+        tools: [{ functionDeclarations: toolDefinitions }],
+      });
 
-  let result = await chat.sendMessage(prompt);
-  let response = result.response;
-  let iteration = 0;
-  const MAX_ITERATIONS = 3;
+      const chat = model.startChat();
+      const prompt = ANALYSIS_PROMPT(
+        companyName,
+        position,
+        context,
+        jd,
+        location,
+        jobType,
+        mode
+      );
 
-  const finalToolCalls: string[] = [];
+      let result = await chat.sendMessage(prompt);
+      response = result.response;
+      
+      let iteration = 0;
+      const MAX_ITERATIONS = 3;
 
-  while (response.functionCalls() && iteration < MAX_ITERATIONS) {
-    iteration++;
-    const functionCalls = response.functionCalls();
-    if (!functionCalls) break;
+      while (response.functionCalls() && iteration < MAX_ITERATIONS) {
+        iteration++;
+        const functionCalls = response.functionCalls();
+        if (!functionCalls) break;
 
-    const functionResponses = [];
-    for (const call of functionCalls) {
-      const handler = toolHandlers[call.name as keyof typeof toolHandlers];
-      if (handler) {
-        finalToolCalls.push(call.name);
-        const output = await (handler as any)(call.args);
-        functionResponses.push({
-          functionResponse: {
-            name: call.name,
-            response: output,
-          },
-        });
+        const functionResponses = [];
+        for (const call of functionCalls) {
+          const handler = toolHandlers[call.name as keyof typeof toolHandlers];
+          if (handler) {
+            finalToolCalls.push(call.name);
+            const output = await (handler as any)(call.args);
+            functionResponses.push({
+              functionResponse: {
+                name: call.name,
+                response: output,
+              },
+            });
+          }
+        }
+        const nextResult = await chat.sendMessage(functionResponses);
+        response = nextResult.response;
       }
+      
+      if (response) break;
+    } catch (error) {
+      console.error(`Model ${modelId} failed, trying next...`);
+      continue;
     }
-
-    const nextResult = await chat.sendMessage(functionResponses);
-    response = nextResult.response;
   }
+
+  if (!response) throw new Error("All AI models failed to respond.");
 
   const parseResponse = (text: string): { markdown: string; data: AnalysisData } => {
     let markdown = text;
     let data: AnalysisData = {};
     
-    const parts = text.split("---METADATA---");
-    if (parts.length > 1) {
-      markdown = parts[0].trim();
-      const jsonStr = parts[1].trim();
-      try {
-        const match = jsonStr.match(/\{[\s\S]*\}/);
-        if (match) data = JSON.parse(match[0]);
-      } catch (e) {
-        console.error("Failed to parse metadata JSON from split:", e);
-      }
-    } else {
-      try {
-        const match = text.match(/\{[\s\S]*\}$/);
-        if (match) {
-          data = JSON.parse(match[0]);
-          markdown = text.substring(0, match.index).trim();
+    try {
+      const jsonStartMarker = "===JSON_START===";
+      const jsonEndMarker = "===JSON_END===";
+      const startIndex = text.indexOf(jsonStartMarker);
+      const endIndex = text.indexOf(jsonEndMarker);
+
+      if (startIndex !== -1 && endIndex !== -1) {
+        let jsonStr = text.substring(startIndex + jsonStartMarker.length, endIndex).trim();
+        
+        try {
+          data = JSON.parse(jsonStr);
+        } catch (parseError) {
+          console.warn("Standard JSON parse failed, attempting sanitization...");
+          const sanitized = jsonStr
+            .replace(/\n/g, "\\n")
+            .replace(/\\(?!"|\\|\/|b|f|n|r|t|u)/g, "\\\\");
+          data = JSON.parse(sanitized);
         }
-      } catch (e) {
-        console.error("Fallback JSON parse failed:", e);
+        
+        markdown = text.replace(text.substring(startIndex, endIndex + jsonEndMarker.length), "").trim();
+      } else {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          data = JSON.parse(jsonMatch[0]);
+          markdown = text.replace(jsonMatch[0], "").trim();
+        }
       }
+    } catch (e) {
+      console.error("JSON Parse failed:", e);
     }
+    
     return { markdown, data };
   };
 
   let { markdown, data } = parseResponse(response.text());
-
   const evaluation = await evaluateAnalysis(context, jd, markdown);
 
   if (!evaluation.passed) {
-    const correctionResult = await chat.sendMessage(
-      JUDGE_CORRECTION_PROMPT(evaluation.score, evaluation.critique),
-    );
-    const corrected = parseResponse(correctionResult.response.text());
-    markdown = corrected.markdown;
-    data = corrected.data;
+    const correctionModels = ["gemini-2.5-pro", "gemini-2.5-flash-lite"];
+    for (const modelId of correctionModels) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelId });
+        const chat = model.startChat();
+        const correctionResult = await chat.sendMessage(
+          JUDGE_CORRECTION_PROMPT(evaluation.score, evaluation.critique)
+        );
+        const corrected = parseResponse(correctionResult.response.text());
+        markdown = corrected.markdown;
+        data = corrected.data;
+        break;
+      } catch (e) {
+        console.error(`Correction failed with ${modelId}, using original.`);
+      }
+    }
   }
 
   return {

@@ -7,52 +7,92 @@ export const ANALYSIS_PROMPT = (
   jobType?: string,
   mode: "analyze" | "customize" = "analyze"
 ) => `
-    ROLE: Elite Technical Hiring Manager & Agentic Career Strategist.
-    CONTEXT: ${companyName} | ${position} ${location ? `| Location: ${location}` : ""} ${jobType ? `| Job Type: ${jobType}` : ""}
-    CANDIDATE RESUME: ${context}
-    TARGET JD: ${jd}
+You are an elite Technical Hiring Manager and Career Strategist. Analyze the candidate's profile for the given role.
 
-    TASK: Perform a deep-dive analysis. 
-    INSTRUCTION: If you need specific market data or if the resume is in LaTeX, use the provided tools first.
-    CRITICAL CHECK: Analyze if the candidate's experience level matches the "Job Type".
-    
-    Current Mode: ${mode.toUpperCase()}
+ROLE CONTEXT:
+- Company: ${companyName}
+- Position: ${position}${location ? `\n- Location: ${location}` : ""}${jobType ? `\n- Job Type: ${jobType}` : ""}
 
-    ${mode === "analyze" ? `
-    GOAL: Generate a "Learning Roadmap" for the user to bridge the gap between their resume and the JD.
-    REQUIRED SECTIONS:
-    ## Executive Summary
-    ## To Fulfill JD Requirements
-    ## Strategic Advice
-    ` : `
-    GOAL: Generate a tailored LaTeX resume and list of improvements.
-    REQUIRED SECTIONS:
-    ## Tailored LaTeX Resume
-    ## Actionable Resume Improvements
-    `}
+CANDIDATE RESUME:
+${context}
 
-    OUTPUT FORMAT:
-    1. Start with a detailed markdown analysis. DO NOT include lists of Matched Skills, Missing Skills, Salary, Red Flags, or Interview Questions in the Markdown.
-    2. End with the delimiter: "---METADATA---"
-    3. Return a valid JSON object EXACTLY matching this schema:
-    {
-      "match_score": number,
-      "verdict": "APPLY" | "STRETCH" | "PASS",
-      "ats_score": number,
-      "keyword_density": number,
-      "matched_skills": [],
-      "missing_skills": [],
-      "salary_insight": { "range": "string", "currency": "string", "seniority": "string" },
-      "red_flags": [],
-      "interview_questions": [{ "q": "string", "intent": "string" }],
-      "outreach_email": "string",
-      "tailored_latex": "string"
-    }
+JOB DESCRIPTION:
+${jd}
+
+${mode === "analyze" ? `
+OUTPUT MODE: ANALYSIS REPORT
+You MUST produce ALL of the following sections in ORDER. Do NOT skip any section. Do NOT stop early.
+
+---
+
+### Strategic Alignment
+Write 2-3 sentences on how well this candidate fits the role overall. Be direct and specific.
+
+### Match Score Breakdown
+Explain why you gave the match_score below. Reference specific JD requirements vs resume evidence. Be concise.
+
+### Learning Roadmap
+Provide 3-5 actionable steps the candidate should take to become a stronger applicant for this specific role. Make each step concrete and measurable.
+
+---
+
+FORBIDDEN: Do NOT generate any LaTeX code. Do NOT generate a "Skill Gap Analysis" section (skills are shown separately). Do NOT generate a "Cold Message Draft" section (outreach email is shown separately). Do NOT add any section not listed above.
+
+` : `
+OUTPUT MODE: CUSTOMIZE RESUME
+Output ONLY a COMPLETE, ready-to-compile LaTeX document tailored for this JD.
+- Start with \\documentclass
+- Make targeted changes to bullet points, summary, and skills sections to match the JD requirements
+- Do NOT add new fabricated experiences
+- Do NOT truncate — output the entire document
+- Do NOT include any commentary, Key Improvements, or analysis text
+
+FORBIDDEN: No markdown text, no strategic analysis, no "### Key Improvements" section.
+`}
+
+After your ${mode === "analyze" ? "analysis" : "LaTeX resume"}, output the following JSON block EXACTLY as shown, with real values filled in:
+
+===JSON_START===
+{
+  "match_score": <integer 0-100>,
+  "verdict": "<APPLY|STRETCH|PASS>",
+  "ats_score": <integer 0-100>,
+  "keyword_density": <integer 0-100>,
+  "matched_skills": ["skill1", "skill2"],
+  "missing_skills": ["skill1", "skill2"],
+  "salary_insight": { "range": "<e.g. 8-15 LPA>", "currency": "<INR|USD>", "seniority": "<Junior|Mid|Senior>" },
+  "red_flags": ["flag1"],
+  "interview_questions": [{ "q": "<question>", "intent": "<why they ask this>" }],
+  "outreach_email": "<full email text>",
+  "tailored_latex": ""
+}
+===JSON_END===
 `;
 
 export const JUDGE_CORRECTION_PROMPT = (score: number, critique: string) => `
-    The Judge rejected your work. Score: ${score}. Critique: ${critique}. PLEASE FIX AND RE-GENERATE.
-    CRITICAL INSTRUCTION: Output ONLY the corrected markdown, followed by ---METADATA---, followed by the JSON.
+Your previous analysis was rejected by the quality evaluator.
+Score: ${score}/100. Critique: ${critique}.
+
+Re-generate the COMPLETE analysis fixing all critiqued issues.
+Output format MUST follow this exact structure:
+1. All required markdown sections (### Strategic Alignment, ### Match Score Breakdown, ### Learning Roadmap)
+2. Then the JSON block:
+
+===JSON_START===
+{
+  "match_score": <integer>,
+  "verdict": "<APPLY|STRETCH|PASS>",
+  "ats_score": <integer>,
+  "keyword_density": <integer>,
+  "matched_skills": [],
+  "missing_skills": [],
+  "salary_insight": { "range": "", "currency": "", "seniority": "" },
+  "red_flags": [],
+  "interview_questions": [{ "q": "", "intent": "" }],
+  "outreach_email": "",
+  "tailored_latex": ""
+}
+===JSON_END===
 `;
 
 export const JUDGE_PROMPT = (resume: string, jd: string, analysis: string) => `
