@@ -32,7 +32,7 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
         analyzeResume
     } = props;
 
-    const isSubmitDisabled = isAnalyzing || isUploading || (mainTab === "customize" ? !latexText : !extractedText) || !jobDescription;
+    const isSubmitDisabled = isAnalyzing || isUploading || (mainTab === "customize" ? !latexText : !extractedText) || !jobDescription || !companyName || !position;
 
     return (
         <div className="w-full flex flex-col relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
