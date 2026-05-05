@@ -33,12 +33,21 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: "Hourly limit exceeded (5/hr)." }), { status: 429 });
     }
 
-    await supabase.from("user_usage").upsert({
+    const { error: usageError } = await supabase.from("user_usage").upsert({
       user_id: user.id,
       daily_count: daily_count + 1,
       hourly_count: hourly_count + 1,
       last_request_at: now.toISOString()
     }, { onConflict: "user_id" });
+
+    if (usageError) {
+      await logSystemEvent({
+        level: "ERROR",
+        source: "API_USAGE",
+        message: "Usage tracking failed",
+        details: { error: usageError, userId: user.id }
+      });
+    }
 
     const jd = messages[messages.length - 1].content;
     const context = resumeText || (await getRelevantContext(supabase, user.id, jd));
