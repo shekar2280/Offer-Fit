@@ -133,6 +133,15 @@ export async function runAgenticAnalysis(
   };
 
   let { markdown, data } = parseResponse(response.text());
+
+  if (mode === "customize") {
+    return {
+      markdown,
+      data,
+      toolUsed: finalToolCalls.join(", ") || "none",
+    };
+  }
+
   const evaluation = await evaluateAnalysis(context, jd, markdown);
 
   if (!evaluation.passed) {
