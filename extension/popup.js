@@ -83,12 +83,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (response && response.role) {
       document.getElementById('company').innerText = response.company || "Unknown Company";
       document.getElementById('role').innerText = response.role || "Unknown Position";
+      document.getElementById('location').innerText = response.location || "Not Detected";
+      document.getElementById('jobType').innerText = response.jobType || "Not Detected";
       
       document.getElementById('sync-btn').onclick = () => {
         const baseUrl = "http://localhost:3000/analyze"; 
         const params = new URLSearchParams({
           company: response.company || "",
           role: response.role || "",
+          location: response.location || "",
+          jobType: response.jobType || "",
           jd: response.description || ""
         });
         chrome.tabs.create({ url: `${baseUrl}?${params.toString()}` });

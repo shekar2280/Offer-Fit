@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
+import { logSystemEvent } from "@/lib/supabase/logger";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Missing context" }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro-latest" });
 
     const prompt = `
 You are an ATS (Applicant Tracking System) engine and keyword analyst.
@@ -45,8 +46,13 @@ Return exactly this shape:
         if (!jsonMatch) throw new Error("No JSON found in response");
         const data = JSON.parse(jsonMatch[0]);
         return NextResponse.json(data);
-    } catch (err) {
-        console.error("Insights error:", err);
+    } catch (err: any) {
+        await logSystemEvent({
+            level: "ERROR",
+            source: "API_INSIGHTS",
+            message: "ATS insights generation failed",
+            details: { error: err.message }
+        });
         return NextResponse.json({ atsScore: 0, keywordDensity: 0, matchedSkills: [], missingSkills: [] });
     }
 }

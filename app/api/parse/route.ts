@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractText } from "unpdf";
 import { createClient } from "@/lib/supabase/server";
+import { logSystemEvent } from "@/lib/supabase/logger";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -46,8 +47,13 @@ export async function POST(req: NextRequest) {
       text: text,
       isLatex: !isPdf
     });
-  } catch (error) {
-    console.error("PDF Parsing Error:", error);
+  } catch (error: any) {
+    await logSystemEvent({
+      level: "ERROR",
+      source: "API_PARSE",
+      message: "File parsing failed",
+      details: { error: error.message, fileName: file.name, fileType: file.type }
+    });
     return NextResponse.json(
       { error: "Failed to parse file" },
       { status: 500 },
