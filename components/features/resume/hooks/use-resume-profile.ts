@@ -10,11 +10,21 @@ export function useResumeProfile(user: any) {
     if (!user) return;
     const fetchProfile = async () => {
       const supabase = createClient();
-      const { data: profile } = await supabase
+      let { data: profile, error } = await supabase
         .from("profiles")
         .select("resume_text, latex_source")
         .eq("id", user.id)
         .maybeSingle();
+
+      if (!profile && !error) {
+        const { data: newProfile, error: createError } = await supabase
+          .from("profiles")
+          .insert({ id: user.id, email: user.email })
+          .select()
+          .single();
+        
+        if (!createError) profile = newProfile;
+      }
 
       if (profile) {
         if (profile.resume_text) {

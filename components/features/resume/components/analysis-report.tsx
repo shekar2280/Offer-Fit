@@ -120,7 +120,6 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                             {insights?.outreachEmail && (
                                                 <OutreachEmail email={insights.outreachEmail} onCopy={copyText} />
                                             )}
-                                            <MarketTrends toolUsed={insights?.toolUsed} />
                                         </div>
                                     </>
                                 )}
