@@ -14,15 +14,14 @@ const ScraperEngine = {
 
     const role =
       document.querySelector(".job-details-jobs-unified-top-card__job-title h1")?.innerText?.trim() ||
-      document.querySelector("h1.t-24")?.innerText?.trim() ||
-      document.querySelector("h1")?.innerText?.trim() ||
+      document.querySelector(".jobs-unified-top-card__job-title h1")?.innerText?.trim() ||
+      document.querySelector(".job-details-jobs-unified-top-card__job-title")?.innerText?.trim() ||
       "";
 
     const company =
       document.querySelector(".job-details-jobs-unified-top-card__company-name a")?.innerText?.trim() ||
       document.querySelector(".job-details-jobs-unified-top-card__company-name")?.innerText?.trim() ||
-      document.querySelector(".topcard__org-name-link")?.innerText?.trim() ||
-      document.querySelector(".topcard__flavor a")?.innerText?.trim() ||
+      document.querySelector(".jobs-unified-top-card__company-name")?.innerText?.trim() ||
       "";
 
     const descriptionEl =
