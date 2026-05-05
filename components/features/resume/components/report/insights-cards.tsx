@@ -195,7 +195,12 @@ export function SalaryInsight({ data }: { data?: { range: string, currency: stri
                 </div>
                 <div>
                     <span className="block text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500/60">Estimated Salary Range</span>
-                    <p className="text-xl font-bold text-white tracking-tight">{data.range} <span className="text-sm font-medium text-white/40">{data.currency}</span></p>
+                    <p className="text-xl font-bold text-white tracking-tight">
+                        {data.range} 
+                        {!data.range.toLowerCase().includes("not specified") && !data.range.toLowerCase().includes("n/a") && (
+                            <span className="text-sm font-medium text-white/40 ml-1">{data.currency}</span>
+                        )}
+                    </p>
                 </div>
             </div>
             <div className="text-right">

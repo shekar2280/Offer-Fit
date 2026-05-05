@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { ResumeUpload } from "./resume-upload";
@@ -15,6 +15,7 @@ import { useResumeHistory } from "./hooks/use-resume-history";
 export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analysis" | "customize", selectedId?: string | null }) {
     const searchParams = useSearchParams();
     const pathname = usePathname();
+    const router = useRouter();
     const [mode, setMode] = useState(initialMode);
     const [user, setUser] = useState<any>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -81,21 +82,12 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
     const handleSwitchMode = async (newMode: "analysis" | "customize") => {
         if (newMode === mode) return;
 
-        if (newMode === "customize" && analysisState.cachedCustomize) {
-            setMode("customize");
-            setAnalysisState(prev => ({ ...prev, analysis: prev.cachedCustomize }));
-            return;
-        }
-        if (newMode === "analysis" && analysisState.cachedAnalysis) {
-            setMode("analysis");
-            setAnalysisState(prev => ({ ...prev, analysis: prev.cachedAnalysis }));
-            return;
-        }
-
-        setMode(newMode);
-        if (!analysisState.currentAnalysisId || (newMode === "customize" && !analysisState.cachedCustomize)) {
-            analyzeResume(newMode === "customize" ? (latexText || extractedText || "") : (extractedText || ""), newMode);
-        }
+        // Preserve current ID if it exists
+        const id = analysisState.currentAnalysisId || selectedId;
+        const targetRoute = newMode === "customize" ? "/customize" : "/analyze";
+        const url = id ? `${targetRoute}?id=${id}` : targetRoute;
+        
+        router.push(url);
     };
 
     const analyzeResume = async (text: string, targetMode?: "analysis" | "customize") => {
@@ -140,10 +132,15 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                     location: jobLocation,
                     jobType,
                     resumeText: effectiveMode === "customize" ? (latexText || extractedText) : extractedText,
+                    mode: effectiveMode,
                 }),
             });
 
-            if (!response.ok) throw new Error("Server error");
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Analysis failed");
+            }
+            
             const resData = await response.json();
             
             if (effectiveMode === "customize") {
@@ -156,8 +153,8 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                     insights: { ...resData.metadata, toolUsed: resData.toolUsed !== "none" ? resData.toolUsed.split(", ") : [] }
                 }));
             }
-        } catch (error) {
-            setServerError("Analysis failed. Please try again.");
+        } catch (error: any) {
+            setServerError(error.message || "Analysis failed. Please try again.");
             toast.error("Generation failed.");
         } finally {
             clearInterval(stepInterval);
@@ -173,7 +170,16 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
             const res = await fetch("/api/parse", { method: "POST", body: formData });
             const data = await res.json();
             if (data.text) {
-                if (file.type === "application/pdf") setExtractedText(data.text);
+                if (file.type === "application/pdf") {
+                    setExtractedText(data.text);
+                    const supabase = createClient();
+                    await supabase.from("profiles").update({ resume_text: data.text }).eq("id", user.id);
+                    
+                    await fetch("/api/index", {
+                        method: "POST",
+                        body: JSON.stringify({ text: data.text }),
+                    });
+                }
                 else setLatexText(data.text);
             }
         } catch (error) {

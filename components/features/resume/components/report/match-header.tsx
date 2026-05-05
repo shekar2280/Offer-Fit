@@ -96,15 +96,6 @@ export function MatchHeader({
                 <div className="lg:col-span-3 flex flex-col items-center lg:items-end justify-center space-y-6">
                     {isAnalyzing && !insights ? (
                         <div className="h-10 w-32 bg-white/5 animate-pulse rounded-full mb-2" />
-                    ) : insights?.salaryInsight ? (
-                        <div className="flex flex-col items-center lg:items-end">
-                            <span className="text-[9px] font-mono uppercase tracking-[0.4em] text-white/20 mb-2">Est. Market Rate</span>
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400">
-                                <DollarSign className="w-3 h-3" />
-                                <span className="text-[10px] font-black tracking-widest uppercase">{insights.salaryInsight.range}</span>
-                            </div>
-                            <span className="text-[8px] font-bold uppercase tracking-widest text-green-500/40 mt-1">{insights.salaryInsight.seniority} Level</span>
-                        </div>
                     ) : null}
                     <div className="flex flex-col items-center lg:items-end gap-3">
                         <span className="text-[9px] font-mono uppercase tracking-[0.4em] text-white/20">Final Verdict</span>
