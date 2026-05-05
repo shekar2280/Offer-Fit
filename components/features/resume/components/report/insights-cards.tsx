@@ -22,19 +22,22 @@ export function ScoreMetrics({ insights, isAnalyzing }: { insights: AnalysisInsi
 
     if (!insights) return null;
 
+    const ats = insights.ats_score || 0;
+    const kd = insights.keyword_density || 0;
+
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="bg-gradient-to-br from-white/[0.02] to-transparent border border-white/5 rounded-2xl p-6 space-y-4 hover:border-white/10 hover:bg-white/[0.03] hover:shadow-[0_0_40px_-10px_rgba(242,170,76,0.1)] transition-all group/metric">
                 <div className="flex items-center justify-between">
                     <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/40">ATS Score</span>
-                    <span className="text-sm font-black text-white">{insights.atsScore}<span className="text-white/20 text-xs">/100</span></span>
+                    <span className="text-sm font-black text-white">{ats}<span className="text-white/20 text-xs">/100</span></span>
                 </div>
                 <div className="w-full h-2 bg-slate-900/50 rounded-full overflow-hidden">
                     <div
                         className="h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(242,170,76,0.2)]"
                         style={{
-                            width: `${insights.atsScore}%`,
-                            background: insights.atsScore >= 70 ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : insights.atsScore >= 45 ? 'linear-gradient(90deg, #fbbf24, #d97706)' : 'linear-gradient(90deg, #ef4444, #b91c1c)'
+                            width: `${ats}%`,
+                            background: ats >= 70 ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : ats >= 45 ? 'linear-gradient(90deg, #fbbf24, #d97706)' : 'linear-gradient(90deg, #ef4444, #b91c1c)'
                         }}
                     />
                 </div>
@@ -44,14 +47,14 @@ export function ScoreMetrics({ insights, isAnalyzing }: { insights: AnalysisInsi
             <div className="bg-gradient-to-bl from-white/[0.02] to-transparent border border-white/5 rounded-2xl p-6 space-y-4 hover:border-white/10 hover:bg-white/[0.03] hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.1)] transition-all group/metric">
                 <div className="flex items-center justify-between">
                     <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">Keyword Density</span>
-                    <span className="text-sm font-black text-slate-200">{insights.keywordDensity}<span className="text-slate-600 text-xs">/100</span></span>
+                    <span className="text-sm font-black text-slate-200">{kd}<span className="text-slate-600 text-xs">/100</span></span>
                 </div>
                 <div className="w-full h-2 bg-slate-900/50 rounded-full overflow-hidden">
                     <div
                         className="h-full rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
                         style={{
-                            width: `${insights.keywordDensity}%`,
-                            background: insights.keywordDensity >= 70 ? 'linear-gradient(90deg, #10b981, #34d399)' : insights.keywordDensity >= 45 ? 'linear-gradient(90deg, #fbbf24, #d97706)' : 'linear-gradient(90deg, #ef4444, #b91c1c)'
+                            width: `${kd}%`,
+                            background: kd >= 70 ? 'linear-gradient(90deg, #10b981, #34d399)' : kd >= 45 ? 'linear-gradient(90deg, #fbbf24, #d97706)' : 'linear-gradient(90deg, #ef4444, #b91c1c)'
                         }}
                     />
                 </div>

@@ -54,25 +54,23 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
     } = useResumeHistory(selectedId, user, mode);
 
     useEffect(() => {
-        if (searchParams) {
-            const company = searchParams.get("company");
-            const role = searchParams.get("role");
-            const location = searchParams.get("location");
-            const type = searchParams.get("jobType");
-            const jd = searchParams.get("jd");
-            
-            if (company || role || jd) {
-                setJobData(p => ({
-                    ...p,
-                    company: company || p.company,
-                    role: role || p.role,
-                    description: jd || p.description
-                }));
-            }
-            if (location) setJobLocation(location);
-            if (type) setJobType(type);
+        if (!searchParams) return;
+        const company = searchParams.get("company");
+        const role = searchParams.get("role");
+        const location = searchParams.get("location");
+        const type = searchParams.get("jobType");
+        const jd = searchParams.get("jd");
+
+        if (company || role || jd) {
+            setJobData(() => ({
+                company: company || "",
+                role: role || "",
+                description: jd || ""
+            }));
         }
-    }, [searchParams, setJobData]);
+        if (location) setJobLocation(location);
+        if (type) setJobType(type);
+    }, [searchParams]);
 
     useEffect(() => {
         if (pathname.includes("/customize")) setMode("customize");
@@ -82,12 +80,18 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
     const handleSwitchMode = async (newMode: "analysis" | "customize") => {
         if (newMode === mode) return;
 
-        // Preserve current ID if it exists
         const id = analysisState.currentAnalysisId || selectedId;
         const targetRoute = newMode === "customize" ? "/customize" : "/analyze";
-        const url = id ? `${targetRoute}?id=${id}` : targetRoute;
         
-        router.push(url);
+        const params = new URLSearchParams();
+        if (id) params.set("id", id);
+        if (jobData.company) params.set("company", jobData.company);
+        if (jobData.role) params.set("role", jobData.role);
+        if (jobData.description) params.set("jd", jobData.description);
+        if (jobLocation) params.set("location", jobLocation);
+        if (jobType) params.set("jobType", jobType);
+
+        router.push(`${targetRoute}?${params.toString()}`);
     };
 
     const analyzeResume = async (text: string, targetMode?: "analysis" | "customize") => {
@@ -103,22 +107,27 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
 
         try {
             const supabase = createClient();
-            let targetId = analysisState.currentAnalysisId;
+            let targetId = analysisState.currentAnalysisId || selectedId;
 
             if (!targetId && user && jobData.company && jobData.role) {
-                const { data: newAnalysis } = await supabase
+                const { data: newAnalysis, error } = await supabase
                     .from("analyses")
                     .insert({
                         user_id: user.id,
-                        resume_text: extractedText || "",
-                        job_description: jobData.description,
+                        jd_text: jobData.description,
                         company_name: jobData.company,
-                        position: jobData.role,
-                        short_title: `${jobData.company} - ${jobData.role}`,
+                        position: jobData.role
                     })
                     .select()
                     .single();
-                if (newAnalysis) targetId = newAnalysis.id;
+
+                if (error) {
+                    console.error("Analysis Insert Error:", error);
+                }
+                if (newAnalysis) {
+                    targetId = newAnalysis.id;
+                    setAnalysisState(prev => ({ ...prev, currentAnalysisId: newAnalysis.id }));
+                }
             }
 
             const response = await fetch("/api/chat", {
@@ -144,13 +153,21 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
             const resData = await response.json();
             
             if (effectiveMode === "customize") {
-                setAnalysisState(prev => ({ ...prev, analysis: resData.analysis, cachedCustomize: resData.analysis }));
+                setAnalysisState(prev => ({ 
+                    ...prev, 
+                    analysis: resData.analysis, 
+                    cachedCustomize: resData.analysis,
+                    hasCustomization: true 
+                }));
             } else {
                 setAnalysisState(prev => ({ 
                     ...prev, 
                     analysis: resData.analysis, 
                     cachedAnalysis: resData.analysis,
-                    insights: { ...resData.metadata, toolUsed: resData.toolUsed !== "none" ? resData.toolUsed.split(", ") : [] }
+                    insights: { 
+                        ...resData.metadata, 
+                        toolUsed: resData.toolUsed !== "none" ? resData.toolUsed.split(", ") : [] 
+                    }
                 }));
             }
         } catch (error: any) {

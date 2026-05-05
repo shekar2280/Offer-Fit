@@ -68,24 +68,22 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                             selectedId={selectedId}
                         />
 
-                        {!selectedId && (
-                            <div className="pt-3 border-t border-white/5 flex justify-end">
-                                <button
-                                    onClick={() => {
-                                        if (!isSubmitDisabled) {
-                                            mainTab === "customize" ? analyzeResume(latexText) : analyzeResume(extractedText || "");
-                                        }
-                                    }}
-                                    className={`relative w-full sm:w-auto sm:min-w-[300px] px-8 py-5 rounded-full font-heading font-black text-xs uppercase tracking-[0.3em] transition-all duration-700 overflow-hidden group/submit shadow-[0_0_40px_rgba(242,170,76,0.1)] hover:shadow-[0_0_60px_rgba(242,170,76,0.3)] ${isSubmitDisabled ? "cursor-not-allowed opacity-50" : ""}`}
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 transition-opacity duration-700" />
-                                    <div className="absolute inset-0 flex items-center justify-center gap-3 text-black z-10 transition-colors duration-500">
-                                        {isAnalyzing ? "Processing..." : (mainTab === "customize" ? "Update Resume" : "Analyze Resume")}
-                                        <ArrowRight className="w-4 h-4 group-hover/submit:translate-x-2 transition-transform duration-700" />
-                                    </div>
-                                </button>
-                            </div>
-                        )}
+                        <div className="pt-3 border-t border-white/5 flex justify-end">
+                            <button
+                                onClick={() => {
+                                    if (!isSubmitDisabled) {
+                                        mainTab === "customize" ? analyzeResume(latexText) : analyzeResume(extractedText || "");
+                                    }
+                                }}
+                                className={`relative w-full sm:w-auto sm:min-w-[300px] px-8 py-5 rounded-full font-heading font-black text-xs uppercase tracking-[0.3em] transition-all duration-700 overflow-hidden group/submit shadow-[0_0_40px_rgba(242,170,76,0.1)] hover:shadow-[0_0_60px_rgba(242,170,76,0.3)] ${isSubmitDisabled ? "cursor-not-allowed opacity-50" : ""}`}
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 transition-opacity duration-700" />
+                                <div className="absolute inset-0 flex items-center justify-center gap-3 text-black z-10 transition-colors duration-500">
+                                    {isAnalyzing ? "Processing..." : (mainTab === "customize" ? "Customize Resume" : "Analyze Resume")}
+                                    <ArrowRight className="w-4 h-4 group-hover/submit:translate-x-2 transition-transform duration-700" />
+                                </div>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

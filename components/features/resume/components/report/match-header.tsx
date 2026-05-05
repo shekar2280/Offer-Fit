@@ -67,20 +67,20 @@ export function MatchHeader({
                         {isAnalyzing && !position ? (
                             <div className="h-6 w-48 bg-white/5 animate-pulse rounded mt-2" />
                         ) : (
-                            <p className="text-white/60 text-lg font-medium tracking-tight">
+                            <p className="text-white/60 text-lg font-medium tracking-tight line-clamp-1">
                                 {position}
                             </p>
                         )}
                         {isAnalyzing && !companyName ? (
                             <div className="h-4 w-32 bg-white/5 animate-pulse rounded mt-1" />
                         ) : (
-                            <p className="text-white/20 text-xs font-mono uppercase tracking-widest">
+                            <p className="text-white/20 text-[10px] font-mono uppercase tracking-widest line-clamp-2 leading-relaxed" title={companyName}>
                                 Target: {companyName}
                             </p>
                         )}
-                        {!isAnalyzing && insights?.toolUsed && insights.toolUsed.length > 0 && (
+                        {!isAnalyzing && insights?.tool_used && insights.tool_used.length > 0 && (
                             <div className="flex flex-wrap gap-2 pt-3 justify-center lg:justify-start">
-                                {insights.toolUsed.map((tool, idx) => (
+                                {insights.tool_used.map((tool, idx) => (
                                     <div key={idx} className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary">
                                         <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                                         <span className="text-[9px] font-mono uppercase tracking-widest">
