@@ -3,29 +3,12 @@ import { toolDefinitions, toolHandlers } from "./tools";
 import { evaluateAnalysis } from "./evaluator";
 import { ANALYSIS_PROMPT, JUDGE_CORRECTION_PROMPT } from "./prompts";
 import { logSystemEvent } from "../supabase/logger";
+import { AnalysisResult } from "../types";
+import { GEMINI_MODELS } from "../constants";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-export interface AnalysisData {
-  match_score?: number;
-  verdict?: "APPLY" | "STRETCH" | "PASS";
-  ats_score?: number;
-  keyword_density?: number;
-  matched_skills?: string[];
-  missing_skills?: string[];
-  salary_insight?: { range: string; currency: string; seniority: string };
-  red_flags?: string[];
-  interview_questions?: { q: string; intent: string }[];
-  outreach_email?: string;
-  tailored_latex?: string;
-}
-
-const GEMINI_MODELS = [
-  "gemini-3.1-flash-lite-preview",
-  "gemini-2.5-flash",
-  "gemini-3-flash-preview",
-  "gemini-2.5-flash-lite"
-];
+export type { AnalysisResult };
 
 export async function runAgenticAnalysis(
   companyName: string,
@@ -35,7 +18,7 @@ export async function runAgenticAnalysis(
   location?: string,
   jobType?: string,
   mode?: "analyze" | "customize"
-): Promise<{ markdown: string; data: AnalysisData; toolUsed: string }> {
+): Promise<{ markdown: string; data: AnalysisResult; toolUsed: string }> {
   let response;
   let finalToolCalls: string[] = [];
 
@@ -100,9 +83,9 @@ export async function runAgenticAnalysis(
 
   if (!response) throw new Error("All AI models failed to respond.");
 
-  const parseResponse = async (text: string): Promise<{ markdown: string; data: AnalysisData }> => {
+  const parseResponse = async (text: string): Promise<{ markdown: string; data: AnalysisResult }> => {
     let markdown = text;
-    let data: AnalysisData = {};
+    let data: AnalysisResult = {};
     
     try {
       const jsonStartMarker = "===JSON_START===";
@@ -155,7 +138,7 @@ export async function runAgenticAnalysis(
   const evaluation = await evaluateAnalysis(context, jd, markdown);
 
   if (!evaluation.passed) {
-    const correctionModels = ["gemini-2.5-pro", "gemini-2.5-flash-lite"];
+    const correctionModels = ["gemini-3.1-flash-lite-preview", "gemini-3-flash-preview", "gemini-2.5-flash"];
     for (const modelId of correctionModels) {
       try {
         const model = genAI.getGenerativeModel({ model: modelId });

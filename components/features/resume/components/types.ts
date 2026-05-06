@@ -1,27 +1,9 @@
-export interface SalaryInsight {
-    range: string;
-    currency: string;
-    seniority: string;
-}
+import { AnalysisResult, SalaryInsight, InterviewQuestion } from "@/lib/types";
 
-export interface InterviewQuestion {
-    q: string;
-    intent: string;
-}
-
-export interface AnalysisInsights {
-    match_score: number;
-    verdict: string;
-    ats_score: number;
-    keyword_density: number;
-    matched_skills: string[];
-    missing_skills: string[];
-    salary_insight?: SalaryInsight;
-    red_flags?: string[];
-    interview_questions?: InterviewQuestion[];
-    outreach_email?: string;
+export interface AnalysisInsights extends AnalysisResult {
     tool_used?: string[];
 }
+
 
 export interface AnalysisReportProps {
     analysis: string;

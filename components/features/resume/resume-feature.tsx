@@ -11,6 +11,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { FileText, Search, Cpu } from "lucide-react";
 import { useResumeProfile } from "./hooks/use-resume-profile";
 import { useResumeHistory } from "./hooks/use-resume-history";
+import { LOADING_MESSAGES } from "@/lib/constants";
 
 export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analysis" | "customize", selectedId?: string | null }) {
     const searchParams = useSearchParams();
@@ -25,12 +26,6 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
     const [jobLocation, setJobLocation] = useState("");
     const [jobType, setJobType] = useState("");
 
-    const loadingMessages = [
-        "Indexing resume context...",
-        "Analyzing JD...",
-        "Finding matches...",
-        "Optimizing LaTeX..."
-    ];
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -265,7 +260,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                                 analysis={analysisState.analysis}
                                 isAnalyzing={isAnalyzing}
                                 loadingStep={loadingStep}
-                                loadingMessages={loadingMessages}
+                                loadingMessages={LOADING_MESSAGES}
                                 companyName={jobData.company}
                                 position={jobData.role}
                                 onReset={resetSession}
