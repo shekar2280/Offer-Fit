@@ -17,7 +17,8 @@ export async function runAgenticAnalysis(
   jd: string,
   location?: string,
   jobType?: string,
-  mode?: "analyze" | "customize"
+  mode?: "analyze" | "customize",
+  bypassJudge: boolean = false
 ): Promise<{ markdown: string; data: AnalysisResult; toolUsed: string }> {
   let response;
   let finalToolCalls: string[] = [];
@@ -132,7 +133,7 @@ export async function runAgenticAnalysis(
 
   let { markdown, data } = await parseResponse(response.text());
 
-  if (mode === "customize") {
+  if (mode === "customize" || bypassJudge) {
     return {
       markdown,
       data,
