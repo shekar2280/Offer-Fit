@@ -63,7 +63,7 @@ async function runBenchmark() {
       if (wasCorrected && isNowAccurate) successfulCorrections++;
 
       console.log(
-        `[${test.testName}] Raw: ${raw.metadata.verdict} | Reliable: ${reliable.metadata.verdict} | Corrected: ${wasCorrected}`
+        `[${test.testName}] Raw: ${raw.metadata.verdict} | Reliable: ${reliable.metadata.verdict} | Tokens: ${reliable.metadata.total_tokens} | Cost: $${reliable.metadata.estimated_cost.toFixed(5)}`
       );
     } catch (e: any) {
       console.error(`Error processing ${file}:`, e.message);

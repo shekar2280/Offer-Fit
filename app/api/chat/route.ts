@@ -96,7 +96,7 @@ export async function POST(req: Request) {
     const agentMode: "analyze" | "customize" =
       mode === "customize" ? "customize" : "analyze";
 
-    const { markdown, data, toolUsed } = await runAgenticAnalysis(
+    const { markdown, data, toolUsed, usage } = await runAgenticAnalysis(
       companyName,
       position,
       context,
@@ -106,6 +106,10 @@ export async function POST(req: Request) {
       agentMode,
       bypassJudge,
     );
+
+    const inputCost = (usage?.promptTokenCount || 0) * (0.075 / 1000000);
+    const outputCost = (usage?.candidatesTokenCount || 0) * (0.30 / 1000000);
+    const totalCost = inputCost + outputCost;
 
     await logSystemEvent({
       level: "INFO",
@@ -118,6 +122,8 @@ export async function POST(req: Request) {
         ats_score: data.ats_score,
         verdict: data.verdict,
         tool_used: toolUsed,
+        total_tokens: usage?.totalTokenCount,
+        estimated_cost: totalCost,
       },
     });
 
@@ -136,6 +142,8 @@ export async function POST(req: Request) {
         culture_fit_score: data.culture_fit_score ?? null,
         company_cheat_sheet: data.company_cheat_sheet || null,
         culture_traits: data.culture_traits || [],
+        total_tokens: usage?.totalTokenCount || 0,
+        estimated_cost: totalCost,
       };
 
       if (agentMode === "customize") {
@@ -168,6 +176,8 @@ export async function POST(req: Request) {
           culture_fit_score: data.culture_fit_score ?? null,
           company_cheat_sheet: data.company_cheat_sheet || null,
           culture_traits: data.culture_traits || [],
+          total_tokens: usage?.totalTokenCount || 0,
+          estimated_cost: totalCost,
         },
         toolUsed,
       }),
