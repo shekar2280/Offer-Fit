@@ -99,17 +99,22 @@ export async function runAgenticAnalysis(
         try {
           data = JSON.parse(jsonStr);
         } catch (parseError) {
-          const sanitized = jsonStr
-            .replace(/\n/g, "\\n")
-            .replace(/\\(?!"|\\|\/|b|f|n|r|t|u)/g, "\\\\");
-          data = JSON.parse(sanitized);
+          try {
+            const sanitized = jsonStr
+              .replace(/\n/g, "\\n")
+              .replace(/\\(?!"|\\|\/|b|f|n|r|t|u)/g, "\\\\");
+            data = JSON.parse(sanitized);
+          } catch (secondError) {
+            console.error("JSON Parsing failed even after sanitization", { jsonStr });
+            throw secondError;
+          }
         }
         
         markdown = text.replace(text.substring(startIndex, endIndex + jsonEndMarker.length), "").trim();
       } else {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const jsonMatch = text.match(/===JSON_START===\s*(\{[\s\S]*\})\s*===JSON_END===/);
         if (jsonMatch) {
-          data = JSON.parse(jsonMatch[0]);
+          data = JSON.parse(jsonMatch[1]);
           markdown = text.replace(jsonMatch[0], "").trim();
         }
       }

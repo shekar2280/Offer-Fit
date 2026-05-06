@@ -39,7 +39,7 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
           });
           
           const atsScore = data.ats_score ?? 0;
-          const derivedVerdict = atsScore >= 70 ? "APPLY" : atsScore >= 50 ? "STRETCH" : "PASS";
+          const derivedVerdict = atsScore >= 70 ? "APPLY" : atsScore >= 50 ? "STRETCH" : "REJECT";
           
           setAnalysisState({
             analysis: mode === "customize" ? (data.customized_latex || "") : (data.analysis_result || ""),
@@ -58,6 +58,9 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
               red_flags: data.red_flags || [],
               interview_questions: data.interview_questions || [],
               outreach_email: data.outreach_email || undefined,
+              culture_fit_score: data.culture_fit_score ?? undefined,
+              company_cheat_sheet: data.company_cheat_sheet || undefined,
+              culture_traits: data.culture_traits || [],
             }
           });
         }

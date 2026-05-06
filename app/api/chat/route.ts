@@ -26,11 +26,11 @@ export async function POST(req: Request) {
     const daily_count = msSinceLast > 86400000 ? 0 : (usage?.daily_count || 0);
     const hourly_count = msSinceLast > 3600000 ? 0 : (usage?.hourly_count || 0);
 
-    if (daily_count >= 20) {
-      return new Response(JSON.stringify({ error: "Daily quota reached (20/day)." }), { status: 429 });
+    if (daily_count >= 50) {
+      return new Response(JSON.stringify({ error: "Daily quota reached (50/day)." }), { status: 429 });
     }
-    if (hourly_count >= 5) {
-      return new Response(JSON.stringify({ error: "Hourly limit exceeded (5/hr)." }), { status: 429 });
+    if (hourly_count >= 20) {
+      return new Response(JSON.stringify({ error: "Hourly limit exceeded (20/hr)." }), { status: 429 });
     }
 
     const { error: usageError } = await supabase.from("user_usage").upsert({
@@ -52,6 +52,18 @@ export async function POST(req: Request) {
     const jd = messages[messages.length - 1].content;
     const context = resumeText || (await getRelevantContext(supabase, user.id, jd));
 
+    await logSystemEvent({
+      level: "INFO",
+      source: "AGENT_CONTEXT",
+      message: "Context sent to AI",
+      details: {
+        mode,
+        context_length: context.length,
+        context_preview: context.substring(0, 500),
+        jd_preview: jd.substring(0, 300)
+      }
+    });
+
     const agentMode: "analyze" | "customize" = mode === "customize" ? "customize" : "analyze";
 
     const { markdown, data, toolUsed } = await runAgenticAnalysis(
@@ -64,10 +76,24 @@ export async function POST(req: Request) {
       agentMode
     );
 
+    await logSystemEvent({
+      level: "INFO",
+      source: "AGENT_OUTPUT",
+      message: "AI analysis completed",
+      details: {
+        matched_skills: data.matched_skills,
+        missing_skills: data.missing_skills,
+        match_score: data.match_score,
+        ats_score: data.ats_score,
+        verdict: data.verdict,
+        tool_used: toolUsed
+      }
+    });
+
     if (analysisId) {
       const updatePayload: Record<string, any> = {
         match_score: data.match_score || 0,
-        verdict: data.verdict || "PASS",
+        verdict: data.verdict || "REJECT",
         ats_score: data.ats_score || 0,
         keyword_density: data.keyword_density || 0,
         matched_skills: data.matched_skills || [],
@@ -76,11 +102,13 @@ export async function POST(req: Request) {
         red_flags: data.red_flags || [],
         interview_questions: data.interview_questions || [],
         outreach_email: data.outreach_email || "",
+        culture_fit_score: data.culture_fit_score ?? null,
+        company_cheat_sheet: data.company_cheat_sheet || null,
+        culture_traits: data.culture_traits || [],
       };
 
       if (agentMode === "customize") {
-        const latexSource = data.tailored_latex || markdown;
-        updatePayload.customized_latex = latexSource;
+        updatePayload.customized_latex = markdown;
       } else {
         updatePayload.analysis_result = markdown;
       }
@@ -91,13 +119,26 @@ export async function POST(req: Request) {
         .eq("id", analysisId)
         .select();
 
+      if (updateError) {
+        await logSystemEvent({
+          level: "ERROR",
+          source: "API_CHAT_SAVE",
+          message: "Failed to save analysis results",
+          details: { 
+            error: updateError, 
+            analysisId, 
+            mode: agentMode,
+            payloadKeys: Object.keys(updatePayload)
+          }
+        });
+      }
     }
 
     return new Response(JSON.stringify({
       analysis: markdown,
       metadata: {
         match_score: data.match_score || 0,
-        verdict: data.verdict || "PASS",
+        verdict: data.verdict || "REJECT",
         ats_score: data.ats_score || 0,
         keyword_density: data.keyword_density || 0,
         matched_skills: data.matched_skills || [],
@@ -106,6 +147,9 @@ export async function POST(req: Request) {
         red_flags: data.red_flags || [],
         interview_questions: data.interview_questions || [],
         outreach_email: data.outreach_email || "",
+        culture_fit_score: data.culture_fit_score ?? null,
+        company_cheat_sheet: data.company_cheat_sheet || null,
+        culture_traits: data.culture_traits || [],
       },
       toolUsed
     }));

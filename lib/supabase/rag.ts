@@ -109,5 +109,18 @@ export async function getRelevantContext(
 
   if (error || !chunks) return "";
 
+  await logSystemEvent({
+    level: "INFO",
+    source: "RAG_RETRIEVAL",
+    message: `Retrieved ${chunks.length} resume chunks`,
+    details: {
+      chunks_retrieved: chunks.map((c: any, i: number) => ({
+        index: i + 1,
+        similarity: c.similarity,
+        preview: c.content?.substring(0, 120)
+      }))
+    }
+  });
+
   return chunks.map((c: any) => c.content).join("\n\n");
 }

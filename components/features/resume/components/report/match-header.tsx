@@ -41,7 +41,7 @@ export function MatchHeader({
                             {isAnalyzing && !insights ? (
                                 <div className="h-12 w-16 bg-white/5 animate-pulse rounded-lg" />
                             ) : (
-                                <span className="text-6xl font-black text-white tracking-tighter drop-shadow-2xl">{score}</span>
+                                <span className="text-7xl font-black text-white tracking-tighter drop-shadow-2xl">{score}</span>
                             )}
                             <span className="text-[10px] font-mono uppercase tracking-[0.5em] text-white/20 mt-1">Match</span>
                         </div>
