@@ -6,7 +6,7 @@ import { AnalysisReportProps } from "./types";
 import { ReportToolbar } from "./report/report-toolbar";
 import { ErrorView } from "./report/error-view";
 import { MatchHeader } from "./report/match-header";
-import { ScoreMetrics, SkillsView, RedFlags, InterviewQuestions, OutreachEmail, SalaryInsight, MarketTrends } from "./report/insights-cards";
+import { CompanyIntelligence, InterviewQuestions, OutreachEmail, RedFlags, SalaryInsight, ScoreMetrics, SkillsView } from "./report/insights-cards";
 import { MarkdownViewer } from "./report/markdown-viewer";
 import { LoadingScanning } from "./report/loading-scanning";
 
@@ -30,7 +30,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
     }, [mode]);
 
     const score = insights?.match_score || 0;
-    const verdict = insights?.verdict || (score > 75 ? "APPLY" : score > 50 ? "STRETCH" : "PASS");
+    const verdict = insights?.verdict || (score > 75 ? "APPLY" : score > 50 ? "STRETCH" : "REJECT");
 
     const cleanAnalysis = analysis
         .replace(/===JSON_START===[\s\S]*?===JSON_END===/g, "")
@@ -44,7 +44,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
         verdictColorClass = 'text-yellow-400';
         strokeColorClass = 'stroke-yellow-400';
         bgColorClass = 'bg-yellow-400/20 border-yellow-400/30';
-    } else if (verdict === 'PASS') {
+    } else if (verdict === 'PASS' || verdict === 'REJECT') {
         verdictColorClass = 'text-destructive';
         strokeColorClass = 'stroke-destructive';
         bgColorClass = 'bg-destructive/20 border-destructive/30';
@@ -76,7 +76,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
                 ) : (
                     <>
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                            {((mode === "analysis" && (analysis || isAnalyzing)) || (mode === "customize" && isAnalyzing)) && (
+                            {mode === "analysis" && (analysis || isAnalyzing) && (
                                 <MatchHeader 
                                     score={score}
                                     verdict={verdict}
@@ -98,24 +98,39 @@ export function AnalysisReport(props: AnalysisReportProps) {
 
                             {analysis && mode === "analysis" && (
                                 <>
-                                    <ScoreMetrics insights={insights} isAnalyzing={isAnalyzing} />
-                                    <SalaryInsight data={insights?.salary_insight} />
+                                    <div className="space-y-12">
+                                        {/* Dossier Header: Vitals Grid */}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            <ScoreMetrics insights={insights} />
+                                            <SalaryInsight data={insights?.salary_insight} />
+                                        </div>
 
-                                    <div className="space-y-6">
-                                        <SkillsView 
-                                            matched={insights?.matched_skills || []} 
-                                            missing={insights?.missing_skills || []} 
+                                        <CompanyIntelligence 
+                                            score={insights?.culture_fit_score} 
+                                            traits={insights?.culture_traits} 
+                                            content={insights?.company_cheat_sheet} 
+                                            companyName={companyName} 
                                         />
-                                        <RedFlags flags={insights?.red_flags || []} />
-                                        <InterviewQuestions 
-                                            questions={insights?.interview_questions || []} 
-                                            onCopy={copyText} 
-                                        />
-                                        {insights?.outreach_email && (
-                                            <OutreachEmail email={insights.outreach_email} onCopy={copyText} />
-                                        )}
+
+                                        <div className="space-y-12">
+                                            <SkillsView 
+                                                matched={insights?.matched_skills || []} 
+                                                missing={insights?.missing_skills || []} 
+                                            />
+                                            
+                                            <RedFlags flags={insights?.red_flags || []} />
+                                            
+                                            <InterviewQuestions 
+                                                questions={insights?.interview_questions || []} 
+                                                onCopy={copyText} 
+                                            />
+
+                                            {insights?.outreach_email && (
+                                                <OutreachEmail email={insights.outreach_email} onCopy={copyText} />
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="relative z-10 w-full mt-8 pt-8 border-t border-white/5">
+                                    <div className="relative z-10 w-full mt-4 border-t border-white/5">
                                         <MarkdownViewer 
                                             content={cleanAnalysis} 
                                             mode={mode} 
@@ -170,7 +185,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                     </div>
                                     
                                     {analysis.includes("###") && (
-                                        <div className="pt-8 border-t border-white/5">
+                                        <div className="border-t border-white/5">
                                             <MarkdownViewer 
                                                 content={"###" + analysis.split("###").slice(1).join("###")} 
                                                 mode={mode} 

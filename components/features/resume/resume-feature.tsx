@@ -79,7 +79,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
             !isAnalyzing && 
             !analysisState.analysis && 
             jobData.description && 
-            (latexText || extractedText);
+            latexText; 
 
         if (canAutoStart) {
             analyzeResume(latexText || extractedText || "");
@@ -131,6 +131,10 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                     .single();
 
                 if (error) {
+                    console.error("Initial analysis creation failed:", error);
+                    toast.error("Failed to initialize session. Please try again.");
+                    setIsAnalyzing(false);
+                    return;
                 }
                 if (newAnalysis) {
                     targetId = newAnalysis.id;
@@ -243,15 +247,22 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
             <Navbar username={username} showMenuButton={false} />
             <main className="relative z-10 flex items-start justify-center p-0 md:px-4 md:pt-2 md:pb-0 overflow-x-hidden">
                 {isHistoryLoading ? (
-                    <div className="w-full flex flex-col items-center justify-center pt-32 space-y-8 animate-in fade-in duration-700">
-                        <div className="relative w-24 h-24 flex items-center justify-center">
-                            <div className="absolute inset-0 rounded-full border-2 border-primary/10 animate-ping" />
-                            <FileText className="w-10 h-10 text-white/20" />
-                            <div className="absolute inset-0 flex items-center justify-center animate-bounce">
-                                <Search className="w-6 h-6 text-primary drop-shadow-[0_0_10px_rgba(242,170,76,0.4)]" />
+                    <div className="w-full flex flex-col items-center justify-center py-24 space-y-12 animate-in fade-in duration-700">
+                        <div className="relative w-48 h-48 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-primary/5 rounded-full blur-[60px] animate-pulse" />
+                            <div className="absolute inset-0 border border-primary/20 rounded-full animate-[ping_3s_infinite]" />
+                            <div className="absolute inset-8 border-t-2 border-primary/40 rounded-full animate-[spin_3s_linear_infinite]" />
+                            <div className="relative">
+                                <Cpu className="w-10 h-10 text-primary animate-pulse" />
+                                <div className="absolute -top-1 -right-1">
+                                    <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
+                                </div>
                             </div>
                         </div>
-                        <h2 className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/60">Restoring Archive</h2>
+                        <div className="flex flex-col items-center space-y-2">
+                            <h2 className="text-[11px] font-black uppercase tracking-[0.5em] text-primary/80">Restoring Report</h2>
+                            <p className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em]">Please wait a moment...</p>
+                        </div>
                     </div>
                 ) : (
                     <div className="max-w-[1400px] mx-auto flex flex-col w-full overflow-x-hidden">
