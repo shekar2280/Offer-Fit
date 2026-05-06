@@ -1,0 +1,10 @@
+{
+  "testName": "React Dev vs Angular Role",
+  "expectedVerdict": "REJECT",
+  "job": {
+    "company": "Enterprise Solutions",
+    "position": "Senior Frontend Developer",
+    "description": "Expertise in Angular 17 and RxJS. 5+ years experience building large scale dashboards."
+  },
+  "resume": "Senior Frontend Engineer with 6 years experience. Expert in React, Next.js, and Redux. Strong architectural patterns but limited Angular exposure."
+}
