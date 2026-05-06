@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { JUDGE_PROMPT } from "./prompts";
+import { GEMINI_MODELS } from "../constants";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -8,7 +9,7 @@ export async function evaluateAnalysis(
   jd: string,
   analysis: string,
 ) {
-  const models = ["gemini-2.5-flash-lite"];
+  const models = GEMINI_MODELS;
   
   for (const modelId of models) {
     try {
