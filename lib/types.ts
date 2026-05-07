@@ -28,3 +28,19 @@ export interface AnalysisResult {
   total_tokens?: number;
   estimated_cost?: number;
 }
+
+export interface AnalysisState {
+  id: string | null;
+  companyName: string;
+  position: string;
+  jd: string;
+  location: string;
+  jobType: string;
+  isAnalyzing: boolean;
+}
+
+export interface AnalysisContextType {
+  state: AnalysisState;
+  setAnalysisData: (data: Partial<AnalysisState>) => void;
+  resetSession: () => void;
+}

@@ -17,9 +17,15 @@ export async function POST(req: Request) {
       mode,
       bypassJudge,
     } = body;
-    
-    const testSecret = (body.testSecret || req.headers.get("x-test-secret") || "").trim();
-    const serverSecret = (process.env.NEXT_PUBLIC_BENCHMARK_SECRET || "").trim();
+
+    const testSecret = (
+      body.testSecret ||
+      req.headers.get("x-test-secret") ||
+      ""
+    ).trim();
+    const serverSecret = (
+      process.env.NEXT_PUBLIC_BENCHMARK_SECRET || ""
+    ).trim();
     const isTestMode = testSecret !== "" && testSecret === serverSecret;
 
     const supabase = await createClient();
@@ -96,7 +102,8 @@ export async function POST(req: Request) {
     const agentMode: "analyze" | "customize" =
       mode === "customize" ? "customize" : "analyze";
 
-    const userName = user?.user_metadata?.full_name || user?.user_metadata?.name;
+    const userName =
+      user?.user_metadata?.full_name || user?.user_metadata?.name;
 
     const { markdown, data, toolUsed, usage } = await runAgenticAnalysis(
       companyName,
@@ -107,11 +114,11 @@ export async function POST(req: Request) {
       jobType,
       agentMode,
       bypassJudge,
-      userName
+      userName,
     );
 
     const inputCost = (usage?.promptTokenCount || 0) * (0.075 / 1000000);
-    const outputCost = (usage?.candidatesTokenCount || 0) * (0.30 / 1000000);
+    const outputCost = (usage?.candidatesTokenCount || 0) * (0.3 / 1000000);
     const totalCost = inputCost + outputCost;
 
     await logSystemEvent({
@@ -134,10 +141,10 @@ export async function POST(req: Request) {
       if (agentMode === "customize") {
         await supabase
           .from("analyses")
-          .update({ 
+          .update({
             customized_latex: markdown,
-            total_tokens: (usage?.totalTokenCount || 0),
-            estimated_cost: totalCost 
+            total_tokens: usage?.totalTokenCount || 0,
+            estimated_cost: totalCost,
           })
           .eq("id", analysisId);
       } else {
@@ -170,23 +177,26 @@ export async function POST(req: Request) {
     return new Response(
       JSON.stringify({
         analysis: markdown,
-        metadata: agentMode === "customize" ? null : {
-          match_score: data.match_score || 0,
-          verdict: data.verdict || "REJECT",
-          ats_score: data.ats_score || 0,
-          keyword_density: data.keyword_density || 0,
-          matched_skills: data.matched_skills || [],
-          missing_skills: data.missing_skills || [],
-          salary_insight: data.salary_insight || null,
-          red_flags: data.red_flags || [],
-          interview_questions: data.interview_questions || [],
-          outreach_email: data.outreach_email || "",
-          culture_fit_score: data.culture_fit_score ?? null,
-          company_cheat_sheet: data.company_cheat_sheet || null,
-          culture_traits: data.culture_traits || [],
-          total_tokens: usage?.totalTokenCount || 0,
-          estimated_cost: totalCost,
-        },
+        metadata:
+          agentMode === "customize"
+            ? null
+            : {
+                match_score: data.match_score || 0,
+                verdict: data.verdict || "REJECT",
+                ats_score: data.ats_score || 0,
+                keyword_density: data.keyword_density || 0,
+                matched_skills: data.matched_skills || [],
+                missing_skills: data.missing_skills || [],
+                salary_insight: data.salary_insight || null,
+                red_flags: data.red_flags || [],
+                interview_questions: data.interview_questions || [],
+                outreach_email: data.outreach_email || "",
+                culture_fit_score: data.culture_fit_score ?? null,
+                company_cheat_sheet: data.company_cheat_sheet || null,
+                culture_traits: data.culture_traits || [],
+                total_tokens: usage?.totalTokenCount || 0,
+                estimated_cost: totalCost,
+              },
         toolUsed,
       }),
     );

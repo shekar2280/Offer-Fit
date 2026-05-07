@@ -1,20 +1,32 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { ResumeUpload } from "./resume-upload";
 import { AnalysisReport } from "./components/analysis-report";
 import { ActiveWorkspace } from "./components/active-workspace";
 import { Navbar } from "@/components/layout/navbar";
-import { FileText, Search, Cpu } from "lucide-react";
+import { Cpu } from "lucide-react";
 import { useResumeProfile } from "./hooks/use-resume-profile";
 import { useResumeHistory } from "./hooks/use-resume-history";
 import { LOADING_MESSAGES } from "@/lib/constants";
 
-export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analysis" | "customize", selectedId?: string | null }) {
-    const searchParams = useSearchParams();
+export function ResumeFeature({ 
+    mode: initialMode, 
+    selectedId,
+    initialData
+}: { 
+    mode: "analysis" | "customize", 
+    selectedId?: string | null,
+    initialData?: {
+        companyName?: string;
+        position?: string;
+        jd?: string;
+        location?: string;
+        jobType?: string;
+    }
+}) {
     const pathname = usePathname();
     const router = useRouter();
     const [mode, setMode] = useState(initialMode);
@@ -23,9 +35,8 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
     const [isUploading, setIsUploading] = useState(false);
     const [loadingStep, setLoadingStep] = useState(0);
     const [serverError, setServerError] = useState<string | null>(null);
-    const [jobLocation, setJobLocation] = useState("");
-    const [jobType, setJobType] = useState("");
-
+    const [jobLocation, setJobLocation] = useState(initialData?.location || "");
+    const [jobType, setJobType] = useState(initialData?.jobType || "");
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -49,23 +60,16 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
     } = useResumeHistory(selectedId, user, mode);
 
     useEffect(() => {
-        if (!searchParams) return;
-        const company = searchParams.get("company");
-        const role = searchParams.get("role");
-        const location = searchParams.get("location");
-        const type = searchParams.get("jobType");
-        const jd = searchParams.get("jd");
-
-        if (company || role || jd) {
-            setJobData(() => ({
-                company: company || "",
-                role: role || "",
-                description: jd || ""
+        if (initialData) {
+            setJobData(prev => ({
+                company: initialData.companyName || prev.company,
+                role: initialData.position || prev.role,
+                description: initialData.jd || prev.description
             }));
+            if (initialData.location) setJobLocation(initialData.location);
+            if (initialData.jobType) setJobType(initialData.jobType);
         }
-        if (location) setJobLocation(location);
-        if (type) setJobType(type);
-    }, [searchParams]);
+    }, [initialData, setJobData]);
 
     useEffect(() => {
         if (pathname.includes("/customize")) setMode("customize");
@@ -91,16 +95,9 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
 
         const id = analysisState.currentAnalysisId || selectedId;
         const targetRoute = newMode === "customize" ? "/customize" : "/analyze";
-        
-        const params = new URLSearchParams();
-        if (id) params.set("id", id);
-        if (jobData.company) params.set("company", jobData.company);
-        if (jobData.role) params.set("role", jobData.role);
-        if (jobData.description) params.set("jd", jobData.description);
-        if (jobLocation) params.set("location", jobLocation);
-        if (jobType) params.set("jobType", jobType);
+        const cleanUrl = id ? `${targetRoute}?id=${id}` : targetRoute;
 
-        router.push(`${targetRoute}?${params.toString()}`);
+        router.push(cleanUrl);
     };
 
     const analyzeResume = async (text: string, targetMode?: "analysis" | "customize") => {
@@ -139,6 +136,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
                 if (newAnalysis) {
                     targetId = newAnalysis.id;
                     setAnalysisState(prev => ({ ...prev, currentAnalysisId: newAnalysis.id }));
+                    router.replace(`/analyze?id=${newAnalysis.id}`);
                 }
             }
 
