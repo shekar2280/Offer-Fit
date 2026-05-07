@@ -99,7 +99,6 @@ export function AnalysisReport(props: AnalysisReportProps) {
                             {analysis && mode === "analysis" && (
                                 <>
                                     <div className="space-y-12">
-                                        {/* Dossier Header: Vitals Grid */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             <ScoreMetrics insights={insights} />
                                             <SalaryInsight data={insights?.salary_insight} />
@@ -125,7 +124,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                                 onCopy={copyText} 
                                             />
 
-                                            {insights?.outreach_email && (
+                                            {insights?.outreach_email && insights.outreach_email.trim() !== "" && (
                                                 <OutreachEmail email={insights.outreach_email} onCopy={copyText} />
                                             )}
                                         </div>
