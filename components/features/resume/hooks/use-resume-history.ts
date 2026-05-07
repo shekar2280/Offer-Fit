@@ -61,6 +61,8 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
               culture_fit_score: data.culture_fit_score ?? undefined,
               company_cheat_sheet: data.company_cheat_sheet || undefined,
               culture_traits: data.culture_traits || [],
+              total_tokens: data.total_tokens || 0,
+              estimated_cost: data.estimated_cost || 0,
             }
           });
         }

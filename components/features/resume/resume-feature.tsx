@@ -111,7 +111,7 @@ export function ResumeFeature({ mode: initialMode, selectedId }: { mode: "analys
         const effectiveMode = targetMode || mode;
 
         const stepInterval = setInterval(() => {
-            setLoadingStep(prev => (prev < 3 ? prev + 1 : prev));
+            setLoadingStep(prev => (prev < LOADING_MESSAGES.length - 1 ? prev + 1 : prev));
         }, 3000);
 
         try {

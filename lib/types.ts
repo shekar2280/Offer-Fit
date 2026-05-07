@@ -25,4 +25,6 @@ export interface AnalysisResult {
   culture_fit_score?: number;
   company_cheat_sheet?: string;
   culture_traits?: string[];
+  total_tokens?: number;
+  estimated_cost?: number;
 }
