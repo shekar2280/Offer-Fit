@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
+import { AnalysisProvider } from "@/lib/context/analysis-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,12 +19,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} bg-[#020202] text-white antialiased`}>
-        {children}
-        <Toaster 
-          position="bottom-right" 
-          theme="dark" 
-          closeButton 
-          richColors 
+        <AnalysisProvider>
+          {children}
+        </AnalysisProvider>
+        <Toaster
+          position="bottom-right"
+          theme="dark"
+          closeButton
+          richColors
           toastOptions={{
             style: {
               background: 'rgba(8, 8, 8, 0.8)',
