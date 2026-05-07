@@ -7,6 +7,17 @@ import { logSystemEvent } from "../supabase/logger";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+export interface AgenticAnalysisResult {
+  markdown: string;
+  data: any;
+  toolUsed: string;
+  usage: {
+    promptTokenCount: number;
+    candidatesTokenCount: number;
+    totalTokenCount: number;
+  };
+}
+
 export async function runAgenticAnalysis(
   companyName: string,
   position: string,
@@ -15,8 +26,9 @@ export async function runAgenticAnalysis(
   location?: string,
   jobType?: string,
   mode?: "analyze" | "customize",
-  bypassJudge: boolean = false
-) {
+  bypassJudge: boolean = false,
+  userName?: string
+): Promise<AgenticAnalysisResult> {
   let response;
   let finalToolCalls: string[] = [];
   let totalUsage = {
@@ -40,7 +52,8 @@ export async function runAgenticAnalysis(
         jd,
         location,
         jobType,
-        mode
+        mode,
+        userName
       );
 
       let result = await chat.sendMessage(prompt);
@@ -176,11 +189,18 @@ export async function runAgenticAnalysis(
         let cJsonStr = cText.substring(cStartIndex + jsonStartMarker.length, cEndIndex).trim();
         try {
           const cData = JSON.parse(cJsonStr);
+          if (cData.verdict && cData.verdict.toString().trim().toUpperCase() === "REJECT") {
+            cData.outreach_email = "";
+          }
           data = cData;
           markdown = cText.replace(cText.substring(cStartIndex, cEndIndex + jsonEndMarker.length), "").trim();
         } catch (e) {}
       }
     }
+  }
+
+  if (data && data.verdict && data.verdict.toString().trim().toUpperCase() === "REJECT") {
+    data.outreach_email = "";
   }
 
   return {

@@ -96,6 +96,8 @@ export async function POST(req: Request) {
     const agentMode: "analyze" | "customize" =
       mode === "customize" ? "customize" : "analyze";
 
+    const userName = user?.user_metadata?.full_name || user?.user_metadata?.name;
+
     const { markdown, data, toolUsed, usage } = await runAgenticAnalysis(
       companyName,
       position,
@@ -105,6 +107,7 @@ export async function POST(req: Request) {
       jobType,
       agentMode,
       bypassJudge,
+      userName
     );
 
     const inputCost = (usage?.promptTokenCount || 0) * (0.075 / 1000000);
