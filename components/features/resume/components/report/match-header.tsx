@@ -64,18 +64,19 @@ export function MatchHeader({
                         </h1>
                     </div>
                     <div className="flex flex-col space-y-2">
-                        {isAnalyzing && !position ? (
-                            <div className="h-6 w-48 bg-white/5 animate-pulse rounded mt-2" />
-                        ) : (
+                        {!isAnalyzing && !position ? (
+                            <p className="text-white/40 text-lg font-medium tracking-tight italic">Unknown Role</p>
+                        ) : position ? (
                             <p className="text-white/60 text-lg font-medium tracking-tight line-clamp-1">
                                 {position}
                             </p>
-                        )}
+                        ) : null}
+                        
                         {isAnalyzing && !companyName ? (
                             <div className="h-4 w-32 bg-white/5 animate-pulse rounded mt-1" />
                         ) : (
-                            <p className="text-white/20 text-[10px] font-mono uppercase tracking-widest line-clamp-2 leading-relaxed" title={companyName}>
-                                Target: {companyName}
+                            <p className="text-white/20 text-[10px] font-mono uppercase tracking-widest line-clamp-2 leading-relaxed" title={companyName || 'Confidential'}>
+                                Target: {companyName || 'Confidential'}
                             </p>
                         )}
                         {!isAnalyzing && insights?.tool_used && insights.tool_used.length > 0 && (
