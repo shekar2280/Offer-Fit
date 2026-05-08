@@ -1,16 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { AnalysisReport } from "./components/analysis-report";
 import { ActiveWorkspace } from "./components/active-workspace";
 import { Navbar } from "@/components/layout/navbar";
-import { Cpu } from "lucide-react";
 import { useResumeProfile } from "./hooks/use-resume-profile";
 import { useResumeHistory } from "./hooks/use-resume-history";
 import { LOADING_MESSAGES } from "@/lib/constants";
+import { useAnalysis } from "@/lib/context/analysis-context";
+import { useWorkspaceUI } from "@/lib/context/workspace-ui-context";
+import { AnalysisReportSkeleton, CustomizeReportSkeleton } from "@/components/ui/skeletons";
+import { useDraftPersistence, clearDraft } from "./hooks/use-draft-persistence";
+import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
 
 export function ResumeFeature({ 
     mode: initialMode, 
@@ -29,7 +33,8 @@ export function ResumeFeature({
 }) {
     const pathname = usePathname();
     const router = useRouter();
-    const [mode, setMode] = useState(initialMode);
+
+    const mode: "analysis" | "customize" = pathname.includes("/customize") ? "customize" : "analysis";
     const [user, setUser] = useState<any>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -37,6 +42,7 @@ export function ResumeFeature({
     const [serverError, setServerError] = useState<string | null>(null);
     const [jobLocation, setJobLocation] = useState(initialData?.location || "");
     const [jobType, setJobType] = useState(initialData?.jobType || "");
+    const [isEditingForm, setIsEditingForm] = useState(false);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -50,7 +56,8 @@ export function ResumeFeature({
     const { 
         extractedText, setExtractedText, 
         latexText, setLatexText, 
-        hasExistingResume, setHasExistingResume 
+        hasExistingResume, setHasExistingResume,
+        masterLatex, masterExtractedText
     } = useResumeProfile(user);
 
     const { 
@@ -61,7 +68,7 @@ export function ResumeFeature({
 
     useEffect(() => {
         if (initialData) {
-            setJobData(prev => ({
+            setJobData((prev: any) => ({
                 company: initialData.companyName || prev.company,
                 role: initialData.position || prev.role,
                 description: initialData.jd || prev.description
@@ -71,10 +78,17 @@ export function ResumeFeature({
         }
     }, [initialData, setJobData]);
 
+    const { state: globalState } = useAnalysis();
+
     useEffect(() => {
-        if (pathname.includes("/customize")) setMode("customize");
-        else if (pathname.includes("/analyze")) setMode("analysis");
-    }, [pathname]);
+        if (!selectedId && !globalState.id && !globalState.jd && !globalState.companyName) {
+            setJobLocation("");
+            setJobType("");
+            setServerError(null);
+            setLatexText(null);
+            setExtractedText(null);
+        }
+    }, [selectedId, globalState.id, globalState.jd, globalState.companyName]);
 
     useEffect(() => {
         const canAutoStart = 
@@ -90,26 +104,80 @@ export function ResumeFeature({
         }
     }, [mode, isHistoryLoading, isAnalyzing, analysisState.analysis, jobData.description, latexText, extractedText]);
 
-    const handleSwitchMode = async (newMode: "analysis" | "customize") => {
+    const { saveScrollPosition, getScrollPosition, setLastRoute } = useWorkspaceUI();
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const companyInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        return () => {
+            const el = scrollContainerRef.current;
+            if (el) saveScrollPosition(pathname, el.scrollTop);
+        };
+    }, [pathname, saveScrollPosition]);
+
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (el) {
+            const savedOffset = getScrollPosition(pathname);
+            el.scrollTop = savedOffset;
+        }
+    }, [pathname]); 
+
+    useDraftPersistence({
+        mode,
+        selectedId: selectedId ?? null,
+        company: jobData.company,
+        role: jobData.role,
+        description: jobData.description,
+        location: jobLocation,
+        jobType,
+        onRestoreDraft: (draft) => {
+            setJobData({ company: draft.company, role: draft.role, description: draft.description });
+            if (draft.location) setJobLocation(draft.location);
+            if (draft.jobType) setJobType(draft.jobType);
+            toast.info("Draft restored", { description: "Your previous session was recovered." });
+        },
+    });
+
+    const isSubmitReady = !isAnalyzing && !isUploading &&
+        (mode === "customize" ? !!latexText : !!extractedText) &&
+        !!jobData.description && !!jobData.company && !!jobData.role;
+
+    useKeyboardShortcuts({
+        disabled: isAnalyzing || isUploading,
+        onSubmit: () => {
+            if (!isSubmitReady) return;
+            toast.info("⌘↵ Analyzing...", { duration: 1500 });
+            mode === "customize"
+                ? analyzeResume(latexText || "")
+                : analyzeResume(extractedText || "");
+        },
+        onFocusSearch: () => {
+            companyInputRef.current?.focus();
+            companyInputRef.current?.select();
+        },
+        onEscape: () => {
+            if (!isAnalyzing) resetSession();
+        },
+    });
+
+    const handleSwitchMode = (newMode: "analysis" | "customize") => {
         if (newMode === mode) return;
 
         const id = analysisState.currentAnalysisId || selectedId;
         const targetRoute = newMode === "customize" ? "/customize" : "/analyze";
         const cleanUrl = id ? `${targetRoute}?id=${id}` : targetRoute;
 
-        router.push(cleanUrl);
+        router.replace(cleanUrl, { scroll: false });
     };
+
 
     const analyzeResume = async (text: string, targetMode?: "analysis" | "customize") => {
         setIsAnalyzing(true);
-        setAnalysisState(prev => ({ ...prev, analysis: "" }));
+        setAnalysisState((prev: any) => ({ ...prev, analysis: "" }));
         setServerError(null);
         setLoadingStep(0);
         const effectiveMode = targetMode || mode;
-
-        const stepInterval = setInterval(() => {
-            setLoadingStep(prev => (prev < LOADING_MESSAGES.length - 1 ? prev + 1 : prev));
-        }, 3000);
 
         try {
             const supabase = createClient();
@@ -135,8 +203,8 @@ export function ResumeFeature({
                 }
                 if (newAnalysis) {
                     targetId = newAnalysis.id;
-                    setAnalysisState(prev => ({ ...prev, currentAnalysisId: newAnalysis.id }));
-                    router.replace(`/analyze?id=${newAnalysis.id}`);
+                    setAnalysisState((prev: any) => ({ ...prev, currentAnalysisId: newAnalysis.id }));
+                    router.replace(`/analyze?id=${newAnalysis.id}`, { scroll: false });
                 }
             }
 
@@ -155,39 +223,66 @@ export function ResumeFeature({
                 }),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
+            if (!response.ok || !response.body) {
+                const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || "Analysis failed");
             }
-            
-            const resData = await response.json();
-            
-            if (effectiveMode === "customize") {
-                setAnalysisState(prev => ({ 
-                    ...prev, 
-                    analysis: resData.analysis, 
-                    cachedCustomize: resData.analysis,
-                    hasCustomization: true 
-                }));
-            } else {
-                setAnalysisState(prev => ({ 
-                    ...prev, 
-                    analysis: resData.analysis, 
-                    cachedAnalysis: resData.analysis,
-                    insights: { 
-                        ...resData.metadata, 
-                        toolUsed: resData.toolUsed !== "none" ? resData.toolUsed.split(", ") : [] 
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n\n");
+                buffer = lines.pop() ?? ""; 
+
+                for (const line of lines) {
+                    const dataPart = line.replace(/^data: /, "").trim();
+                    if (!dataPart) continue;
+
+                    let event: any;
+                    try { event = JSON.parse(dataPart); } catch { continue; }
+
+                    if (event.type === "progress") {
+                        setLoadingStep(event.step - 1);
+                        LOADING_MESSAGES[event.step - 1] = event.message;
+                    } else if (event.type === "result") {
+                        clearDraft(effectiveMode === "customize" ? "customize" : "analysis");
+                        if (effectiveMode === "customize") {
+                            setAnalysisState((prev: any) => ({
+                                ...prev,
+                                analysis: event.analysis,
+                                cachedCustomize: event.analysis,
+                                hasCustomization: true
+                            }));
+                        } else {
+                            setAnalysisState((prev: any) => ({
+                                ...prev,
+                                analysis: event.analysis,
+                                cachedAnalysis: event.analysis,
+                                insights: {
+                                    ...event.metadata,
+                                    toolUsed: event.toolUsed !== "none" ? event.toolUsed.split(", ") : []
+                                }
+                            }));
+                        }
+                    } else if (event.type === "error") {
+                        throw new Error(event.error || "Analysis failed");
                     }
-                }));
+                }
             }
         } catch (error: any) {
             setServerError(error.message || "Analysis failed. Please try again.");
             toast.error("Generation failed.");
         } finally {
-            clearInterval(stepInterval);
             setIsAnalyzing(false);
         }
     };
+
 
     const handleFile = async (file: File) => {
         setIsUploading(true);
@@ -223,6 +318,10 @@ export function ResumeFeature({
         setAnalysisState({ analysis: "", cachedAnalysis: "", cachedCustomize: "", currentAnalysisId: null, hasCustomization: false, insights: null });
         setHasExistingResume(false);
         setServerError(null);
+        setIsEditingForm(false);
+        clearDraft("analysis");
+        clearDraft("customize");
+        router.push("/", { scroll: false });
     };
 
     const saveBaselineLatex = async () => {
@@ -240,34 +339,25 @@ export function ResumeFeature({
 
     const username = user?.email?.split('@')[0] || "User";
 
+    const showReport = !!(selectedId || analysisState.analysis || isAnalyzing || isHistoryLoading || serverError || (mode === "customize" && jobData.description && latexText)) && !isEditingForm;
+
     return (
-        <div className="flex flex-col min-h-screen w-full bg-background relative overflow-x-hidden no-scrollbar">
-            <Navbar username={username} showMenuButton={false} />
-            <main className="relative z-10 flex items-start justify-center p-0 md:px-4 md:pt-2 md:pb-0 overflow-x-hidden">
-                {isHistoryLoading ? (
-                    <div className="w-full flex flex-col items-center justify-center py-24 space-y-12 animate-in fade-in duration-700">
-                        <div className="relative w-48 h-48 flex items-center justify-center">
-                            <div className="absolute inset-0 bg-primary/5 rounded-full blur-[60px] animate-pulse" />
-                            <div className="absolute inset-0 border border-primary/20 rounded-full animate-[ping_3s_infinite]" />
-                            <div className="absolute inset-8 border-t-2 border-primary/40 rounded-full animate-[spin_3s_linear_infinite]" />
-                            <div className="relative">
-                                <Cpu className="w-10 h-10 text-primary animate-pulse" />
-                                <div className="absolute -top-1 -right-1">
-                                    <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-center space-y-2">
-                            <h2 className="text-[11px] font-black uppercase tracking-[0.5em] text-primary/80">Restoring Report</h2>
-                            <p className="text-[10px] font-mono text-white/30 uppercase tracking-[0.2em]">Please wait a moment...</p>
-                        </div>
+        <div className="flex flex-col min-h-screen w-full bg-background relative">
+            <Navbar 
+                username={username} 
+                showMenuButton={false} 
+            />
+            <main ref={scrollContainerRef} className="relative z-10 flex items-start justify-center p-0 md:px-4 md:pt-2 md:pb-0 overflow-y-auto min-h-[calc(100vh-68px)]">
+                {isHistoryLoading && !jobData.company ? (
+                    <div className="max-w-[1400px] mx-auto w-full p-4 md:px-0">
+                        {mode === "customize" ? <CustomizeReportSkeleton /> : <AnalysisReportSkeleton />}
                     </div>
                 ) : (
                     <div className="max-w-[1400px] mx-auto flex flex-col w-full overflow-x-hidden">
-                        <div className={analysisState.analysis || isAnalyzing || serverError ? "block" : "hidden"}>
+                        <div className={showReport ? "block" : "hidden"}>
                             <AnalysisReport
                                 analysis={analysisState.analysis}
-                                isAnalyzing={isAnalyzing}
+                                isAnalyzing={isAnalyzing || isHistoryLoading}
                                 loadingStep={loadingStep}
                                 loadingMessages={LOADING_MESSAGES}
                                 companyName={jobData.company}
@@ -279,22 +369,24 @@ export function ResumeFeature({
                                 hasCustomization={analysisState.hasCustomization}
                                 insights={analysisState.insights}
                                 serverError={serverError}
+                                isEditingForm={isEditingForm}
+                                onToggleForm={() => setIsEditingForm(!isEditingForm)}
                             />
                         </div>
-                        <div className={!analysisState.analysis && !isAnalyzing && !serverError ? "block" : "hidden"}>
+                        <div className={!showReport ? "block" : "hidden"}>
                             <ActiveWorkspace
                                 mainTab={mode}
-                                onBack={() => window.location.href = "/"}
+                                onBack={() => router.push("/", { scroll: false })}
                                 companyName={jobData.company}
-                                setCompanyName={(v) => setJobData(p => ({ ...p, company: v }))}
+                                setCompanyName={(v) => setJobData((p: any) => ({ ...p, company: v }))}
                                 position={jobData.role}
-                                setPosition={(v) => setJobData(p => ({ ...p, role: v }))}
+                                setPosition={(v) => setJobData((p: any) => ({ ...p, role: v }))}
                                 location={jobLocation}
                                 setLocation={setJobLocation}
                                 jobType={jobType}
                                 setJobType={setJobType}
                                 jobDescription={jobData.description}
-                                setJobDescription={(v) => setJobData(p => ({ ...p, description: v }))}
+                                setJobDescription={(v) => setJobData((p: any) => ({ ...p, description: v }))}
                                 latexText={latexText}
                                 setLatexText={setLatexText}
                                 extractedText={extractedText}
@@ -309,6 +401,7 @@ export function ResumeFeature({
                                 onReset={resetSession}
                                 saveBaselineLatex={saveBaselineLatex}
                                 onSwitchMode={handleSwitchMode}
+                                companyInputRef={companyInputRef}
                             />
                         </div>
                     </div>

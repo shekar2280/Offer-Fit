@@ -3,8 +3,11 @@
 import { ArrowRight } from "lucide-react";
 import { Marquee } from "./marquee";
 import Link from "next/link";
+import { useAnalysis } from "@/lib/context/analysis-context";
 
 export function SelectionGate() {
+    const { resetSession } = useAnalysis();
+
     return (
         <div className="flex flex-col h-full w-full max-w-6xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 relative z-10 py-8 flex-1">

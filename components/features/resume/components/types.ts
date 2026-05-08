@@ -19,4 +19,6 @@ export interface AnalysisReportProps {
     hasCustomization?: boolean;
     insights?: AnalysisInsights | null;
     serverError?: string | null;
+    isEditingForm?: boolean;
+    onToggleForm?: () => void;
 }

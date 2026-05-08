@@ -1,3 +1,5 @@
+import React from "react";
+
 export interface ActiveWorkspaceProps {
     mainTab: "analysis" | "customize";
     onBack: () => void;
@@ -25,4 +27,5 @@ export interface ActiveWorkspaceProps {
     onReset: () => void;
     saveBaselineLatex: () => Promise<void>;
     onSwitchMode: (mode: "analysis" | "customize") => void;
+    companyInputRef?: React.RefObject<HTMLInputElement | null>;
 }
