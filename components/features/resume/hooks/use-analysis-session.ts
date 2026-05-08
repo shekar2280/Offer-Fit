@@ -18,6 +18,12 @@ export function useAnalysisSession() {
     const location = searchParams.get("location");
     const jobType = searchParams.get("jobType");
 
+    if (id && id !== state.id && !company && !role && !jd) {
+      setAnalysisData({ ...state, id });
+    } else if (!id && state.id && !company && !role && !jd) {
+      setAnalysisData({ ...state, id: null });
+    }
+
     if (company || role || jd) {
       setAnalysisData({
         id: id || state.id,
@@ -29,7 +35,7 @@ export function useAnalysisSession() {
       });
 
       const cleanUrl = id ? `${pathname}?id=${id}` : pathname;
-      router.replace(cleanUrl);
+      router.replace(cleanUrl, { scroll: false });
     }
   }, [searchParams, pathname, router, setAnalysisData, state.id]);
 
