@@ -14,6 +14,7 @@ interface JobDetailsProps {
     jobType: string;
     setJobType: (val: string) => void;
     selectedId: string | null;
+    companyInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export function JobDetails({
@@ -27,7 +28,8 @@ export function JobDetails({
     setLocation,
     jobType,
     setJobType,
-    selectedId
+    selectedId,
+    companyInputRef,
 }: JobDetailsProps) {
     const jdRef = useRef<HTMLTextAreaElement>(null);
 
@@ -46,7 +48,8 @@ export function JobDetails({
                     onChange={setCompanyName} 
                     label="Target Company" 
                     disabled={!!selectedId} 
-                    icon={Building2} 
+                    icon={Building2}
+                    inputRef={companyInputRef}
                 />
                 <FloatingInput 
                     value={position} 
