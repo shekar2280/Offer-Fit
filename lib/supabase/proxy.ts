@@ -43,16 +43,15 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || 
-                     request.nextUrl.pathname.startsWith('/auth');
+  const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
   
-  if (!user && !isAuthPage) {
+  if (!user && !isAuthPage && request.nextUrl.pathname !== '/') {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/auth/login";
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthPage && !request.nextUrl.pathname.startsWith('/auth')) {
+  if (user && isAuthPage && !request.nextUrl.pathname.startsWith('/auth/confirm')) {
     const url = request.nextUrl.clone();
     url.pathname = "/analyze";
     return NextResponse.redirect(url);
