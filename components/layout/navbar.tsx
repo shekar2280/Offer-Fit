@@ -1,10 +1,12 @@
 "use client";
 
-import { UserCircle, Menu, Archive } from "lucide-react";
+import { Menu, Archive, Sparkles, ScanText, RotateCcw, User } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { LogoutButton } from "../features/auth/logout-button";
 import logoIcon from "@/assets/icon.png";
+import { useAnalysis } from "@/lib/context/analysis-context";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 
 interface NavbarProps {
     username: string;
@@ -12,61 +14,73 @@ interface NavbarProps {
     showMenuButton?: boolean;
 }
 
-export function Navbar({ username, onMenuClick, showMenuButton = true }: NavbarProps) {
+export function Navbar({ 
+    username, 
+    onMenuClick, 
+    showMenuButton = true,
+}: NavbarProps) {
+    const { resetSession } = useAnalysis();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    const navLinks = [
+        { href: "/history",  label: "Archive",  icon: Archive   },
+    ];
+
     return (
-        <header className="w-full h-[72px] shrink-0 sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5">
-            <div className="w-full px-4 sm:px-6 h-full flex justify-between items-center text-sm max-w-[1600px] mx-auto">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="flex items-center gap-2 sm:gap-3 font-black text-2xl tracking-tighter flex-none">
-                        {showMenuButton && (
-                            <button
-                                onClick={onMenuClick}
-                                className="lg:hidden p-2 hover:bg-white/5 rounded-lg text-primary transition-colors shrink-0"
-                            >
-                                <Menu className="w-5 h-5" />
-                            </button>
-                        )}
+        <header className="w-full h-[68px] shrink-0 sticky top-0 z-50 bg-black/60 backdrop-blur-2xl border-b border-white/[0.06]">
+            <div
+                className="absolute inset-x-0 top-0 h-px"
+                style={{ background: "linear-gradient(90deg, transparent, #F2AA4C40, transparent)" }}
+            />
 
-                        <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shadow-sm overflow-hidden shrink-0">
-                            <Image 
-                                src={logoIcon} 
-                                alt="Resume AI Logo" 
-                                width={24} 
-                                height={24} 
-                                className="object-contain"
-                            />
+            <div className="w-full h-full px-4 sm:px-6 flex items-center justify-between max-w-[1600px] mx-auto gap-4">
+
+                <div className="flex items-center gap-3 flex-none">
+                    {showMenuButton && (
+                        <button
+                            onClick={onMenuClick}
+                            className="lg:hidden p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                            <Menu className="w-5 h-5" />
+                        </button>
+                    )}
+
+                    <Link href="/" className="flex items-center gap-2.5 group" onClick={() => resetSession()}>
+                        <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden transition-shadow duration-300 group-hover:shadow-[0_0_16px_4px_rgba(242,170,76,0.3)]"
+                            style={{ background: "linear-gradient(135deg, #101820, #1e2a3a)", border: "1px solid rgba(242,170,76,0.2)" }}
+                        >
+                            <Image src={logoIcon} alt="Resume AI" width={20} height={20} className="object-contain" />
                         </div>
-
-                        <Link href={"/"} className="hover:opacity-80 transition-opacity flex items-baseline gap-1">
-                            <span className="inline-block text-white">Resume</span>
-                            <span className="text-primary font-serif italic font-light text-2xl">AI</span>
-                        </Link>
-                    </div>
+                        <div className="flex items-baseline gap-1 font-black text-xl tracking-tighter">
+                            <span className="text-white">Resume</span>
+                            <span className="font-serif italic font-light" style={{ color: "#F2AA4C" }}>AI</span>
+                        </div>
+                    </Link>
                 </div>
 
-                <div className="flex items-center gap-3 sm:gap-4 justify-end flex-1">
+                <div className="flex-1" />
+
+                <div className="flex items-center gap-2 flex-none">
                     <Link
                         href="/history"
-                        className="flex items-center justify-center gap-2 bg-white/5 h-9 px-3 rounded-full border border-white/10 text-foreground transition-all hover:bg-white/10 hover:border-primary/30 hover:text-primary shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"
-                        title="Archive History"
+                        className="flex items-center gap-2 h-8 px-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/20 transition-all group"
                     >
-                        <Archive className="w-4 h-4 transition-transform group-hover:scale-110" />
-                        <span className="text-xs font-medium hidden sm:inline-block">Archive</span>
+                        <Archive className="w-3.5 h-3.5 text-primary/60 group-hover:text-primary transition-colors" />
+                        <span className="text-[10px] font-black uppercase tracking-wider text-white/20 group-hover:text-white/80 hidden sm:block">Archive</span>
                     </Link>
-                    
+
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+
                     <Link
-                        href="/protected/profile"
-                        className="flex items-center justify-center sm:justify-start gap-2 bg-white/5 h-9 px-3 rounded-full border border-white/10 text-foreground transition-all hover:bg-white/10 hover:border-primary/30 shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"
+                        href="/profile"
+                        title="Profile"
+                        className="flex items-center justify-center w-8 h-8 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/20 transition-all group"
                     >
-                        <div className="relative">
-                            <UserCircle className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full border-2 border-background animate-pulse" />
-                        </div>
-                        <span className="text-xs font-medium hidden sm:inline-block truncate max-w-[100px]">
-                            {username}
-                        </span>
+                        <User className="w-4 h-4 text-primary" />
                     </Link>
-                    <LogoutButton />
                 </div>
             </div>
         </header>
