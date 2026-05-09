@@ -7,6 +7,7 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
   const { state: globalState } = useAnalysis();
 
   const [analysisOverride, setAnalysisOverride] = useState<string | null>(null);
+  const [insightsOverride, setInsightsOverride] = useState<any>(null);
   const [jobOverrides, setJobOverrides] = useState<{ company?: string; role?: string; description?: string }>({});
 
   const { data: savedData, isLoading: isHistoryLoading } = useQuery({
@@ -29,6 +30,7 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
 
   useEffect(() => {
     setAnalysisOverride(null);
+    setInsightsOverride(null);
     setJobOverrides({});
   }, [selectedId]);
 
@@ -61,7 +63,7 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
     }
   }, [savedData]);
 
-  const insights = savedData ? {
+  const insights = insightsOverride || (savedData ? {
     match_score: savedData.match_score || atsScore,
     verdict: savedData.verdict || derivedVerdict,
     ats_score: atsScore,
@@ -77,7 +79,7 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
     culture_traits: savedData.culture_traits || [],
     total_tokens: savedData.total_tokens || 0,
     estimated_cost: savedData.estimated_cost || 0,
-  } : null;
+  } : null);
 
   const analysisState = {
     analysis: displayAnalysis,
@@ -93,7 +95,8 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
     if (next.analysis !== undefined) {
       setAnalysisOverride(next.analysis || null);
     }
-    if (next.currentAnalysisId !== undefined) {
+    if (next.insights !== undefined) {
+      setInsightsOverride(next.insights || null);
     }
   }, [analysisState]);
 

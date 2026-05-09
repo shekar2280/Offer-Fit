@@ -174,7 +174,7 @@ export function ResumeFeature({
 
     const analyzeResume = async (text: string, targetMode?: "analysis" | "customize") => {
         setIsAnalyzing(true);
-        setAnalysisState((prev: any) => ({ ...prev, analysis: "" }));
+        setAnalysisState((prev: any) => ({ ...prev, analysis: "", insights: null }));
         setServerError(null);
         setLoadingStep(0);
         const effectiveMode = targetMode || mode;
@@ -252,22 +252,27 @@ export function ResumeFeature({
                         LOADING_MESSAGES[event.step - 1] = event.message;
                     } else if (event.type === "result") {
                         clearDraft(effectiveMode === "customize" ? "customize" : "analysis");
+                        
+                        const commonState = {
+                            analysis: event.analysis,
+                            insights: {
+                                ...event.metadata,
+                                toolUsed: event.toolUsed !== "none" ? event.toolUsed?.split(", ") : []
+                            }
+                        };
+
                         if (effectiveMode === "customize") {
                             setAnalysisState((prev: any) => ({
                                 ...prev,
-                                analysis: event.analysis,
+                                ...commonState,
                                 cachedCustomize: event.analysis,
                                 hasCustomization: true
                             }));
                         } else {
                             setAnalysisState((prev: any) => ({
                                 ...prev,
-                                analysis: event.analysis,
+                                ...commonState,
                                 cachedAnalysis: event.analysis,
-                                insights: {
-                                    ...event.metadata,
-                                    toolUsed: event.toolUsed !== "none" ? event.toolUsed.split(", ") : []
-                                }
                             }));
                         }
                     } else if (event.type === "error") {
