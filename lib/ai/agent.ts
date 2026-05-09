@@ -2,8 +2,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ANALYSIS_PROMPT, JUDGE_CORRECTION_PROMPT } from "./prompts";
 import { toolDefinitions, toolHandlers } from "./tools";
 import { evaluateAnalysis } from "./evaluator";
-import { GEMINI_MODELS } from "../constants";
+import { GEMINI_MODELS, MODEL_PRICING } from "../constants";
 import { logSystemEvent } from "../supabase/logger";
+import { calculateAICost } from "./utils";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -16,6 +17,7 @@ export interface AgenticAnalysisResult {
     candidatesTokenCount: number;
     totalTokenCount: number;
   };
+  estimated_cost: number;
 }
 
 export async function runAgenticAnalysis(
@@ -36,6 +38,7 @@ export async function runAgenticAnalysis(
     candidatesTokenCount: 0,
     totalTokenCount: 0
   };
+  let totalCost = 0;
 
   for (const modelId of GEMINI_MODELS) {
     try {
@@ -63,6 +66,7 @@ export async function runAgenticAnalysis(
         totalUsage.promptTokenCount += response.usageMetadata.promptTokenCount || 0;
         totalUsage.candidatesTokenCount += response.usageMetadata.candidatesTokenCount || 0;
         totalUsage.totalTokenCount += response.usageMetadata.totalTokenCount || 0;
+        totalCost += calculateAICost(modelId, response.usageMetadata);
       }
       
       let iteration = 0;
@@ -94,6 +98,7 @@ export async function runAgenticAnalysis(
           totalUsage.promptTokenCount += response.usageMetadata.promptTokenCount || 0;
           totalUsage.candidatesTokenCount += response.usageMetadata.candidatesTokenCount || 0;
           totalUsage.totalTokenCount += response.usageMetadata.totalTokenCount || 0;
+          totalCost += calculateAICost(modelId, response.usageMetadata);
         }
       }
       
@@ -148,7 +153,8 @@ export async function runAgenticAnalysis(
       markdown,
       data,
       toolUsed: finalToolCalls.join(", ") || "none",
-      usage: totalUsage
+      usage: totalUsage,
+      estimated_cost: totalCost
     };
   }
 
@@ -158,6 +164,7 @@ export async function runAgenticAnalysis(
     totalUsage.promptTokenCount += evaluation.usage.promptTokenCount || 0;
     totalUsage.candidatesTokenCount += evaluation.usage.candidatesTokenCount || 0;
     totalUsage.totalTokenCount += evaluation.usage.totalTokenCount || 0;
+    totalCost += evaluation.estimated_cost || 0;
   }
 
   if (!evaluation.passed) {
@@ -175,6 +182,7 @@ export async function runAgenticAnalysis(
           totalUsage.promptTokenCount += correctedResponse.usageMetadata.promptTokenCount || 0;
           totalUsage.candidatesTokenCount += correctedResponse.usageMetadata.candidatesTokenCount || 0;
           totalUsage.totalTokenCount += correctedResponse.usageMetadata.totalTokenCount || 0;
+          totalCost += calculateAICost(modelName, correctedResponse.usageMetadata);
         }
         break;
       } catch (e) {}
@@ -207,6 +215,7 @@ export async function runAgenticAnalysis(
     markdown,
     data,
     toolUsed: finalToolCalls.join(", ") || "none",
-    usage: totalUsage
+    usage: totalUsage,
+    estimated_cost: totalCost
   };
 }

@@ -1,9 +1,16 @@
+export const MODEL_PRICING = {
+  "gemini-3.1-flash-lite": { input: 0.25, output: 1.50 },
+  "gemini-2.5-flash-lite": { input: 0.10, output: 0.40 },
+  "gemini-3-flash": { input: 0.50, output: 3.00 },
+  "gemini-2.5-flash": { input: 0.30, output: 2.50 },
+} as const;
+
 export const GEMINI_MODELS = [
-  "gemini-3.1-flash-lite-preview",
-  "gemini-3-flash-preview",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash-lite",
+  "gemini-3-flash",
   "gemini-2.5-flash",
-  "gemini-2.5-flash-lite"
-];
+] as const;
 
 export const LOADING_MESSAGES = [
   "Indexing resume context...",
