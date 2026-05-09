@@ -110,7 +110,7 @@ export async function POST(req: Request) {
 
         sse.send({ type: "progress", step: 3, message: mode === "customize" ? "Tailoring experience sections..." : "Matching skills & keywords..." });
 
-        const { markdown, data, toolUsed, usage } = await runAgenticAnalysis(
+        const { markdown, data, toolUsed, usage, estimated_cost } = await runAgenticAnalysis(
           companyName,
           position,
           context,
@@ -124,10 +124,6 @@ export async function POST(req: Request) {
 
         sse.send({ type: "progress", step: 4, message: mode === "customize" ? "Refining LaTeX output..." : "Computing match score..." });
 
-        const inputCost = (usage?.promptTokenCount || 0) * (0.075 / 1000000);
-        const outputCost = (usage?.candidatesTokenCount || 0) * (0.3 / 1000000);
-        const totalCost = inputCost + outputCost;
-
         await logSystemEvent({
           level: "INFO",
           source: "AGENT_OUTPUT",
@@ -140,7 +136,7 @@ export async function POST(req: Request) {
             verdict: data.verdict,
             tool_used: toolUsed,
             total_tokens: usage?.totalTokenCount,
-            estimated_cost: totalCost,
+            estimated_cost: estimated_cost,
           },
         });
 
@@ -151,7 +147,7 @@ export async function POST(req: Request) {
               .update({
                 customized_latex: markdown,
                 total_tokens: usage?.totalTokenCount || 0,
-                estimated_cost: totalCost,
+                estimated_cost: estimated_cost,
               })
               .eq("id", analysisId);
           } else {
@@ -170,7 +166,7 @@ export async function POST(req: Request) {
               company_cheat_sheet: data.company_cheat_sheet || null,
               culture_traits: data.culture_traits || [],
               total_tokens: usage?.totalTokenCount || 0,
-              estimated_cost: totalCost,
+              estimated_cost: estimated_cost,
               analysis_result: markdown,
             };
             await supabase.from("analyses").update(updatePayload).eq("id", analysisId);
@@ -184,7 +180,10 @@ export async function POST(req: Request) {
           analysis: markdown,
           metadata:
             agentMode === "customize"
-              ? null
+              ? {
+                  total_tokens: usage?.totalTokenCount || 0,
+                  estimated_cost: estimated_cost,
+                }
               : {
                   match_score: data.match_score || 0,
                   verdict: data.verdict || "REJECT",
@@ -200,7 +199,7 @@ export async function POST(req: Request) {
                   company_cheat_sheet: data.company_cheat_sheet || null,
                   culture_traits: data.culture_traits || [],
                   total_tokens: usage?.totalTokenCount || 0,
-                  estimated_cost: totalCost,
+                  estimated_cost: estimated_cost,
                 },
           toolUsed,
         });
