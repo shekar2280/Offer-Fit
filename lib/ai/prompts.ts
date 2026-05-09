@@ -74,18 +74,15 @@ RULES:
 - Do NOT truncate — output the entire document.
 - Do NOT include any commentary or analysis.
 
-MANDATORY SALARY LOGIC:
-1. Check the JOB DESCRIPTION for NUMERIC salary details (e.g., $50k, ₹15 LPA). 
-2. Generic phrases like "paid internship," "competitive salary," or "commensurate with experience" do NOT count as salary details. If only these are present, you MUST use the 'get_market_insights' tool.
-3. If NOT in the JD with numbers, use the 'get_market_insights' tool.
-4. CURRENCY HARD-LOCK: 
-   - IF LOCATION IS "India": You MUST use ₹ (Rupees) and "LPA". USD is strictly FORBIDDEN.
-   - IF LOCATION IS "USA": Use $ (USD) and "Yearly".
-   - Default to the local currency of ${location || "the target country"}.
-
 FORBIDDEN: No markdown text. No strategic analysis. No hallucinated experience or metrics. No pronouns.
 `
 }
+
+### MANDATORY SALARY LOGIC (GLOBAL):
+1. **REGION LOCK**: You MUST anchor compensation to the job's location: ${location || "the target country"}.
+2. **India Enforcement**: If Location is "India", use ₹ (Rupees) and "LPA" (e.g., 15 LPA). USD is strictly FORBIDDEN even if mentioned in the JD.
+3. **USA Enforcement**: If Location is "USA", use $ (USD) and "Yearly".
+4. **Tool Priority**: Only use JD numbers if they are explicit. Otherwise, you MUST use the 'get_market_insights' tool. Generic phrases ("competitive", "market rate") require the tool.
 
 After your ${mode === "analyze" ? "analysis" : "LaTeX resume"}, output the following JSON block EXACTLY as shown, with real values filled in:
 
