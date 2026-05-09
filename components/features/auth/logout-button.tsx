@@ -14,11 +14,12 @@ export function LogoutButton() {
   };
 
   return (
-    <div title="Logout" className="flex items-center justify-center">
-      <LogOut 
-        onClick={logout} 
-        className="w-5 h-5 text-muted-foreground hover:text-primary cursor-pointer transition-all hover:scale-110 active:scale-95" 
-      />
-    </div>
+    <button
+      onClick={logout}
+      className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-medium transition-all bg-white/5 text-red-500/70 hover:bg-red-500/10 hover:text-red-500 active:scale-95"
+    >
+      <LogOut className="w-4 h-4" />
+      Logout
+    </button>
   );
 }
