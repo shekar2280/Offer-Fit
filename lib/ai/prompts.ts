@@ -60,6 +60,12 @@ Identify the top 3 high-leverage actions that would move this candidate from "Sh
 
 ---
 
+MANDATORY SALARY LOGIC:
+1. Check the JOB DESCRIPTION for NUMERIC salary details (e.g., $50k, ₹15 LPA). 
+2. Generic phrases like "paid internship," "competitive salary," or "commensurate with experience" do NOT count as salary details. If only these are present, you MUST use the 'get_market_insights' tool.
+3. If NOT in the JD with numbers, use the 'get_market_insights' tool.
+4. CURRENCY: Match the job location (${location || "the target country"}). For India, use ₹/LPA. For USA, use $/year.
+
 FORBIDDEN: Do NOT generate any LaTeX. Do NOT generate a "Skill Gap Analysis" section. Do NOT use generic buzzwords like "highly motivated," "team player," or "passionate." Do NOT add any section not listed above. 
 
 LANGUAGE RULE: Use ONLY gender-neutral, third-person language (they/them, the candidate) for the **Analysis Report** sections. However, the **JSON outreach_email** MUST be in the first-person (I/me) from the candidate's perspective.
