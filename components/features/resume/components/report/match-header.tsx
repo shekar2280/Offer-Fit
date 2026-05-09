@@ -38,7 +38,7 @@ export function MatchHeader({
                             <circle cx="50" cy="50" r="46" className={`fill-none stroke-[3] transition-all duration-1000 ${isAnalyzing ? 'stroke-primary/20 animate-pulse' : strokeColorClass}`} strokeDasharray={`${score * 2.89} 289`} strokeLinecap="round" />
                         </svg>
                         <div className="flex flex-col items-center">
-                            {isAnalyzing && !insights ? (
+                            {isAnalyzing ? (
                                 <div className="h-12 w-16 bg-white/5 animate-pulse rounded-lg" />
                             ) : (
                                 <span className="text-7xl font-black text-white tracking-tighter drop-shadow-2xl">{score}</span>
@@ -100,7 +100,7 @@ export function MatchHeader({
                     ) : null}
                     <div className="flex flex-col items-center lg:items-end gap-3">
                         <span className="text-[9px] font-mono uppercase tracking-[0.4em] text-white/20">Final Verdict</span>
-                        {isAnalyzing && !insights ? (
+                        {isAnalyzing ? (
                             <div className="h-10 w-24 bg-white/5 animate-pulse rounded-xl" />
                         ) : (
                             <div className={`relative px-6 py-2.5 rounded-xl border backdrop-blur-2xl transition-all duration-500 hover:scale-105 shadow-xl ${bgColorClass}`}>

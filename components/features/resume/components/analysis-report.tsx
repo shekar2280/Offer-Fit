@@ -82,7 +82,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                     verdict={verdict}
                                     position={position}
                                     companyName={companyName}
-                                    isAnalyzing={isAnalyzing && !analysis}
+                                    isAnalyzing={isAnalyzing}
                                     insights={insights}
                                     strokeColorClass={strokeColorClass}
                                     verdictColorClass={verdictColorClass}
