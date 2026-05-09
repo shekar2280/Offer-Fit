@@ -6,7 +6,8 @@ import { AnalysisReportProps } from "./types";
 import { ReportToolbar } from "./report/report-toolbar";
 import { ErrorView } from "./report/error-view";
 import { MatchHeader } from "./report/match-header";
-import { CompanyIntelligence, InterviewQuestions, OutreachEmail, RedFlags, SalaryInsight, ScoreMetrics, SkillsView } from "./report/insights-cards";
+import { CompanyIntelligence, EmailDraftSection, InterviewQuestions, RedFlags, SalaryInsight, ScoreMetrics, SkillsView } from "./report/insights-cards";
+
 import { MarkdownViewer } from "./report/markdown-viewer";
 import { LoadingScanning } from "./report/loading-scanning";
 
@@ -16,6 +17,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
         isAnalyzing,
         companyName,
         position,
+        analysisId = "",
         onReset,
         mode = "analysis",
         onSwitchMode,
@@ -30,7 +32,8 @@ export function AnalysisReport(props: AnalysisReportProps) {
     const score = insights?.match_score || 0;
     const verdict = insights?.verdict || (score > 75 ? "APPLY" : score > 50 ? "STRETCH" : "REJECT");
 
-    const cleanAnalysis = analysis
+    const cleanAnalysis = (analysis || "")
+        .replace(/\{[\s\S]*?"outreach_email"[\s\S]*?\}/g, "")
         .replace(/===JSON_START===[\s\S]*?===JSON_END===/g, "")
         .trim();
 
@@ -50,7 +53,6 @@ export function AnalysisReport(props: AnalysisReportProps) {
 
     const copyText = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
-        alert(`${label} copied to clipboard!`);
     };
 
     return (
@@ -120,13 +122,17 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                             <RedFlags flags={insights?.red_flags || []} />
                                             
                                             <InterviewQuestions 
-                                                questions={insights?.interview_questions || []} 
+                                                data={insights?.interview_questions} 
                                                 onCopy={copyText} 
                                             />
 
-                                            {insights?.outreach_email && insights.outreach_email.trim() !== "" && (
-                                                <OutreachEmail email={insights.outreach_email} onCopy={copyText} />
-                                            )}
+                                            <EmailDraftSection
+                                                analysisId={analysisId}
+                                                verdict={verdict}
+                                                initialEmail={insights?.outreach_email}
+                                                onCopy={copyText}
+                                            />
+
                                         </div>
                                     </div>
                                     <div className="relative z-10 w-full mt-4 border-t border-white/5">

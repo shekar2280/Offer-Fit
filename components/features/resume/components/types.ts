@@ -12,6 +12,7 @@ export interface AnalysisReportProps {
     loadingMessages: string[];
     companyName: string;
     position: string;
+    analysisId?: string;
     onReset: () => void;
     mode?: "analysis" | "customize";
     onSwitchMode: (newMode: "analysis" | "customize") => void;

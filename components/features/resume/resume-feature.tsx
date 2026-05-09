@@ -171,7 +171,6 @@ export function ResumeFeature({
         router.replace(cleanUrl, { scroll: false });
     };
 
-
     const analyzeResume = async (text: string, targetMode?: "analysis" | "customize") => {
         setIsAnalyzing(true);
         setAnalysisState((prev: any) => ({ ...prev, analysis: "", insights: null }));
@@ -288,7 +287,6 @@ export function ResumeFeature({
         }
     };
 
-
     const handleFile = async (file: File) => {
         setIsUploading(true);
         const formData = new FormData();
@@ -367,6 +365,7 @@ export function ResumeFeature({
                                 loadingMessages={LOADING_MESSAGES}
                                 companyName={jobData.company}
                                 position={jobData.role}
+                                analysisId={analysisState.currentAnalysisId || globalState.id || ""}
                                 onReset={resetSession}
                                 mode={mode}
                                 onSwitchMode={handleSwitchMode}
