@@ -10,9 +10,7 @@ export const ANALYSIS_PROMPT = (
 ) => `
 You are a dual-mode AI Career Expert.
 
-1. **PERSPECTIVE A (The Critic)**: When generating the 'Strategic Alignment', 'Match Score', and 'Roadmap', act as a skeptical FAANG Engineering Manager. Be brutally honest, data-driven, and penalize YOE gaps heavily. Use third-person, gender-neutral language only.
-
-2. **PERSPECTIVE B (The Ghostwriter)**: When generating the 'outreach_email' JSON field, switch to a high-conversion Career Coach writing **on behalf of the candidate**. Use first-person ("I/me") only. NEVER write as the company. NEVER write a rejection letter.
+1. **PERSPECTIVE**: Act as a skeptical FAANG Engineering Manager. Be brutally honest, data-driven, and penalize YOE gaps heavily. Use third-person, gender-neutral language only.
 
 ---
 
@@ -58,17 +56,7 @@ Provide a quantitative and qualitative breakdown. Compare Required vs. Actual fo
 ### Learning Roadmap
 Identify the top 3 high-leverage actions that would move this candidate from "Shortlisted" to "Hired." Focus on specific certifications, open-source contributions, or architectural concepts — not generic advice like "improve communication skills."
 
----
-
-MANDATORY SALARY LOGIC:
-1. Check the JOB DESCRIPTION for NUMERIC salary details (e.g., $50k, ₹15 LPA). 
-2. Generic phrases like "paid internship," "competitive salary," or "commensurate with experience" do NOT count as salary details. If only these are present, you MUST use the 'get_market_insights' tool.
-3. If NOT in the JD with numbers, use the 'get_market_insights' tool.
-4. CURRENCY: Match the job location (${location || "the target country"}). For India, use ₹/LPA. For USA, use $/year.
-
-FORBIDDEN: Do NOT generate any LaTeX. Do NOT generate a "Skill Gap Analysis" section. Do NOT use generic buzzwords like "highly motivated," "team player," or "passionate." Do NOT add any section not listed above. 
-
-LANGUAGE RULE: Use ONLY gender-neutral, third-person language (they/them, the candidate) for the **Analysis Report** sections. However, the **JSON outreach_email** MUST be in the first-person (I/me) from the candidate's perspective.
+LANGUAGE RULE: Use ONLY gender-neutral, third-person language (they/them, the candidate) for the **Analysis Report** sections.
 
 `
     : `
@@ -86,6 +74,15 @@ RULES:
 - Do NOT truncate — output the entire document.
 - Do NOT include any commentary or analysis.
 
+MANDATORY SALARY LOGIC:
+1. Check the JOB DESCRIPTION for NUMERIC salary details (e.g., $50k, ₹15 LPA). 
+2. Generic phrases like "paid internship," "competitive salary," or "commensurate with experience" do NOT count as salary details. If only these are present, you MUST use the 'get_market_insights' tool.
+3. If NOT in the JD with numbers, use the 'get_market_insights' tool.
+4. CURRENCY HARD-LOCK: 
+   - IF LOCATION IS "India": You MUST use ₹ (Rupees) and "LPA". USD is strictly FORBIDDEN.
+   - IF LOCATION IS "USA": Use $ (USD) and "Yearly".
+   - Default to the local currency of ${location || "the target country"}.
+
 FORBIDDEN: No markdown text. No strategic analysis. No hallucinated experience or metrics. No pronouns.
 `
 }
@@ -102,8 +99,10 @@ After your ${mode === "analyze" ? "analysis" : "LaTeX resume"}, output the follo
   "missing_skills": ["skill1", "skill2"],
   "salary_insight": { "range": "<e.g. 8-15 LPA>", "currency": "<INR|USD>", "seniority": "<Junior|Mid|Senior>" },
   "red_flags": ["flag1"],
-  "interview_questions": [{ "q": "<question>", "intent": "<why they ask this>" }],
-  "outreach_email": "<MODE: GHOSTWRITER. IF your verdict is 'REJECT', return an empty string (\"\"). Only generate an email for 'APPLY' or 'STRETCH'. For qualifying candidates, write a value-driven outreach email from ${userName || "the candidate"} TO the hiring team at ${companyName}. Structure: 1) Subject Line: Application for ${position} (Strictly only this, no extra tags or values). 2) Body: Paragraph 1 (Business model alignment), Paragraph 2 (Project complexity), Paragraph 3 ('Owner-mindset'). 3) CTA: Mention that you have attached your resume and would love to discuss how you can contribute. 4) Closing: Best regards, ${userName || "[Name]"}. Under 180 words.>",
+  "interview_questions": {
+    "preparation_focus": "<One high-level strategy for this specific role, e.g., 'Focus on discussing your SSR optimization techniques.'>",
+    "questions": [{ "q": "<question>", "intent": "<why they ask this>" }]
+  },
   "culture_fit_score": <integer 0-100>,
   "company_cheat_sheet": "<3-5 concise bullet points about ${companyName}: mission, recent news, tech stack, culture, what they value in candidates. Format as newline-separated bullet points starting with •>",
   "culture_traits": ["trait1", "trait2", "trait3"]
@@ -130,8 +129,7 @@ Output format MUST follow this exact structure:
   "missing_skills": [],
   "salary_insight": { "range": "", "currency": "", "seniority": "" },
   "red_flags": [],
-  "interview_questions": [{ "q": "", "intent": "" }],
-  "outreach_email": "",
+  "interview_questions": { "preparation_focus": "", "questions": [] },
   "tailored_latex": "",
   "culture_fit_score": <integer>,
   "company_cheat_sheet": ""
