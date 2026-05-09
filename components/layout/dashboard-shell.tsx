@@ -1,5 +1,3 @@
-"use client";
-
 import { ResumeUpload } from "@/components/features/resume/resume-upload";
 import { Navbar } from "@/components/layout/navbar";
 

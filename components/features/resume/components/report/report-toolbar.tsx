@@ -1,4 +1,5 @@
 import React from "react";
+import { Edit3, FileSearch, RotateCcw } from "lucide-react";
 
 interface ReportToolbarProps {
     isAnalyzing: boolean;
@@ -8,6 +9,8 @@ interface ReportToolbarProps {
     isHistoryMode: boolean;
     onSwitchMode: (newMode: "analysis" | "customize") => void;
     onReset: () => void;
+    isEditingForm: boolean;
+    onToggleForm: () => void;
 }
 
 export function ReportToolbar({
@@ -17,7 +20,9 @@ export function ReportToolbar({
     hasCustomization,
     isHistoryMode,
     onSwitchMode,
-    onReset
+    onReset,
+    isEditingForm,
+    onToggleForm
 }: ReportToolbarProps) {
     return (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 relative z-30 px-2">
@@ -27,28 +32,59 @@ export function ReportToolbar({
                     {serverError ? "Analysis Failed" : isAnalyzing ? "Scanning Resume" : "Analysis Complete"}
                 </span>
             </div>
+            
             <div className="flex items-center gap-3">
                 {!isAnalyzing && (
                     <button 
-                        onClick={() => onSwitchMode(mode === "analysis" ? "customize" : "analysis")}
-                        className="min-w-[160px] h-10 px-6 rounded-full border border-primary/30 bg-primary/10 hover:bg-primary/20 transition-all backdrop-blur-md group/mode flex items-center justify-center"
+                        onClick={onToggleForm}
+                        className="h-10 px-6 rounded-full border border-white/10 bg-white/[0.05] hover:bg-white/[0.1] hover:border-white/20 transition-all backdrop-blur-md flex items-center gap-2 group/toggle"
                     >
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                        {isEditingForm ? (
+                            <>
+                                <FileSearch className="w-3.5 h-3.5 text-primary group-hover/toggle:scale-110 transition-transform" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">View Report</span>
+                            </>
+                        ) : (
+                            <>
+                                <Edit3 className="w-3.5 h-3.5 text-primary group-hover/toggle:scale-110 transition-transform" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Edit Details</span>
+                            </>
+                        )}
+                    </button>
+                )}
+
+                {!isAnalyzing && !isEditingForm && (
+                    <button 
+                        onClick={() => onSwitchMode(mode === "analysis" ? "customize" : "analysis")}
+                        className={`min-w-[200px] h-10 px-6 rounded-full border transition-all backdrop-blur-md group/mode flex items-center justify-center ${
+                            mode === "analysis" 
+                                ? (hasCustomization 
+                                    ? "border-primary/40 bg-primary/10 hover:bg-primary/20 shadow-[0_0_20px_-5px_rgba(242,170,76,0.2)]" 
+                                    : "border-white/20 bg-black hover:bg-white/5"
+                                ) 
+                                : "border-primary/40 bg-primary/10 hover:bg-primary/20"
+                        }`}
+                    >
+                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-300 ${
+                            mode === "analysis"
+                                ? (hasCustomization ? "text-primary" : "text-white")
+                                : "text-primary"
+                        }`}>
                             {mode === "analysis" 
-                                ? (hasCustomization ? "Show Customized Resume" : "Customize Resume") 
-                                : "Show Analysis Report"
+                                ? (hasCustomization ? "View Tailored Resume" : "Customize Resume") 
+                                : "View Analysis Report"
                             }
                         </span>
                     </button>
                 )}
-                {!isHistoryMode && (
-                    <button 
-                        onClick={onReset} 
-                        className="h-10 px-6 rounded-full border border-white/10 bg-white/[0.02] hover:bg-white/[0.08] hover:border-white/20 transition-all group/reset backdrop-blur-md flex items-center justify-center"
+
+                {!isAnalyzing && (
+                    <button
+                        onClick={onReset}
+                        title="Reset Session"
+                        className="h-11 px-4 rounded-2xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/30 transition-all group/reset flex items-center justify-center"
                     >
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 group-hover/reset:text-white/80 transition-colors">
-                            Reset
-                        </span>
+                        <RotateCcw className="w-4 h-4 text-primary group-hover/reset:-rotate-90 transition-all duration-500" />
                     </button>
                 )}
             </div>

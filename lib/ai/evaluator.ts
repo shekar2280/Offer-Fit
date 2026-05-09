@@ -9,17 +9,20 @@ export async function evaluateAnalysis(
   jd: string,
   analysis: string,
 ) {
-  const models = GEMINI_MODELS;
-  
-  for (const modelId of models) {
+  for (const modelId of GEMINI_MODELS) {
     try {
       const model = genAI.getGenerativeModel({ model: modelId });
       const prompt = JUDGE_PROMPT(resume, jd, analysis);
       const result = await model.generateContent(prompt);
-      return JSON.parse(result.response.text().match(/\{[\s\S]*\}/)?.[0] || "{}");
+      const data = JSON.parse(result.response.text().match(/\{[\s\S]*\}/)?.[0] || "{}");
+      
+      return {
+        ...data,
+        usage: result.response.usageMetadata
+      };
     } catch (error) {
       continue;
     }
   }
-  return { passed: true, score: 100, critique: "Evaluation skipped due to quota limits." };
+  return { passed: true, score: 100, critique: "Evaluation skipped.", usage: null };
 }

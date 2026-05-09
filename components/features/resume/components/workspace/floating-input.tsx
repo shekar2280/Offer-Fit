@@ -6,15 +6,17 @@ interface FloatingInputProps {
     label: string;
     disabled?: boolean;
     icon?: any;
+    inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
-export function FloatingInput({ value, onChange, label, disabled = false, icon: Icon }: FloatingInputProps) {
+export function FloatingInput({ value, onChange, label, disabled = false, icon: Icon, inputRef }: FloatingInputProps) {
     return (
         <div className="relative group/input w-full bg-white/[0.02] border border-white/10 rounded-2xl transition-colors hover:border-white/20 focus-within:border-primary/50 focus-within:bg-white/[0.04]">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/input:text-primary transition-colors">
                 {Icon && <Icon className="w-5 h-5" />}
             </div>
             <input
+                ref={inputRef}
                 type="text"
                 value={value}
                 onChange={e => onChange(e.target.value)}

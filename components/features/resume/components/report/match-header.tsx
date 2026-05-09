@@ -1,5 +1,5 @@
 import React from "react";
-import { DollarSign } from "lucide-react";
+import { DollarSign, Activity, Coins } from "lucide-react";
 import { AnalysisInsights } from "../types";
 
 interface MatchHeaderProps {
@@ -41,7 +41,7 @@ export function MatchHeader({
                             {isAnalyzing && !insights ? (
                                 <div className="h-12 w-16 bg-white/5 animate-pulse rounded-lg" />
                             ) : (
-                                <span className="text-6xl font-black text-white tracking-tighter drop-shadow-2xl">{score}</span>
+                                <span className="text-7xl font-black text-white tracking-tighter drop-shadow-2xl">{score}</span>
                             )}
                             <span className="text-[10px] font-mono uppercase tracking-[0.5em] text-white/20 mt-1">Match</span>
                         </div>
@@ -64,18 +64,19 @@ export function MatchHeader({
                         </h1>
                     </div>
                     <div className="flex flex-col space-y-2">
-                        {isAnalyzing && !position ? (
-                            <div className="h-6 w-48 bg-white/5 animate-pulse rounded mt-2" />
-                        ) : (
+                        {!isAnalyzing && !position ? (
+                            <p className="text-white/40 text-lg font-medium tracking-tight italic">Unknown Role</p>
+                        ) : position ? (
                             <p className="text-white/60 text-lg font-medium tracking-tight line-clamp-1">
                                 {position}
                             </p>
-                        )}
+                        ) : null}
+                        
                         {isAnalyzing && !companyName ? (
                             <div className="h-4 w-32 bg-white/5 animate-pulse rounded mt-1" />
                         ) : (
-                            <p className="text-white/20 text-[10px] font-mono uppercase tracking-widest line-clamp-2 leading-relaxed" title={companyName}>
-                                Target: {companyName}
+                            <p className="text-white/20 text-[10px] font-mono uppercase tracking-widest line-clamp-2 leading-relaxed" title={companyName || 'Confidential'}>
+                                Target: {companyName || 'Confidential'}
                             </p>
                         )}
                         {!isAnalyzing && insights?.tool_used && insights.tool_used.length > 0 && (
@@ -110,6 +111,23 @@ export function MatchHeader({
                             </div>
                         )}
                     </div>
+
+                    {!isAnalyzing && insights?.total_tokens !== undefined && (
+                        <div className="flex items-center gap-4 pt-2">
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 group/stat hover:border-primary/30 transition-colors">
+                                <Activity className="w-3 h-3 text-white/40 group-hover/stat:text-primary transition-colors" />
+                                <span className="text-[10px] font-mono text-white/40 group-hover/stat:text-white transition-colors">
+                                    {insights.total_tokens.toLocaleString()} <span className="text-[8px] opacity-50 uppercase tracking-tighter">tkns</span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 group/stat hover:border-green-500/30 transition-colors">
+                                <Coins className="w-3 h-3 text-white/40 group-hover/stat:text-green-500 transition-colors" />
+                                <span className="text-[10px] font-mono text-white/40 group-hover/stat:text-white transition-colors">
+                                    ${insights.estimated_cost?.toFixed(4)}
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

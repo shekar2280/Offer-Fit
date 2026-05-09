@@ -1,41 +1,52 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 export function useResumeProfile(user: any) {
-  const [extractedText, setExtractedText] = useState<string | null>(null);
-  const [latexText, setLatexText] = useState("");
-  const [hasExistingResume, setHasExistingResume] = useState(false);
+  const [latexOverride, setLatexOverride] = useState<string | null>(null);
+  const [extractedOverride, setExtractedOverride] = useState<string | null>(null);
+  const [hasExistingResumeOverride, setHasExistingResumeOverride] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchProfile = async () => {
+  const { data: profile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
       const supabase = createClient();
-      let { data: profile, error } = await supabase
+      let { data, error } = await supabase
         .from("profiles")
         .select("resume_text, latex_source")
         .eq("id", user.id)
         .maybeSingle();
 
-      if (!profile && !error) {
-        const { data: newProfile, error: createError } = await supabase
+      if (!data && !error) {
+        const { data: newProfile } = await supabase
           .from("profiles")
           .insert({ id: user.id, email: user.email })
           .select()
           .single();
-        
-        if (!createError) profile = newProfile;
+        if (newProfile) data = newProfile;
       }
+      return data;
+    },
+    enabled: !!user,
+  });
 
-      if (profile) {
-        if (profile.resume_text) {
-          setExtractedText(profile.resume_text);
-          setHasExistingResume(true);
-        }
-        if (profile.latex_source) setLatexText(profile.latex_source);
-      }
-    };
-    fetchProfile();
-  }, [user]);
+  const latexText = latexOverride ?? profile?.latex_source ?? "";
+  const extractedText = extractedOverride ?? profile?.resume_text ?? null;
+  const hasExistingResume = hasExistingResumeOverride ?? !!(profile?.resume_text);
 
-  return { extractedText, setExtractedText, latexText, setLatexText, hasExistingResume, setHasExistingResume };
+  const masterLatex = profile?.latex_source ?? "";
+  const masterExtractedText = profile?.resume_text ?? null;
+
+  return {
+    extractedText,
+    setExtractedText: setExtractedOverride,
+    latexText,
+    setLatexText: setLatexOverride,
+    hasExistingResume,
+    setHasExistingResume: setHasExistingResumeOverride,
+    masterLatex,
+    masterExtractedText,
+    isLoadingProfile,
+  };
 }

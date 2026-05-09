@@ -9,5 +9,6 @@ export const LOADING_MESSAGES = [
   "Indexing resume context...",
   "Analyzing JD...",
   "Finding matches...",
-  "Optimizing LaTeX..."
+  "Optimizing LaTeX...",
+  "Applying reliability audit..."
 ];

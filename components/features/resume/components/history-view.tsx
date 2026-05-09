@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FileText, Trash2, ArrowRight, Clock, Sparkles, Briefcase } from "lucide-react";
 import Link from "next/link";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { HistoryGridSkeleton } from "@/components/ui/skeletons";
+import { useRouter } from "next/navigation";
 
 interface Analysis {
     id: string;
@@ -14,50 +16,71 @@ interface Analysis {
     customized_latex?: string;
 }
 
-export function HistoryView() {
-    const [history, setHistory] = useState<Analysis[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+async function fetchHistory(): Promise<Analysis[]> {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    const { data } = await supabase
+        .from("analyses")
+        .select("id, company_name, position, created_at, analysis_result, customized_latex")
+        .order("created_at", { ascending: false });
+    return data || [];
+}
 
-    useEffect(() => {
-        async function fetchHistory() {
-            setIsLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data } = await supabase
-                    .from("analyses")
-                    .select("id, company_name, position, created_at, analysis_result, customized_latex")
-                    .order("created_at", { ascending: false });
+async function fetchSingleAnalysis(id: string) {
+    const supabase = createClient();
+    const { data } = await supabase
+        .from("analyses")
+        .select("*")
+        .eq("id", id)
+        .single();
+    return data;
+}
 
-                if (data) setHistory(data);
-            }
-            setIsLoading(false);
-        }
-        fetchHistory();
-    }, []);
+export function HistoryView() {
+    const queryClient = useQueryClient();
+    const router = useRouter();
+
+    const { data: history = [], isLoading } = useQuery({
+        queryKey: ["history"],
+        queryFn: fetchHistory,
+        staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 30,
+    });
+
+    const handleCardHover = (id: string) => {
+        queryClient.prefetchQuery({
+            queryKey: ["analysis", id],
+            queryFn: () => fetchSingleAnalysis(id),
+            staleTime: 1000 * 60 * 60,
+        });
+    };
 
     const deleteAnalysis = async (e: React.MouseEvent, id: string) => {
         e.preventDefault();
         e.stopPropagation();
+        const supabase = createClient();
         const { error } = await supabase.from("analyses").delete().eq("id", id);
-        if (!error) setHistory(history.filter(item => item.id !== id));
+        if (!error) {
+            queryClient.invalidateQueries({ queryKey: ["history"] });
+            queryClient.removeQueries({ queryKey: ["analysis", id] });
+        }
     };
 
     if (isLoading) {
         return (
-            <div className="w-full max-w-[1400px] mx-auto px-4 py-8 animate-pulse">
-                <div className="h-10 w-48 bg-white/5 rounded-xl mb-8" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="h-52 bg-white/5 rounded-3xl" />
-                    ))}
+            <div className="w-full max-w-[1400px] mx-auto px-4 py-8">
+                <div className="mb-10 space-y-2">
+                    <div className="skeleton-shimmer rounded-xl bg-white/[0.04] w-48 h-10" />
+                    <div className="skeleton-shimmer rounded-lg bg-white/[0.04] w-64 h-4" />
                 </div>
+                <HistoryGridSkeleton count={6} />
             </div>
         );
     }
 
     return (
-        <div className="w-full max-w-[1400px] mx-auto animate-in fade-in duration-1000 px-4 py-8 relative z-10">
+        <div className="w-full max-w-[1400px] mx-auto animate-in fade-in duration-700 px-4 py-8 relative z-10">
             <div className="flex items-center justify-between mb-10">
                 <div className="space-y-2">
                     <h1 className="font-heading text-3xl sm:text-4xl font-semibold tracking-tighter text-white">
@@ -95,6 +118,8 @@ export function HistoryView() {
                         return (
                             <div
                                 key={item.id}
+                                // Prefetch on hover — fetch report data before user clicks
+                                onMouseEnter={() => handleCardHover(item.id)}
                                 className="group relative rounded-[2rem] p-6 transition-all duration-500 overflow-hidden flex flex-col justify-between"
                                 style={{
                                     background: "linear-gradient(135deg, rgba(242,170,76,0.04) 0%, rgba(255,255,255,0.02) 50%, rgba(0,0,0,0.6) 100%)",
@@ -126,7 +151,7 @@ export function HistoryView() {
                                         </span>
                                     </div>
                                     <h3 className="font-heading text-lg sm:text-xl font-bold text-white leading-tight pr-10">
-                                        {item.company_name} <span className="text-primary/50 font-light italic"> - {item.position}</span>
+                                        {item.company_name} <span className="text-primary/50 font-light italic">- {item.position}</span>
                                     </h3>
                                 </div>
 
