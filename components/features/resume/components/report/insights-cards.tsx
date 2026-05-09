@@ -139,12 +139,16 @@ export function CompanyIntelligence({ score, traits = [], content, companyName }
 }
 
 export function SkillsView({ matched, missing }: { matched: string[], missing: string[] }) {
+    const sections = [
+        { label: "Matched Expertise", items: matched, color: "emerald-500", icon: Shield, status: 'check' },
+        { label: "Gaps to Bridge", items: missing, color: "primary", icon: Zap, status: 'cross' }
+    ].filter(sec => sec.items && sec.items.length > 0);
+
+    if (sections.length === 0) return null;
+
     return (
         <div className="space-y-12 py-4">
-            {[
-                { label: "Matched Expertise", items: matched, color: "emerald-500", icon: Shield, status: 'check' },
-                { label: "Gaps to Bridge", items: missing, color: "primary", icon: Zap, status: 'cross' }
-            ].map((sec, i) => (
+            {sections.map((sec, i) => (
                 <div key={i} className="space-y-6">
                     <div className="flex items-center gap-4">
                         <div 
