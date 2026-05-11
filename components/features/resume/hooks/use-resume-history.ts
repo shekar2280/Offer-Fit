@@ -43,9 +43,9 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
   const displayAnalysis = analysisOverride ?? (mode === "customize" ? cachedCustomize : cachedAnalysis);
 
   const jobData = {
-    company: jobOverrides.company ?? savedData?.company_name ?? "",
-    role: jobOverrides.role ?? savedData?.position ?? "",
-    description: jobOverrides.description ?? savedData?.jd_text ?? "",
+    company: jobOverrides.company || savedData?.company_name || "",
+    role: jobOverrides.role || savedData?.position || "",
+    description: jobOverrides.description || savedData?.jd_text || "",
   };
 
   const setJobData = useCallback((update: any) => {
