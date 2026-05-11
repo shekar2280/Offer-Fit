@@ -54,7 +54,11 @@ Provide a quantitative and qualitative breakdown. Compare Required vs. Actual fo
 3. Ownership evidence — did they lead, or just contribute?
 
 ### Learning Roadmap
-Identify the top 3 high-leverage actions that would move this candidate from "Shortlisted" to "Hired." Focus on specific certifications, open-source contributions, or architectural concepts — not generic advice like "improve communication skills."
+Identify the top 3 high-leverage technical actions to bridge immediate gaps. Then, add a mandatory subsection #### Strategic Bridge tailored to the candidate's seniority tier (Entry 0-2y, Mid 3-5y, Senior 6y+):
+1. **Entry**: Focus on "Execution Proof" (Daily Git activity, public projects, DSA consistency). Advice on standing out in high-volume pools.
+2. **Mid**: Focus on "Domain Deep-Dive" (Performance tuning, advanced testing, mastering adjacent stack components). Advice on peer networking.
+3. **Senior**: Focus on "Architecture & Impact" (Design docs, system scalability, leadership impact). Advice on peer-to-peer outreach to Engineering Managers or VPs.
+Finally, include a specific "Call to Action" offering to generate a tier-appropriate outreach email.
 
 LANGUAGE RULE: Use ONLY gender-neutral, third-person language (they/them, the candidate) for the **Analysis Report** sections.
 

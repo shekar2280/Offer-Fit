@@ -321,7 +321,7 @@ export function EmailDraftSection({ analysisId, verdict, initialEmail, onCopy }:
     return (
         <div className="relative animate-in fade-in slide-in-from-bottom-8 duration-1000">
             <div className="relative overflow-hidden border border-primary/30 bg-black/40 backdrop-blur-2xl rounded-[2.5rem] p-8 transition-none">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div className="space-y-2">
                         <div className="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
                             <Zap className="w-3 h-3 text-primary animate-pulse" />
@@ -368,7 +368,7 @@ export function EmailDraftSection({ analysisId, verdict, initialEmail, onCopy }:
                 </div>
 
                 {(email || loading) && (
-                    <div className="relative rounded-[2rem] border border-white/5 bg-white/[0.01] overflow-hidden">
+                    <div className="relative rounded-[2rem] border border-white/5 bg-white/[0.01] overflow-hidden mt-8">
                         <div className="relative p-10 min-h-[200px]">
                             <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] pointer-events-none rounded-full" />
                             <div className="relative z-10 text-[15px] text-white/70 leading-relaxed font-serif selection:bg-primary/30 selection:text-white">
