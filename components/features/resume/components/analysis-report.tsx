@@ -126,21 +126,21 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                                 onCopy={copyText} 
                                             />
 
-                                            <EmailDraftSection
-                                                analysisId={analysisId}
-                                                verdict={verdict}
-                                                initialEmail={insights?.outreach_email}
-                                                onCopy={copyText}
-                                            />
-
                                         </div>
                                     </div>
-                                    <div className="relative z-10 w-full mt-4 border-t border-white/5">
+                                    <div className="relative z-10 w-full mt-4 border-t border-white/5 space-y-12">
                                         <MarkdownViewer 
                                             content={cleanAnalysis} 
                                             mode={mode} 
                                             isAnalyzing={isAnalyzing} 
                                             onCopy={copyText} 
+                                        />
+
+                                        <EmailDraftSection
+                                            analysisId={analysisId}
+                                            verdict={verdict}
+                                            initialEmail={insights?.outreach_email}
+                                            onCopy={copyText}
                                         />
                                     </div>
                                 </>
