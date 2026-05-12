@@ -7,6 +7,8 @@ export const ANALYSIS_PROMPT = (
   jobType?: string,
   mode: "analyze" | "customize" = "analyze",
   userName?: string,
+  intel?: any,
+  strategy?: any
 ) => `
 You are a dual-mode AI Career Expert.
 
@@ -17,6 +19,19 @@ You are a dual-mode AI Career Expert.
 ROLE CONTEXT:
 - Company: ${companyName}
 - Position: ${position}${location ? `\n- Location: ${location}` : ""}${jobType ? `\n- Job Type: ${jobType}` : ""}${userName ? `\n- Candidate Name: ${userName}` : ""}
+
+${intel ? `
+COMPANY INTELLIGENCE:
+- Tech Stack: ${JSON.stringify(intel.tech_stack)}
+- Culture: ${intel.values_culture}
+- Recent News: ${intel.engineering_blog_summary}
+` : ""}
+${strategy ? `
+CUSTOMIZATION STRATEGY (FOLLOW THIS STRICTLY):
+- Pillars: ${strategy.strategy_pillars?.join("\n- ") || "N/A"}
+- Target Keywords: ${strategy.key_keywords_to_inject?.join(", ") || "N/A"}
+- Desired Vibe: ${strategy.culture_vibe || "Professional"}
+` : ""}
 
 CANDIDATE RESUME:
 ${context}
@@ -161,3 +176,111 @@ export const JUDGE_PROMPT = (resume: string, jd: string, analysis: string) => `
       "passed": boolean
     }
 `;
+
+
+export const RESEARCH_DISTILLATION_PROMPT = (companyName: string, rawData: string) => `
+You are a Corporate Intelligence Researcher. Your task is to process raw search data about ${companyName} and distill it into a high-signal profile for a technical recruiter.
+
+RAW DATA:
+${rawData}
+
+OUTPUT RULES:
+1. Tech Stack (CRITICAL): 
+   - Identify specific languages, frameworks, and tools.
+   - For Tier-1/Large companies (like ${companyName}), look for core engineering engines:
+     * Frontend: React, Angular, Vue, Next.js, etc.
+     * Backend: Java/Spring, Go, Node.js, Python/Django, etc.
+     * Infrastructure: AWS, GCP, Azure, Kubernetes, Docker, etc.
+     * Tools: Kafka, Redis, Hadoop, Spark, Jenkins, etc.
+   - If the raw data is vague, use your knowledge of this company's scale to infer likely core technologies (e.g., major e-commerce uses microservices and distributed databases).
+2. Culture & Values: 
+   - DO NOT return "EMPTY" or "N/A". 
+   - If no direct mission is found, infer values from search snippets (e.g., "Fast-paced," "Customer-centric," "Innovation-driven").
+3. Engineering Blog: 
+   - Summarize recent technical migrations, blog posts, or focus areas.
+   - If no blog is mentioned, summarize their general industry standing (e.g., "${companyName} is a market leader in their sector, likely focusing on high availability and massive scale").
+4. Inference: 
+   - Be an expert. If ${companyName} is a well-known giant, use your internal knowledge to supplement missing raw data.
+
+Output EXACTLY this JSON block:
+===JSON_START===
+{
+  "tech_stack": {
+    "frontend": ["string"],
+    "backend": ["string"],
+    "infrastructure": ["string"],
+    "tools": ["string"]
+  },
+  "values_culture": "string summary (Max 150 chars)",
+  "engineering_blog_summary": "string summary (Max 200 chars)",
+  "is_startup": boolean
+}
+===JSON_END===
+`;
+
+
+export const STRATEGY_PROMPT = (
+  companyName: string,
+  position: string,
+  resume: string,
+  jd: string,
+  intel: any
+) => `
+You are an Elite Career Strategist for high-growth tech roles.
+
+CONTEXT:
+- Target Company: ${companyName} (Focusing on: ${intel.values_culture})
+- Tech Stack: ${JSON.stringify(intel.tech_stack)}
+- Position: ${position}
+- Job Description: ${jd}
+- Original Resume: ${resume}
+
+TASK:
+Develop a 3-point strategy for surgically tailoring this resume. 
+Identify the "Semantic Pivots" (bridging the gap between the candidate's tools and the company's stack) and the "Value Anchors" (which culture traits to weave into the bullets).
+Do NOT prefix the points with "Pillar 1:", "Pillar 2:", etc. Provide the points directly.
+
+FORMAT:
+Provide a clear, bulleted strategy.
+
+===JSON_START===
+{
+  "strategy_pillars": [
+    "**[Focus Area]** - How we will change the resume",
+    "**[Focus Area]** - How we will change the resume",
+    "**[Focus Area]** - How we will change the resume"
+  ],
+  "key_keywords_to_inject": ["keyword1", "keyword2"],
+  "culture_vibe": "e.g., Highly technical and scale-focused"
+}
+===JSON_END===
+`;
+
+
+export const AUDIT_PROMPT = (
+  originalResume: string,
+  tailoredResume: string
+) => `
+You are a Resume Integrity Auditor. Your job is to ensure that the Tailored Resume is 100% faithful to the facts in the Original Resume.
+
+ORIGINAL RESUME:
+${originalResume}
+
+TAILORED RESUME:
+${tailoredResume}
+
+TASK:
+Identify any metrics, tools, or responsibilities in the Tailored Resume that have NO BASIS in the Original Resume. 
+Note: "Semantic Pivots" (e.g., changing 'Cloud services' to 'AWS' if the original mentions AWS elsewhere) are allowed. Complete fabrications are NOT.
+
+===JSON_START===
+{
+  "hallucinations_found": [
+    { "original": "string", "tailored": "string", "reason": "why this is a lie" }
+  ],
+  "integrity_score": <integer 0-100>,
+  "verdict": "<CLEAN|MINOR_EDITS_NEEDED|REJECT>"
+}
+===JSON_END===
+`;
+
