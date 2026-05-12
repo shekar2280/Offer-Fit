@@ -93,8 +93,9 @@ export function SalaryInsight({ data }: { data?: any }) {
     );
 }
 
-export function CompanyIntelligence({ score, traits = [], content, companyName }: { score?: number, traits?: string[], content?: string, companyName?: string }) {
+export function CompanyIntelligence({ score, traits = [], content, companyName, intel }: { score?: number, traits?: string[], content?: string, companyName?: string, intel?: any }) {
     const bullets = content ? content.split('\n').map(line => line.replace(/^•\s*/, '').trim()).filter(Boolean) : [];
+    const hasIntel = !!intel;
 
     return (
         <DossierCard>
@@ -106,13 +107,15 @@ export function CompanyIntelligence({ score, traits = [], content, companyName }
                             <span className="text-[10px] font-black uppercase tracking-widest text-primary">Culture Alignment</span>
                         </div>
                         <div className="flex items-baseline gap-3">
-                            <span className="text-6xl font-black text-white tracking-tighter">{score}</span>
+                            <span className="text-6xl font-black text-white tracking-tighter">{score || '--'}</span>
                             <span className="text-sm font-black text-primary uppercase tracking-[0.4em]">Index</span>
                         </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                        {traits.map((t, i) => (
+                        {hasIntel && intel.values_culture ? (
+                            <span className="text-[12px] text-white/50 italic">{intel.values_culture}</span>
+                        ) : traits.map((t, i) => (
                             <span key={i} className="px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/5 text-[10px] font-bold text-white/40 uppercase tracking-widest">{t}</span>
                         ))}
                     </div>
@@ -122,20 +125,111 @@ export function CompanyIntelligence({ score, traits = [], content, companyName }
                     <div className="flex items-center justify-between">
                         <div className="space-y-1">
                             <h4 className="text-sm font-black uppercase tracking-[0.4em] text-white/80">Corporate Intelligence</h4>
-                            <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest">{companyName || 'Confidential'}</p>
+                            <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest">{companyName || 'Confidential'} {intel?.is_startup ? '(Startup)' : ''}</p>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {bullets.map((b, i) => (
-                            <div key={i} className="flex gap-4 group/point">
-                                <div className="mt-1.5 w-1 h-1 shrink-0 rounded-full bg-primary/40 group-hover/point:bg-primary transition-colors" />
-                                <p className="text-[13px] text-white/40 leading-relaxed group-hover/point:text-white/70 transition-colors">{b}</p>
-                            </div>
-                        ))}
-                    </div>
+                    
+                    {hasIntel ? (
+                        <div className="space-y-6">
+                            {intel.tech_stack && (
+                                <div>
+                                    <h5 className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-3">Tech Stack</h5>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Object.entries(intel.tech_stack).map(([cat, items]: [string, any]) => 
+                                            Array.isArray(items) ? items.map((item, i) => (
+                                                <span key={`${cat}-${i}`} className="px-3 py-1 bg-white/[0.05] border border-white/10 rounded-full text-[11px] font-medium text-white/80">
+                                                    {item}
+                                                </span>
+                                            )) : null
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            {intel.engineering_blog_summary && (
+                                <div>
+                                    <h5 className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-2">Engineering Focus</h5>
+                                    <p className="text-[13px] text-white/60 leading-relaxed italic border-l-2 border-primary/30 pl-4">{intel.engineering_blog_summary}</p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            {bullets.map((b, i) => (
+                                <div key={i} className="flex gap-4 group/point">
+                                    <div className="mt-1.5 w-1 h-1 shrink-0 rounded-full bg-primary/40 group-hover/point:bg-primary transition-colors" />
+                                    <p className="text-[13px] text-white/40 leading-relaxed group-hover/point:text-white/70 transition-colors">{b}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </DossierCard>
+    );
+}
+
+export function StrategyCard({ strategy }: { strategy?: any }) {
+    if (!strategy || !strategy.strategy_pillars) return null;
+    
+    return (
+        <DossierCard>
+            <SectionHeader icon={Briefcase} title="Customization Strategy" subtitle="How we tailored your resume" />
+            <div className="space-y-6">
+                {strategy.strategy_pillars.map((pillar: string, i: number) => (
+                    <div key={i} className="flex gap-4 items-start group/pillar">
+                        <div className="mt-1.5 w-2 h-2 shrink-0 rounded-sm bg-primary/40 group-hover/pillar:bg-primary transition-colors" />
+                        <div className="text-[14px] text-white/80 leading-relaxed font-medium">
+                            <ReactMarkdown components={{ p: ({node, ...props}) => <span {...props} /> }}>
+                                {pillar}
+                            </ReactMarkdown>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            {strategy.key_keywords_to_inject && strategy.key_keywords_to_inject.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-white/10">
+                    <h5 className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-3">Injected Value Anchors</h5>
+                    <div className="flex flex-wrap gap-2">
+                        {strategy.key_keywords_to_inject.map((kw: string, i: number) => (
+                            <span key={i} className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-full text-[11px] font-bold text-primary/90">
+                                {kw}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </DossierCard>
+    );
+}
+
+export function AuditBadge({ audit }: { audit?: any }) {
+    if (!audit) return null;
+    
+    const isClean = audit.verdict === "CLEAN" || audit.integrity_score === 100;
+    
+    return (
+        <div className={`mt-6 p-4 rounded-2xl border flex items-start gap-4 ${isClean ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+            <Shield className={`w-5 h-5 mt-1 shrink-0 ${isClean ? 'text-emerald-500' : 'text-red-500'}`} />
+            <div>
+                <h4 className={`text-xs font-black uppercase tracking-widest ${isClean ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {isClean ? 'Integrity Verified' : 'Review Required'}
+                </h4>
+                <p className="text-[12px] text-white/60 mt-1 leading-relaxed">
+                    {isClean ? 'All tailored facts match original resume. No hallucinations detected.' : 'Some facts could not be verified against the original resume.'}
+                </p>
+                
+                {!isClean && audit.hallucinations_found && audit.hallucinations_found.length > 0 && (
+                    <div className="mt-4 space-y-3">
+                        {audit.hallucinations_found.map((h: any, i: number) => (
+                            <div key={i} className="p-3 bg-black/40 rounded-xl border border-red-500/30">
+                                <p className="text-[11px] text-red-400 font-medium mb-1">Tailored: "{h.tailored}"</p>
+                                <p className="text-[11px] text-white/40 italic">Reason: {h.reason}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
 

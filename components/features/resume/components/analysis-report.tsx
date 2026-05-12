@@ -6,7 +6,7 @@ import { AnalysisReportProps } from "./types";
 import { ReportToolbar } from "./report/report-toolbar";
 import { ErrorView } from "./report/error-view";
 import { MatchHeader } from "./report/match-header";
-import { CompanyIntelligence, EmailDraftSection, InterviewQuestions, RedFlags, SalaryInsight, ScoreMetrics, SkillsView } from "./report/insights-cards";
+import { CompanyIntelligence, EmailDraftSection, InterviewQuestions, RedFlags, SalaryInsight, ScoreMetrics, SkillsView, StrategyCard, AuditBadge } from "./report/insights-cards";
 
 import { MarkdownViewer } from "./report/markdown-viewer";
 import { LoadingScanning } from "./report/loading-scanning";
@@ -92,7 +92,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                 />
                             )}
 
-                            {isAnalyzing && !analysis && (
+                            {mode === "analysis" && isAnalyzing && !analysis && (
                                 <div className="py-8">
                                     <LoadingScanning mode={mode} />
                                 </div>
@@ -110,7 +110,8 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                             score={insights?.culture_fit_score} 
                                             traits={insights?.culture_traits} 
                                             content={insights?.company_cheat_sheet} 
-                                            companyName={companyName} 
+                                            companyName={companyName}
+                                            intel={insights?.intel} 
                                         />
 
                                         <div className="space-y-12">
@@ -178,7 +179,10 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                     )}
 
                                     {!isAnalyzing && analysis && (
-                                        <div className="space-y-6">
+                                        <div className="space-y-12">
+                                            <StrategyCard strategy={insights?.strategy} />
+                                            
+                                            <div className="space-y-6">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-px w-8 bg-primary/30" />
@@ -196,6 +200,9 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                                 <pre className="text-[13px] font-mono text-white/70 leading-relaxed overflow-x-auto relative z-10">
                                                     {analysis.split("###")[0].trim()}
                                                 </pre>
+                                            </div>
+                                            
+                                            <AuditBadge audit={insights?.audit_report} />
                                             </div>
                                         </div>
                                     )}

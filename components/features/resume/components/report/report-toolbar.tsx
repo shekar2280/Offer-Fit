@@ -1,5 +1,5 @@
 import React from "react";
-import { Edit3, FileSearch, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 
 interface ReportToolbarProps {
     isAnalyzing: boolean;
@@ -34,24 +34,6 @@ export function ReportToolbar({
             </div>
             
             <div className="flex items-center gap-3">
-                {!isAnalyzing && (
-                    <button 
-                        onClick={onToggleForm}
-                        className="h-10 px-6 rounded-full border border-white/10 bg-white/[0.05] hover:bg-white/[0.1] hover:border-white/20 transition-all backdrop-blur-md flex items-center gap-2 group/toggle"
-                    >
-                        {isEditingForm ? (
-                            <>
-                                <FileSearch className="w-3.5 h-3.5 text-primary group-hover/toggle:scale-110 transition-transform" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">View Report</span>
-                            </>
-                        ) : (
-                            <>
-                                <Edit3 className="w-3.5 h-3.5 text-primary group-hover/toggle:scale-110 transition-transform" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/80">Edit Details</span>
-                            </>
-                        )}
-                    </button>
-                )}
 
                 {!isAnalyzing && !isEditingForm && (
                     <button 
