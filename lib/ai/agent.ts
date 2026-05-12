@@ -1,10 +1,14 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { ANALYSIS_PROMPT, JUDGE_CORRECTION_PROMPT } from "./prompts";
+import { ANALYSIS_PROMPT, JUDGE_CORRECTION_PROMPT, STRATEGY_PROMPT } from "./prompts";
 import { toolDefinitions, toolHandlers } from "./tools";
-import { evaluateAnalysis } from "./evaluator";
+import { evaluateAnalysis, evaluateResumeAudit } from "./evaluator";
 import { GEMINI_MODELS, MODEL_PRICING } from "../constants";
 import { logSystemEvent } from "../supabase/logger";
 import { calculateAICost } from "./utils";
+import { getCompanyIntel, upsertCompanyIntel } from "../supabase/intel";
+import { performSearch } from "./tools";
+import { RESEARCH_DISTILLATION_PROMPT } from "./prompts";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -29,7 +33,9 @@ export async function runAgenticAnalysis(
   jobType?: string,
   mode?: "analyze" | "customize",
   bypassJudge: boolean = false,
-  userName?: string
+  userName?: string,
+  intel?: any,
+  strategy?: any 
 ): Promise<AgenticAnalysisResult> {
   let response;
   let finalToolCalls: string[] = [];
@@ -56,7 +62,9 @@ export async function runAgenticAnalysis(
         location,
         jobType,
         mode,
-        userName
+        userName,
+        intel,
+        strategy
       );
 
       let result = await chat.sendMessage(prompt);
@@ -217,5 +225,142 @@ export async function runAgenticAnalysis(
     toolUsed: finalToolCalls.join(", ") || "none",
     usage: totalUsage,
     estimated_cost: totalCost
+  };
+}
+
+export async function runResearchAgent(
+  supabase: SupabaseClient,
+  companyName: string
+) {
+  const cachedIntel = await getCompanyIntel(supabase, companyName);
+  if (cachedIntel) {
+    return cachedIntel;
+  }
+
+  const searchQueries = [
+    `${companyName} engineering tech stack and backend tools 2024 2025`,
+    `${companyName} company values engineering culture mission`,
+    `${companyName} recent engineering blog posts and technical challenges`
+  ];
+
+  const searchPromises = searchQueries.map(q => performSearch(q));
+  const results = await Promise.all(searchPromises);
+  const rawData = JSON.stringify(results.flat());
+
+  const prompt = RESEARCH_DISTILLATION_PROMPT(companyName, rawData);
+  
+  for (const modelId of GEMINI_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelId });
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+
+      let distilledData = { tech_stack: {}, values_culture: "", engineering_blog_summary: "", is_startup: false };
+      const jsonStartMarker = "===JSON_START===";
+      const jsonEndMarker = "===JSON_END===";
+      const startIndex = text.indexOf(jsonStartMarker);
+      const endIndex = text.indexOf(jsonEndMarker);
+
+      if (startIndex !== -1 && endIndex !== -1) {
+        const jsonStr = text.substring(startIndex + jsonStartMarker.length, endIndex).trim();
+        try {
+          distilledData = JSON.parse(jsonStr);
+        } catch (e) {}
+      }
+
+      const savedIntel = await upsertCompanyIntel(supabase, {
+        company_name: companyName,
+        ...distilledData
+      });
+
+      return savedIntel;
+    } catch (error: any) {
+      continue;
+    }
+  }
+  
+  return await upsertCompanyIntel(supabase, {
+    company_name: companyName,
+    tech_stack: {},
+    values_culture: "Intelligence research skipped due to model availability.",
+    engineering_blog_summary: "",
+    is_startup: true
+  });
+}
+
+export async function runStrategyAgent(
+  companyName: string,
+  position: string,
+  resume: string,
+  jd: string,
+  intel: any
+) {
+  const prompt = STRATEGY_PROMPT(companyName, position, resume, jd, intel);
+  
+  for (const modelId of GEMINI_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelId });
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      
+      let strategy = { strategy_pillars: [], key_keywords_to_inject: [], culture_vibe: "" };
+      const jsonStartMarker = "===JSON_START===";
+      const jsonEndMarker = "===JSON_END===";
+      const startIndex = text.indexOf(jsonStartMarker);
+      const endIndex = text.indexOf(jsonEndMarker);
+
+      if (startIndex !== -1 && endIndex !== -1) {
+        const jsonStr = text.substring(startIndex + jsonStartMarker.length, endIndex).trim();
+        try {
+          strategy = JSON.parse(jsonStr);
+        } catch (e) {}
+      }
+
+      return strategy;
+    } catch (error: any) {
+      continue;
+    }
+  }
+
+  return { 
+    strategy_pillars: ["Focus on core technical alignment and impact metrics."], 
+    key_keywords_to_inject: [], 
+    culture_vibe: "Professional and impact-oriented" 
+  };
+}
+
+export async function runMultiStepCustomization(
+  supabase: SupabaseClient,
+  companyName: string,
+  position: string,
+  resumeText: string,
+  jd: string,
+  location?: string,
+  jobType?: string,
+  userName?: string
+) {
+  const intel = await runResearchAgent(supabase, companyName);
+  const strategy = await runStrategyAgent(companyName, position, resumeText, jd, intel);
+  const draftResults = await runAgenticAnalysis(
+    companyName,
+    position,
+    resumeText,
+    jd,
+    location,
+    jobType,
+    "customize",
+    true,
+    userName,
+    intel,
+    strategy
+  );
+
+  const audit = await evaluateResumeAudit(resumeText, draftResults.markdown);
+
+  return {
+    ...draftResults,
+    strategy,
+    intel,
+    audit
   };
 }

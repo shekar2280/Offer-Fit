@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getRelevantContext } from "@/lib/supabase/rag";
-import { runAgenticAnalysis } from "@/lib/ai/agent";
+import { runAgenticAnalysis, runMultiStepCustomization, runResearchAgent } from "@/lib/ai/agent";
 import { logSystemEvent } from "@/lib/supabase/logger";
 
 function makeSSE(controller: ReadableStreamDefaultController) {
@@ -29,7 +29,11 @@ export async function POST(req: Request) {
     bypassJudge,
   } = body;
 
-  const testSecret = (body.testSecret || req.headers.get("x-test-secret") || "").trim();
+  const testSecret = (
+    body.testSecret ||
+    req.headers.get("x-test-secret") ||
+    ""
+  ).trim();
   const serverSecret = (process.env.NEXT_PUBLIC_BENCHMARK_SECRET || "").trim();
   const isTestMode = testSecret !== "" && testSecret === serverSecret;
 
@@ -39,7 +43,9 @@ export async function POST(req: Request) {
 
       try {
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
         if (!user && !isTestMode) {
           sse.send({ type: "error", error: "Unauthorized" });
@@ -58,19 +64,27 @@ export async function POST(req: Request) {
             .single();
 
           const now = new Date();
-          const lastRequest = usage?.last_request_at ? new Date(usage.last_request_at) : new Date(0);
+          const lastRequest = usage?.last_request_at
+            ? new Date(usage.last_request_at)
+            : new Date(0);
           const msSinceLast = now.getTime() - lastRequest.getTime();
 
           daily_count = msSinceLast > 86400000 ? 0 : usage?.daily_count || 0;
           hourly_count = msSinceLast > 3600000 ? 0 : usage?.hourly_count || 0;
 
-          if (daily_count >= 100) {
-            sse.send({ type: "error", error: "Daily quota reached (100/day)." });
+          if (daily_count >= 200) {
+            sse.send({
+              type: "error",
+              error: "Daily quota reached (100/day).",
+            });
             sse.close();
             return;
           }
           if (hourly_count >= 20) {
-            sse.send({ type: "error", error: "Hourly limit exceeded (20/hr)." });
+            sse.send({
+              type: "error",
+              error: "Hourly limit exceeded (20/hr).",
+            });
             sse.close();
             return;
           }
@@ -82,14 +96,24 @@ export async function POST(req: Request) {
               hourly_count: hourly_count + 1,
               last_request_at: new Date().toISOString(),
             },
-            { onConflict: "user_id" }
+            { onConflict: "user_id" },
           );
         }
 
-        sse.send({ type: "progress", step: 1, message: "Loading resume context..." });
+        sse.send({
+          type: "progress",
+          step: 1,
+          message: "Loading resume context...",
+        });
 
         const jd = messages[messages.length - 1].content;
-        const context = resumeText || (await getRelevantContext(supabase, user?.id || "benchmark_test_id", jd));
+        const context =
+          resumeText ||
+          (await getRelevantContext(
+            supabase,
+            user?.id || "benchmark_test_id",
+            jd,
+          ));
 
         await logSystemEvent({
           level: "INFO",
@@ -103,26 +127,80 @@ export async function POST(req: Request) {
           },
         });
 
-        sse.send({ type: "progress", step: 2, message: mode === "customize" ? "Reading master resume..." : "Analyzing job description..." });
+        sse.send({
+          type: "progress",
+          step: 2,
+          message:
+            mode === "customize"
+              ? "Reading master resume..."
+              : "Analyzing job description...",
+        });
 
-        const agentMode: "analyze" | "customize" = mode === "customize" ? "customize" : "analyze";
-        const userName = user?.user_metadata?.full_name || user?.user_metadata?.name;
+        const agentMode: "analyze" | "customize" =
+          mode === "customize" ? "customize" : "analyze";
+        const userName =
+          user?.user_metadata?.full_name || user?.user_metadata?.name;
 
-        sse.send({ type: "progress", step: 3, message: mode === "customize" ? "Tailoring experience sections..." : "Matching skills & keywords..." });
+        let result: any;
 
-        const { markdown, data, toolUsed, usage, estimated_cost } = await runAgenticAnalysis(
-          companyName,
-          position,
-          context,
-          jd,
-          location,
-          jobType,
-          agentMode,
-          bypassJudge,
-          userName
-        );
+        if (mode === "customize") {
+          sse.send({
+            type: "progress",
+            step: 3,
+            message: "Tailoring experience sections...",
+          });
 
-        sse.send({ type: "progress", step: 4, message: mode === "customize" ? "Refining LaTeX output..." : "Computing match score..." });
+          result = await runMultiStepCustomization(
+            supabase,
+            companyName,
+            position,
+            context,
+            jd,
+            location,
+            jobType,
+            userName,
+          );
+        } else {
+          sse.send({
+            type: "progress",
+            step: 3,
+            message: "Researching company intel...",
+          });
+
+          const intel = await runResearchAgent(supabase, companyName);
+
+          sse.send({
+            type: "progress",
+            step: 4,
+            message: "Matching skills & keywords...",
+          });
+
+          const analysisResult = await runAgenticAnalysis(
+            companyName,
+            position,
+            context,
+            jd,
+            location,
+            jobType,
+            "analyze",
+            bypassJudge,
+            userName,
+            intel,
+          );
+
+          result = { ...analysisResult, intel };
+        }
+
+        const { markdown, data, toolUsed, usage, estimated_cost, intel, strategy, audit } = result;
+
+        sse.send({
+          type: "progress",
+          step: 5,
+          message:
+            mode === "customize"
+              ? "Refining LaTeX output..."
+              : "Computing match score...",
+        });
 
         await logSystemEvent({
           level: "INFO",
@@ -148,6 +226,9 @@ export async function POST(req: Request) {
                 customized_latex: markdown,
                 total_tokens: usage?.totalTokenCount || 0,
                 estimated_cost: estimated_cost,
+                intel_id: intel?.id || null,
+                customization_strategy: strategy || null,
+                audit_report: audit || null,
               })
               .eq("id", analysisId);
           } else {
@@ -168,12 +249,20 @@ export async function POST(req: Request) {
               total_tokens: usage?.totalTokenCount || 0,
               estimated_cost: estimated_cost,
               analysis_result: markdown,
+              intel_id: intel?.id || null,
             };
-            await supabase.from("analyses").update(updatePayload).eq("id", analysisId);
+            await supabase
+              .from("analyses")
+              .update(updatePayload)
+              .eq("id", analysisId);
           }
         }
 
-        sse.send({ type: "progress", step: 5, message: "Finalizing report..." });
+        sse.send({
+          type: "progress",
+          step: 5,
+          message: "Finalizing report...",
+        });
 
         sse.send({
           type: "result",
@@ -183,6 +272,9 @@ export async function POST(req: Request) {
               ? {
                   total_tokens: usage?.totalTokenCount || 0,
                   estimated_cost: estimated_cost,
+                  intel: intel || null,
+                  strategy: strategy || null,
+                  audit: audit || null,
                 }
               : {
                   match_score: data.match_score || 0,
@@ -200,6 +292,7 @@ export async function POST(req: Request) {
                   culture_traits: data.culture_traits || [],
                   total_tokens: usage?.totalTokenCount || 0,
                   estimated_cost: estimated_cost,
+                  intel: intel || null,
                 },
           toolUsed,
         });
