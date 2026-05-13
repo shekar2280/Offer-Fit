@@ -70,6 +70,9 @@ export function AnalysisReport(props: AnalysisReportProps) {
                 onReset={onReset}
                 isEditingForm={isEditingForm}
                 onToggleForm={onToggleForm}
+                verdict={verdict}
+                missingSkills={insights?.missing_skills}
+                redFlags={insights?.red_flags}
             />
 
             <div id="analysis-report-content" className="bg-black/60 border border-primary/40 ring-1 ring-primary/20 rounded-[2.5rem] p-6 md:p-8 backdrop-blur-3xl relative shadow-[0_0_100px_-20px_rgba(242,170,76,0.15)] overflow-hidden mb-6">
@@ -159,12 +162,24 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                                             )}
                                         </div>
-                                        <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[0.95] max-w-full">
-                                            <div className="truncate" title={companyName}>{companyName || "New Analysis"}</div>
-                                            <span className="text-primary italic font-light">
-                                                Resume.
-                                            </span>
-                                        </h1>
+                                        <div className="flex items-center gap-6">
+                                            {insights?.intel?.logo_url && (
+                                                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
+                                                    <img 
+                                                        src={insights.intel.logo_url} 
+                                                        alt={companyName} 
+                                                        className="w-full h-full object-contain p-0"
+                                                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                                                    />
+                                                </div>
+                                            )}
+                                            <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[0.95] max-w-full">
+                                                <div className="truncate" title={companyName}>{companyName || "New Analysis"}</div>
+                                                <span className="text-primary italic font-light">
+                                                    Resume.
+                                                </span>
+                                            </h1>
+                                        </div>
                                         <div className="flex flex-col space-y-1 pt-4">
                                             <p className="text-white/60 text-lg font-medium tracking-tight line-clamp-1">
                                                 {position || "Preparing tailored version..."}
