@@ -75,9 +75,21 @@ export function MatchHeader({
                         {isAnalyzing && !companyName ? (
                             <div className="h-4 w-32 bg-white/5 animate-pulse rounded mt-1" />
                         ) : (
-                            <p className="text-white/20 text-[10px] font-mono uppercase tracking-widest line-clamp-2 leading-relaxed" title={companyName || 'Confidential'}>
-                                Target: {companyName || 'Confidential'}
-                            </p>
+                            <div className="flex items-center gap-3">
+                                {insights?.intel?.logo_url && (
+                                    <div className="w-6 h-6 rounded-md bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
+                                        <img 
+                                            src={insights.intel.logo_url} 
+                                            alt={companyName} 
+                                            className="w-full h-full object-contain"
+                                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                                        />
+                                    </div>
+                                )}
+                                <p className="text-white/20 text-[10px] font-mono uppercase tracking-widest line-clamp-2 leading-relaxed" title={companyName || 'Confidential'}>
+                                    Target: {companyName || 'Confidential'}
+                                </p>
+                            </div>
                         )}
                         {!isAnalyzing && insights?.tool_used && insights.tool_used.length > 0 && (
                             <div className="flex flex-wrap gap-2 pt-3 justify-center lg:justify-start">
