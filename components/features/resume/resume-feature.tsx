@@ -15,6 +15,7 @@ import { useWorkspaceUI } from "@/lib/context/workspace-ui-context";
 import { AnalysisReportSkeleton, CustomizeReportSkeleton } from "@/components/ui/skeletons";
 import { useDraftPersistence, clearDraft } from "./hooks/use-draft-persistence";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function ResumeFeature({ 
     mode: initialMode, 
@@ -33,6 +34,7 @@ export function ResumeFeature({
 }) {
     const pathname = usePathname();
     const router = useRouter();
+    const queryClient = useQueryClient();
 
     const mode: "analysis" | "customize" = pathname.includes("/customize") ? "customize" : "analysis";
     const [user, setUser] = useState<any>(null);
@@ -195,7 +197,6 @@ export function ResumeFeature({
                     .single();
 
                 if (error) {
-                    console.error("Initial analysis creation failed:", error);
                     toast.error("Failed to initialize session. Please try again.");
                     setIsAnalyzing(false);
                     return;
@@ -252,25 +253,49 @@ export function ResumeFeature({
                     } else if (event.type === "result") {
                         clearDraft(effectiveMode === "customize" ? "customize" : "analysis");
                         
-                        const commonState = {
-                            analysis: event.analysis,
-                            insights: {
-                                ...event.metadata,
-                                toolUsed: event.toolUsed !== "none" ? event.toolUsed?.split(", ") : []
-                            }
+                        const commonMetadata = {
+                            ...event.metadata,
+                            audit_report: event.metadata.audit, 
+                            toolUsed: event.toolUsed !== "none" ? event.toolUsed?.split(", ") : []
                         };
+
+                        if (targetId) {
+                            queryClient.setQueryData(["analysis", targetId], (oldData: any) => {
+                                if (!oldData) return oldData;
+                                
+                                const newData = { ...oldData };
+                                if (effectiveMode === "customize") {
+                                    newData.customized_latex = event.analysis;
+                                    newData.customization_strategy = commonMetadata.strategy;
+                                    newData.audit_report = commonMetadata.audit_report;
+                                    newData.intel = commonMetadata.intel || oldData.intel;
+                                } else {
+                                    newData.analysis_result = event.analysis;
+                                    newData.match_score = commonMetadata.match_score;
+                                    newData.verdict = commonMetadata.verdict;
+                                    newData.ats_score = commonMetadata.ats_score;
+                                    newData.intel = commonMetadata.intel || oldData.intel;
+                                }
+                                return newData;
+                            });
+                        }
 
                         if (effectiveMode === "customize") {
                             setAnalysisState((prev: any) => ({
                                 ...prev,
-                                ...commonState,
+                                analysis: event.analysis,
+                                insights: {
+                                    ...prev.insights,
+                                    ...commonMetadata
+                                },
                                 cachedCustomize: event.analysis,
                                 hasCustomization: true
                             }));
                         } else {
                             setAnalysisState((prev: any) => ({
                                 ...prev,
-                                ...commonState,
+                                analysis: event.analysis,
+                                insights: commonMetadata,
                                 cachedAnalysis: event.analysis,
                             }));
                         }

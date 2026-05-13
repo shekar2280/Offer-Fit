@@ -40,6 +40,9 @@ export interface AnalysisState {
   location: string;
   jobType: string;
   isAnalyzing: boolean;
+  analysisResult?: string;
+  customizationResult?: string;
+  insights?: AnalysisResult;
 }
 
 export interface AnalysisContextType {
@@ -55,5 +58,7 @@ export interface CompanyIntel {
     values_culture: string | null;
     engineering_blog_summary: string | null;
     is_startup: boolean;
+    logo_url: string | null;
+    domain: string | null;
     last_updated: string;
 }
