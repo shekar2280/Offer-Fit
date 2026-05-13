@@ -19,3 +19,10 @@ export const LOADING_MESSAGES = [
   "Optimizing LaTeX...",
   "Applying reliability audit..."
 ];
+
+export const USAGE_LIMITS = {
+  DAILY_QUOTA: 15,
+  HOURLY_QUOTA: 5,
+  DAILY_REFRESH_MS: 86400000,
+  HOURLY_REFRESH_MS: 3600000,
+} as const;

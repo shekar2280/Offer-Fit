@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getRelevantContext } from "@/lib/supabase/rag";
 import { runAgenticAnalysis, runMultiStepCustomization, runResearchAgent } from "@/lib/ai/agent";
 import { logSystemEvent } from "@/lib/supabase/logger";
+import { USAGE_LIMITS } from "@/lib/constants";
 
 function makeSSE(controller: ReadableStreamDefaultController) {
   const encoder = new TextEncoder();
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
         if (user) {
           const { data: usage } = await supabase
             .from("user_usage")
-            .select("daily_count, hourly_count, last_request_at")
+            .select("daily_count, hourly_count, total_count, last_request_at")
             .eq("user_id", user.id)
             .single();
 
@@ -69,21 +70,25 @@ export async function POST(req: Request) {
             : new Date(0);
           const msSinceLast = now.getTime() - lastRequest.getTime();
 
-          daily_count = msSinceLast > 86400000 ? 0 : usage?.daily_count || 0;
-          hourly_count = msSinceLast > 3600000 ? 0 : usage?.hourly_count || 0;
+          const isDailyReset = msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS;
+          const isHourlyReset = msSinceLast > USAGE_LIMITS.HOURLY_REFRESH_MS;
 
-          if (daily_count >= 200) {
+          daily_count = isDailyReset ? 0 : usage?.daily_count || 0;
+          hourly_count = isHourlyReset ? 0 : usage?.hourly_count || 0;
+          const total_count = usage?.total_count || 0;
+
+          if (daily_count >= USAGE_LIMITS.DAILY_QUOTA) {
             sse.send({
               type: "error",
-              error: "Daily quota reached (100/day).",
+              error: `Daily quota reached (${USAGE_LIMITS.DAILY_QUOTA}/day). Your limits refresh every 24 hours.`,
             });
             sse.close();
             return;
           }
-          if (hourly_count >= 20) {
+          if (hourly_count >= USAGE_LIMITS.HOURLY_QUOTA) {
             sse.send({
               type: "error",
-              error: "Hourly limit exceeded (20/hr).",
+              error: `Hourly limit exceeded (${USAGE_LIMITS.HOURLY_QUOTA}/hr). Please wait a few minutes.`,
             });
             sse.close();
             return;
@@ -94,6 +99,7 @@ export async function POST(req: Request) {
               user_id: user.id,
               daily_count: daily_count + 1,
               hourly_count: hourly_count + 1,
+              total_count: total_count + 1,
               last_request_at: new Date().toISOString(),
             },
             { onConflict: "user_id" },
