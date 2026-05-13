@@ -122,7 +122,17 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
                 </div>
 
                 <div className="lg:col-span-8 space-y-8">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                        {intel?.logo_url && (
+                            <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
+                                <img 
+                                    src={intel.logo_url} 
+                                    alt={companyName} 
+                                    className="w-full h-full object-contain"
+                                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                                />
+                            </div>
+                        )}
                         <div className="space-y-1">
                             <h4 className="text-sm font-black uppercase tracking-[0.4em] text-white/80">Corporate Intelligence</h4>
                             <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest">{companyName || 'Confidential'} {intel?.is_startup ? '(Startup)' : ''}</p>
