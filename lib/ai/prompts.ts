@@ -76,6 +76,7 @@ Identify the top 3 high-leverage technical actions to bridge immediate gaps. The
 Finally, include a specific "Call to Action" offering to generate a tier-appropriate outreach email.
 
 LANGUAGE RULE: Use ONLY gender-neutral, third-person language (they/them, the candidate) for the **Analysis Report** sections.
+NO REDUNDANCY: Do NOT include a separate section for Salary or Compensation in the markdown text; these values must ONLY appear in the JSON block below.
 
 `
     : `
@@ -199,7 +200,10 @@ OUTPUT RULES:
 3. Engineering Blog: 
    - Summarize recent technical migrations, blog posts, or focus areas.
    - If no blog is mentioned, summarize their general industry standing (e.g., "${companyName} is a market leader in their sector, likely focusing on high availability and massive scale").
-4. Inference: 
+4. Domain & Logo:
+   - Identify the official company domain (e.g., apple.com, startup-xyz.io).
+   - Construct the logo URL using https://www.google.com/s2/favicons?domain=[domain]&sz=128.
+5. Inference: 
    - Be an expert. If ${companyName} is a well-known giant, use your internal knowledge to supplement missing raw data.
 
 Output EXACTLY this JSON block:
@@ -213,7 +217,9 @@ Output EXACTLY this JSON block:
   },
   "values_culture": "string summary (Max 150 chars)",
   "engineering_blog_summary": "string summary (Max 200 chars)",
-  "is_startup": boolean
+  "is_startup": boolean,
+  "domain": "string",
+  "logo_url": "string"
 }
 ===JSON_END===
 `;
