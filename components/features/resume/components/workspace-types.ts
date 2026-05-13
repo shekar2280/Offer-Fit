@@ -28,4 +28,5 @@ export interface ActiveWorkspaceProps {
     saveBaselineLatex: () => Promise<void>;
     onSwitchMode: (mode: "analysis" | "customize") => void;
     companyInputRef?: React.RefObject<HTMLInputElement | null>;
+    isOverQuota?: boolean;
 }
