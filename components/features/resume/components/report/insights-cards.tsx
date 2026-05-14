@@ -178,14 +178,23 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
     );
 }
 
-export function StrategyCard({ strategy }: { strategy?: any }) {
+export function StrategyCard({ strategy, verdict }: { strategy?: any, verdict?: string }) {
     if (!strategy || !strategy.strategy_pillars) return null;
     
+    const filteredPillars = strategy.strategy_pillars.filter((pillar: string) => {
+        if (verdict === "REJECT" && (pillar.toLowerCase().includes("call to action") || pillar.toLowerCase().includes("outreach email"))) {
+            return false;
+        }
+        return true;
+    });
+
+    if (filteredPillars.length === 0) return null;
+
     return (
         <DossierCard>
             <SectionHeader icon={Briefcase} title="Customization Strategy" subtitle="How we tailored your resume" />
             <div className="space-y-6">
-                {strategy.strategy_pillars.map((pillar: string, i: number) => (
+                {filteredPillars.map((pillar: string, i: number) => (
                     <div key={i} className="flex gap-4 items-start group/pillar">
                         <div className="mt-1.5 w-2 h-2 shrink-0 rounded-sm bg-primary/40 group-hover/pillar:bg-primary transition-colors" />
                         <div className="text-[14px] text-white/80 leading-relaxed font-medium">
@@ -230,12 +239,17 @@ export function AuditBadge({ audit }: { audit?: any }) {
                 
                 {!isClean && audit.hallucinations_found && audit.hallucinations_found.length > 0 && (
                     <div className="mt-4 space-y-3">
-                        {audit.hallucinations_found.map((h: any, i: number) => (
-                            <div key={i} className="p-3 bg-black/40 rounded-xl border border-red-500/30">
-                                <p className="text-[11px] text-red-400 font-medium mb-1">Tailored: "{h.tailored}"</p>
-                                <p className="text-[11px] text-white/40 italic">Reason: {h.reason}</p>
-                            </div>
-                        ))}
+                        {audit.hallucinations_found.map((h: any, i: number) => {
+                            const tailoredText = typeof h === 'string' ? h : h.tailored;
+                            const reasonText = typeof h === 'string' ? 'Unverified information found' : h.reason;
+                            
+                            return (
+                                <div key={i} className="p-3 bg-black/40 rounded-xl border border-red-500/30">
+                                    <p className="text-[11px] text-red-400 font-medium mb-1">Tailored: "{tailoredText}"</p>
+                                    <p className="text-[11px] text-white/40 italic">Reason: {reasonText}</p>
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </div>
