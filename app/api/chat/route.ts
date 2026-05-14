@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { getRelevantContext } from "@/lib/supabase/rag";
-import { runAgenticAnalysis, runMultiStepCustomization, runResearchAgent } from "@/lib/ai/agent";
+import {
+  runAnalysisAgent,
+  runMultiStepCustomization,
+  runResearchAgent,
+  runIntelAgent,
+} from "@/lib/ai/agent";
 import { logSystemEvent } from "@/lib/supabase/logger";
 import { USAGE_LIMITS } from "@/lib/constants";
 
@@ -49,6 +54,12 @@ export async function POST(req: Request) {
         } = await supabase.auth.getUser();
 
         if (!user && !isTestMode) {
+          await logSystemEvent({
+            level: "ERROR",
+            source: "AUTH_FAILURE",
+            message: "Unauthorized API access attempt",
+            details: { mode }
+          });
           sse.send({ type: "error", error: "Unauthorized" });
           sse.close();
           return;
@@ -78,6 +89,13 @@ export async function POST(req: Request) {
           const total_count = usage?.total_count || 0;
 
           if (daily_count >= USAGE_LIMITS.DAILY_QUOTA) {
+            await logSystemEvent({
+              level: "WARN",
+              source: "QUOTA_EXHAUSTED",
+              message: "Daily quota reached for user",
+              userId: user.id,
+              details: { count: daily_count }
+            });
             sse.send({
               type: "error",
               error: `Daily quota reached (${USAGE_LIMITS.DAILY_QUOTA}/day). Your limits refresh every 24 hours.`,
@@ -121,17 +139,6 @@ export async function POST(req: Request) {
             jd,
           ));
 
-        await logSystemEvent({
-          level: "INFO",
-          source: "AGENT_CONTEXT",
-          message: "Context sent to AI",
-          details: {
-            mode,
-            context_length: context.length,
-            context_preview: context.substring(0, 500),
-            jd_preview: jd.substring(0, 300),
-          },
-        });
 
         sse.send({
           type: "progress",
@@ -164,7 +171,7 @@ export async function POST(req: Request) {
             jd,
             location,
             jobType,
-            userName,
+            userName
           );
         } else {
           sse.send({
@@ -173,31 +180,46 @@ export async function POST(req: Request) {
             message: "Researching company intel...",
           });
 
-          const intel = await runResearchAgent(supabase, companyName);
-
+          const researchResult = await runResearchAgent(supabase, companyName);
           sse.send({
             type: "progress",
             step: 4,
             message: "Matching skills & keywords...",
           });
 
-          const analysisResult = await runAgenticAnalysis(
-            companyName,
-            position,
-            context,
-            jd,
-            location,
-            jobType,
-            "analyze",
-            bypassJudge,
-            userName,
-            intel,
-          );
+          const [analysisResult, intelData] = await Promise.all([
+            runAnalysisAgent(
+              companyName,
+              position,
+              context,
+              jd,
+              location,
+              jobType,
+              "analyze",
+              bypassJudge,
+              userName,
+              researchResult
+            ),
+            runIntelAgent(companyName, position, location)
+          ]);
 
-          result = { ...analysisResult, intel };
+          result = { 
+            ...analysisResult, 
+            data: { ...analysisResult.data, ...intelData },
+            intel: researchResult 
+          };
         }
 
-        const { markdown, data, toolUsed, usage, estimated_cost, intel, strategy, audit } = result;
+        const {
+          markdown,
+          data,
+          toolUsed,
+          usage,
+          estimated_cost,
+          intel: finalIntel,
+          strategy,
+          audit,
+        } = result;
 
         sse.send({
           type: "progress",
@@ -208,21 +230,6 @@ export async function POST(req: Request) {
               : "Computing match score...",
         });
 
-        await logSystemEvent({
-          level: "INFO",
-          source: "AGENT_OUTPUT",
-          message: "AI analysis completed",
-          details: {
-            matched_skills: data.matched_skills,
-            missing_skills: data.missing_skills,
-            match_score: data.match_score,
-            ats_score: data.ats_score,
-            verdict: data.verdict,
-            tool_used: toolUsed,
-            total_tokens: usage?.totalTokenCount,
-            estimated_cost: estimated_cost,
-          },
-        });
 
         if (analysisId && user) {
           if (agentMode === "customize") {
@@ -232,9 +239,10 @@ export async function POST(req: Request) {
                 customized_latex: markdown,
                 total_tokens: usage?.totalTokenCount || 0,
                 estimated_cost: estimated_cost,
-                intel_id: intel?.id || null,
+                intel_id: finalIntel?.id || null,
                 customization_strategy: strategy || null,
                 audit_report: audit || null,
+                status: "completed"
               })
               .eq("id", analysisId);
           } else {
@@ -255,7 +263,8 @@ export async function POST(req: Request) {
               total_tokens: usage?.totalTokenCount || 0,
               estimated_cost: estimated_cost,
               analysis_result: markdown,
-              intel_id: intel?.id || null,
+              intel_id: finalIntel?.id || null,
+              status: "completed"
             };
             await supabase
               .from("analyses")
@@ -278,7 +287,7 @@ export async function POST(req: Request) {
               ? {
                   total_tokens: usage?.totalTokenCount || 0,
                   estimated_cost: estimated_cost,
-                  intel: intel || null,
+                  intel: finalIntel || null,
                   strategy: strategy || null,
                   audit: audit || null,
                 }
@@ -298,7 +307,7 @@ export async function POST(req: Request) {
                   culture_traits: data.culture_traits || [],
                   total_tokens: usage?.totalTokenCount || 0,
                   estimated_cost: estimated_cost,
-                  intel: intel || null,
+                  intel: finalIntel || null,
                 },
           toolUsed,
         });
@@ -311,6 +320,15 @@ export async function POST(req: Request) {
           message: error.message || "Analysis failed",
           details: { error },
         });
+
+        if (analysisId) {
+          const supabase = await createClient();
+          await supabase
+            .from("analyses")
+            .update({ status: "failed" })
+            .eq("id", analysisId);
+        }
+
         sse.send({ type: "error", error: "Analysis failed" });
         sse.close();
       }
