@@ -81,8 +81,13 @@ export async function POST(req: Request) {
             : new Date(0);
           const msSinceLast = now.getTime() - lastRequest.getTime();
 
-          const isDailyReset = msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS;
-          const isHourlyReset = msSinceLast > USAGE_LIMITS.HOURLY_REFRESH_MS;
+          const isDailyReset =
+            now.getUTCDate() !== lastRequest.getUTCDate() ||
+            now.getUTCMonth() !== lastRequest.getUTCMonth() ||
+            now.getUTCFullYear() !== lastRequest.getUTCFullYear();
+
+          const isHourlyReset =
+            isDailyReset || now.getUTCHours() !== lastRequest.getUTCHours();
 
           daily_count = isDailyReset ? 0 : usage?.daily_count || 0;
           hourly_count = isHourlyReset ? 0 : usage?.hourly_count || 0;
