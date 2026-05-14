@@ -195,7 +195,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
 
                                     {!isAnalyzing && analysis && (
                                         <div className="space-y-12">
-                                            <StrategyCard strategy={insights?.strategy} />
+                                            <StrategyCard strategy={insights?.strategy} verdict={verdict} />
                                             
                                             <div className="space-y-6">
                                             <div className="flex items-center justify-between">
@@ -211,25 +211,15 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                                     Copy Code
                                                 </button>
                                             </div>
+
+                                            <AuditBadge audit={insights?.audit_report} />
+
                                             <div className="bg-slate-950/50 border border-white/5 rounded-3xl p-8 overflow-hidden relative">
                                                 <pre className="text-[13px] font-mono text-white/70 leading-relaxed overflow-x-auto relative z-10">
                                                     {analysis.split("###")[0].trim()}
                                                 </pre>
                                             </div>
-                                            
-                                            <AuditBadge audit={insights?.audit_report} />
                                             </div>
-                                        </div>
-                                    )}
-                                    
-                                    {!isAnalyzing && analysis && analysis.includes("###") && (
-                                        <div className="border-t border-white/5">
-                                            <MarkdownViewer 
-                                                content={"###" + analysis.split("###").slice(1).join("###")} 
-                                                mode={mode} 
-                                                isAnalyzing={isAnalyzing} 
-                                                onCopy={copyText} 
-                                            />
                                         </div>
                                     )}
                                 </div>
