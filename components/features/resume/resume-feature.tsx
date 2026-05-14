@@ -213,7 +213,8 @@ export function ResumeFeature({
                         user_id: user.id,
                         jd_text: jobData.description,
                         company_name: jobData.company,
-                        position: jobData.role
+                        position: jobData.role,
+                        status: 'started'
                     })
                     .select()
                     .single();
