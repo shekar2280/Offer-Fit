@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AUDIT_PROMPT, JUDGE_PROMPT } from "./prompts";
+import { AUDIT_PROMPT, JUDGE_PROMPT } from "./prompts/evaluation-prompts";
 import { GEMINI_MODELS, MODEL_PRICING } from "../constants";
 
 import { calculateAICost } from "./utils";
