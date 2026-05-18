@@ -28,7 +28,7 @@ export const toolDefinitions: FunctionDeclaration[] = [
 ];
 
 
-async function performSearch(query: string) {
+export async function performSearch(query: string) {
   try {
     const response = await fetch("https://api.tavily.com/search", {
       method: "POST",

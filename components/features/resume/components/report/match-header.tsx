@@ -38,7 +38,7 @@ export function MatchHeader({
                             <circle cx="50" cy="50" r="46" className={`fill-none stroke-[3] transition-all duration-1000 ${isAnalyzing ? 'stroke-primary/20 animate-pulse' : strokeColorClass}`} strokeDasharray={`${score * 2.89} 289`} strokeLinecap="round" />
                         </svg>
                         <div className="flex flex-col items-center">
-                            {isAnalyzing && !insights ? (
+                            {isAnalyzing ? (
                                 <div className="h-12 w-16 bg-white/5 animate-pulse rounded-lg" />
                             ) : (
                                 <span className="text-7xl font-black text-white tracking-tighter drop-shadow-2xl">{score}</span>
@@ -75,9 +75,21 @@ export function MatchHeader({
                         {isAnalyzing && !companyName ? (
                             <div className="h-4 w-32 bg-white/5 animate-pulse rounded mt-1" />
                         ) : (
-                            <p className="text-white/20 text-[10px] font-mono uppercase tracking-widest line-clamp-2 leading-relaxed" title={companyName || 'Confidential'}>
-                                Target: {companyName || 'Confidential'}
-                            </p>
+                            <div className="flex items-center gap-3">
+                                {insights?.intel?.logo_url && (
+                                    <div className="w-6 h-6 rounded-md bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
+                                        <img 
+                                            src={insights.intel.logo_url} 
+                                            alt={companyName} 
+                                            className="w-full h-full object-contain"
+                                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                                        />
+                                    </div>
+                                )}
+                                <p className="text-white/20 text-[10px] font-mono uppercase tracking-widest line-clamp-2 leading-relaxed" title={companyName || 'Confidential'}>
+                                    Target: {companyName || 'Confidential'}
+                                </p>
+                            </div>
                         )}
                         {!isAnalyzing && insights?.tool_used && insights.tool_used.length > 0 && (
                             <div className="flex flex-wrap gap-2 pt-3 justify-center lg:justify-start">
@@ -100,7 +112,7 @@ export function MatchHeader({
                     ) : null}
                     <div className="flex flex-col items-center lg:items-end gap-3">
                         <span className="text-[9px] font-mono uppercase tracking-[0.4em] text-white/20">Final Verdict</span>
-                        {isAnalyzing && !insights ? (
+                        {isAnalyzing ? (
                             <div className="h-10 w-24 bg-white/5 animate-pulse rounded-xl" />
                         ) : (
                             <div className={`relative px-6 py-2.5 rounded-xl border backdrop-blur-2xl transition-all duration-500 hover:scale-105 shadow-xl ${bgColorClass}`}>
