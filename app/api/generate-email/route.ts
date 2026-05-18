@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { EMAIL_PROMPT } from "@/lib/ai/email-prompt";
 import { GEMINI_MODELS } from "@/lib/constants";
+import { withRetry } from "@/lib/ai/utils";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
       const encoder = new TextEncoder();
       let fullEmail = "";
       try {
-        const result = await model.generateContentStream(prompt);
+        const result = await withRetry(() => model.generateContentStream(prompt));
         for await (const chunk of result.stream) {
           const text = chunk.text();
           if (text) {

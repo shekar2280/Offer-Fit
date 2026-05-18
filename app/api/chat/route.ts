@@ -4,10 +4,11 @@ import {
   runAnalysisAgent,
   runMultiStepCustomization,
   runResearchAgent,
-  runIntelAgent,
 } from "@/lib/ai/agent";
 import { logSystemEvent } from "@/lib/supabase/logger";
 import { USAGE_LIMITS } from "@/lib/constants";
+import { checkRateLimit, getCache, setCache } from "@/lib/redis";
+import { createHash } from "crypto";
 
 function makeSSE(controller: ReadableStreamDefaultController) {
   const encoder = new TextEncoder();
@@ -65,62 +66,36 @@ export async function POST(req: Request) {
           return;
         }
 
-        let daily_count = 0;
-        let hourly_count = 0;
-
         if (user) {
-          const { data: usage } = await supabase
-            .from("user_usage")
-            .select("daily_count, hourly_count, total_count, last_request_at")
-            .eq("user_id", user.id)
-            .single();
-
-          const now = new Date();
-          const lastRequest = usage?.last_request_at
-            ? new Date(usage.last_request_at)
-            : new Date(0);
-          const msSinceLast = now.getTime() - lastRequest.getTime();
-
-          const startOfTodayUTC = Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate(),
+          const dailyLimitCheck = await checkRateLimit(
+            `rate:daily:${user.id}`,
+            USAGE_LIMITS.DAILY_QUOTA,
+            USAGE_LIMITS.DAILY_REFRESH_MS
           );
-          const startOfHourUTC = Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate(),
-            now.getUTCHours(),
-          );
-
-          const isDailyReset =
-            lastRequest.getTime() < startOfTodayUTC ||
-            msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS;
-
-          const isHourlyReset =
-            lastRequest.getTime() < startOfHourUTC ||
-            msSinceLast > USAGE_LIMITS.HOURLY_REFRESH_MS;
-
-          daily_count = isDailyReset ? 0 : usage?.daily_count || 0;
-          hourly_count = isHourlyReset ? 0 : usage?.hourly_count || 0;
-          const total_count = usage?.total_count || 0;
-
-          if (daily_count >= USAGE_LIMITS.DAILY_QUOTA) {
+          if (!dailyLimitCheck.success) {
             await logSystemEvent({
               level: "WARN",
               source: "QUOTA_EXHAUSTED",
               message: "Daily quota reached for user",
               userId: user.id,
-              details: { count: daily_count }
+              details: { limit: USAGE_LIMITS.DAILY_QUOTA }
             });
             sse.send({
               type: "error",
-              error: `Daily quota reached (${USAGE_LIMITS.DAILY_QUOTA}/day). Your limits refresh every 24 hours.`,
+              error: `Daily quota reached (${USAGE_LIMITS.DAILY_QUOTA}/day). Your limits refresh in ${Math.round(
+                dailyLimitCheck.resetMs / 1000 / 60 / 60
+              )} hours.`,
             });
             sse.close();
             return;
           }
-          if (hourly_count >= USAGE_LIMITS.HOURLY_QUOTA) {
+
+          const hourlyLimitCheck = await checkRateLimit(
+            `rate:hourly:${user.id}`,
+            USAGE_LIMITS.HOURLY_QUOTA,
+            USAGE_LIMITS.HOURLY_REFRESH_MS
+          );
+          if (!hourlyLimitCheck.success) {
             sse.send({
               type: "error",
               error: `Hourly limit exceeded (${USAGE_LIMITS.HOURLY_QUOTA}/hr). Please wait a few minutes.`,
@@ -129,16 +104,15 @@ export async function POST(req: Request) {
             return;
           }
 
-          await supabase.from("user_usage").upsert(
+          supabase.from("user_usage").upsert(
             {
               user_id: user.id,
-              daily_count: daily_count + 1,
-              hourly_count: hourly_count + 1,
-              total_count: total_count + 1,
+              daily_count: 1,
+              hourly_count: 1,
               last_request_at: new Date().toISOString(),
             },
-            { onConflict: "user_id" },
-          );
+            { onConflict: "user_id" }
+          ).then(() => {});
         }
 
         sse.send({
@@ -155,6 +129,26 @@ export async function POST(req: Request) {
             user?.id || "benchmark_test_id",
             jd,
           ));
+
+        const jdHash = createHash("sha256").update(context + jd + mode).digest("hex");
+        const cacheKey = `report:${user?.id || "benchmark"}:${jdHash}`;
+        const cachedReport = await getCache(cacheKey);
+
+        if (cachedReport) {
+          sse.send({
+            type: "progress",
+            step: 5,
+            message: "Restoring report from cache...",
+          });
+          sse.send({
+            type: "result",
+            analysis: cachedReport.markdown,
+            metadata: cachedReport.metadata,
+            toolUsed: cachedReport.toolUsed || "none",
+          });
+          sse.close();
+          return;
+        }
 
 
         sse.send({
@@ -197,28 +191,37 @@ export async function POST(req: Request) {
             message: "Researching company intel...",
           });
 
-          const researchResult = await runResearchAgent(supabase, companyName);
+          const researchResult = await runResearchAgent(
+            supabase,
+            companyName,
+            position,
+            location
+          );
+
           sse.send({
             type: "progress",
             step: 4,
             message: "Matching skills & keywords...",
           });
 
-          const [analysisResult, intelData] = await Promise.all([
-            runAnalysisAgent(
-              companyName,
-              position,
-              context,
-              jd,
-              location,
-              jobType,
-              "analyze",
-              bypassJudge,
-              userName,
-              researchResult
-            ),
-            runIntelAgent(companyName, position, location)
-          ]);
+          const analysisResult = await runAnalysisAgent(
+            companyName,
+            position,
+            context,
+            jd,
+            location,
+            jobType,
+            "analyze",
+            bypassJudge,
+            userName,
+            researchResult
+          );
+
+          const intelData = {
+            salary_insight: researchResult.salary_insight,
+            company_cheat_sheet: researchResult.company_cheat_sheet,
+            culture_traits: researchResult.culture_traits
+          };
 
           result = { 
             ...analysisResult, 
@@ -296,36 +299,40 @@ export async function POST(req: Request) {
           message: "Finalizing report...",
         });
 
+        const metadata =
+          agentMode === "customize"
+            ? {
+                total_tokens: usage?.totalTokenCount || 0,
+                estimated_cost: estimated_cost,
+                intel: finalIntel || null,
+                strategy: strategy || null,
+                audit: audit || null,
+              }
+            : {
+                match_score: data.match_score || 0,
+                verdict: data.verdict || "REJECT",
+                ats_score: data.ats_score || 0,
+                keyword_density: data.keyword_density || 0,
+                matched_skills: data.matched_skills || [],
+                missing_skills: data.missing_skills || [],
+                salary_insight: data.salary_insight || null,
+                red_flags: data.red_flags || [],
+                interview_questions: data.interview_questions || [],
+                outreach_email: data.outreach_email || "",
+                culture_fit_score: data.culture_fit_score ?? null,
+                company_cheat_sheet: data.company_cheat_sheet || null,
+                culture_traits: data.culture_traits || [],
+                total_tokens: usage?.totalTokenCount || 0,
+                estimated_cost: estimated_cost,
+                intel: finalIntel || null,
+              };
+
+        await setCache(cacheKey, { markdown, metadata, toolUsed }, 86400);
+
         sse.send({
           type: "result",
           analysis: markdown,
-          metadata:
-            agentMode === "customize"
-              ? {
-                  total_tokens: usage?.totalTokenCount || 0,
-                  estimated_cost: estimated_cost,
-                  intel: finalIntel || null,
-                  strategy: strategy || null,
-                  audit: audit || null,
-                }
-              : {
-                  match_score: data.match_score || 0,
-                  verdict: data.verdict || "REJECT",
-                  ats_score: data.ats_score || 0,
-                  keyword_density: data.keyword_density || 0,
-                  matched_skills: data.matched_skills || [],
-                  missing_skills: data.missing_skills || [],
-                  salary_insight: data.salary_insight || null,
-                  red_flags: data.red_flags || [],
-                  interview_questions: data.interview_questions || [],
-                  outreach_email: data.outreach_email || "",
-                  culture_fit_score: data.culture_fit_score ?? null,
-                  company_cheat_sheet: data.company_cheat_sheet || null,
-                  culture_traits: data.culture_traits || [],
-                  total_tokens: usage?.totalTokenCount || 0,
-                  estimated_cost: estimated_cost,
-                  intel: finalIntel || null,
-                },
+          metadata,
           toolUsed,
         });
 
@@ -360,3 +367,4 @@ export async function POST(req: Request) {
     },
   });
 }
+
