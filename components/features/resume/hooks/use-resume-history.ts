@@ -7,6 +7,9 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
   const { state: globalState } = useAnalysis();
 
   const [analysisOverride, setAnalysisOverride] = useState<string | null>(null);
+  const [customizeOverride, setCustomizeOverride] = useState<string | null>(null);
+  const [insightsOverride, setInsightsOverride] = useState<any>(null);
+  const [hasCustomizationOverride, setHasCustomizationOverride] = useState<boolean | null>(null);
   const [jobOverrides, setJobOverrides] = useState<{ company?: string; role?: string; description?: string }>({});
 
   const { data: savedData, isLoading: isHistoryLoading } = useQuery({
@@ -16,7 +19,7 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
       const supabase = createClient();
       const { data } = await supabase
         .from("analyses")
-        .select("*")
+        .select("*, intel:company_intel(*)")
         .eq("id", selectedId)
         .single();
       return data;
@@ -29,6 +32,9 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
 
   useEffect(() => {
     setAnalysisOverride(null);
+    setCustomizeOverride(null);
+    setInsightsOverride(null);
+    setHasCustomizationOverride(null);
     setJobOverrides({});
   }, [selectedId]);
 
@@ -38,12 +44,14 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
   const cachedAnalysis = savedData?.analysis_result || "";
   const cachedCustomize = savedData?.customized_latex || "";
 
-  const displayAnalysis = analysisOverride ?? (mode === "customize" ? cachedCustomize : cachedAnalysis);
+  const displayAnalysis = mode === "customize" 
+    ? (customizeOverride ?? cachedCustomize)
+    : (analysisOverride ?? cachedAnalysis);
 
   const jobData = {
-    company: jobOverrides.company ?? savedData?.company_name ?? "",
-    role: jobOverrides.role ?? savedData?.position ?? "",
-    description: jobOverrides.description ?? savedData?.jd_text ?? "",
+    company: jobOverrides.company || savedData?.company_name || "",
+    role: jobOverrides.role || savedData?.position || "",
+    description: jobOverrides.description || savedData?.jd_text || "",
   };
 
   const setJobData = useCallback((update: any) => {
@@ -61,7 +69,7 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
     }
   }, [savedData]);
 
-  const insights = savedData ? {
+  const insights = insightsOverride || (savedData ? {
     match_score: savedData.match_score || atsScore,
     verdict: savedData.verdict || derivedVerdict,
     ats_score: atsScore,
@@ -77,25 +85,36 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
     culture_traits: savedData.culture_traits || [],
     total_tokens: savedData.total_tokens || 0,
     estimated_cost: savedData.estimated_cost || 0,
-  } : null;
+    intel: savedData.intel || undefined,
+    strategy: savedData.customization_strategy || undefined,
+    audit_report: savedData.audit_report || undefined,
+  } : null);
 
   const analysisState = {
     analysis: displayAnalysis,
     cachedAnalysis,
     cachedCustomize,
     currentAnalysisId: savedData?.id ?? null,
-    hasCustomization: !!savedData?.customized_latex,
+    hasCustomization: hasCustomizationOverride ?? !!savedData?.customized_latex,
     insights,
   };
 
   const setAnalysisState = useCallback((update: any) => {
     const next = typeof update === "function" ? update(analysisState) : update;
+    
     if (next.analysis !== undefined) {
-      setAnalysisOverride(next.analysis || null);
+      if (mode === "customize") setCustomizeOverride(next.analysis || null);
+      else setAnalysisOverride(next.analysis || null);
     }
-    if (next.currentAnalysisId !== undefined) {
+    
+    if (next.insights !== undefined) {
+      setInsightsOverride(next.insights || null);
     }
-  }, [analysisState]);
+
+    if (next.hasCustomization !== undefined) {
+      setHasCustomizationOverride(next.hasCustomization);
+    }
+  }, [analysisState, mode]);
 
   return {
     isHistoryLoading: isHistoryLoading && !!selectedId,

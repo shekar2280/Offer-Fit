@@ -22,6 +22,12 @@ export function MarkdownViewer({ content, mode, isAnalyzing, onCopy }: MarkdownV
                 <h3 className="text-lg font-bold text-white tracking-tight m-0 group-hover/h3:translate-x-1 transition-transform" {...props} />
             </div>
         ),
+        h4: ({ node, ...props }) => (
+            <div className="mt-6 mb-3 flex items-center gap-3 px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl group/h4">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover/h4:bg-primary group-hover/h4:scale-125 transition-all" />
+                <h4 className="text-[13px] font-black uppercase tracking-[0.2em] text-white/70 group-hover/h4:text-white transition-colors m-0" {...props} />
+            </div>
+        ),
         ul: ({ node, ...props }) => <ul className="grid grid-cols-1 gap-3 my-4" {...props} />,
         li: ({ node, children, ...props }) => (
             <li className="bg-transparent hover:bg-white/[0.02] transition-colors rounded-xl p-3 flex flex-col gap-1" {...props}>

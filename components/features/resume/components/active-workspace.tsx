@@ -29,9 +29,10 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
         saveBaselineLatex,
         analyzeResume,
         companyInputRef,
+        isOverQuota = false,
     } = props;
 
-    const isSubmitDisabled = isAnalyzing || isUploading || (mainTab === "customize" ? !latexText : !extractedText) || !jobDescription || !companyName || !position;
+    const isSubmitDisabled = isAnalyzing || isUploading || isOverQuota || (mainTab === "customize" ? !latexText : !extractedText) || !jobDescription || !companyName || !position;
 
     return (
         <div className="w-full flex flex-col relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -86,10 +87,10 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                                 }}
                                 className={`relative w-full max-w-2xl px-8 py-5 rounded-full font-heading font-black text-xs uppercase tracking-[0.3em] transition-all duration-700 overflow-hidden group/submit shadow-[0_0_40px_rgba(242,170,76,0.1)] hover:shadow-[0_0_60px_rgba(242,170,76,0.3)] ${isSubmitDisabled ? "cursor-not-allowed opacity-50" : ""}`}
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 transition-opacity duration-700" />
-                                <div className="absolute inset-0 flex items-center justify-center gap-3 text-black z-10 transition-colors duration-500">
-                                    {isAnalyzing ? "Processing..." : (mainTab === "customize" ? "Customize Resume" : "Analyze Resume")}
-                                    <ArrowRight className="w-4 h-4 group-hover/submit:translate-x-2 transition-transform duration-700" />
+                                <div className={`absolute inset-0 bg-gradient-to-r ${isOverQuota ? "from-red-500 to-red-600" : "from-primary to-primary/80"} transition-all duration-700`} />
+                                <div className={`absolute inset-0 flex items-center justify-center gap-3 ${isOverQuota ? "text-white" : "text-black"} z-10 transition-colors duration-500`}>
+                                    {isAnalyzing ? "Processing..." : (isOverQuota ? "Daily Quota Reached" : (mainTab === "customize" ? "Customize Resume" : "Analyze Resume"))}
+                                    {!isOverQuota && <ArrowRight className="w-4 h-4 group-hover/submit:translate-x-2 transition-transform duration-700" />}
                                 </div>
                             </button>
                         </div>

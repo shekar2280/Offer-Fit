@@ -11,6 +11,9 @@ const initialState: AnalysisState = {
   location: "",
   jobType: "",
   isAnalyzing: false,
+  analysisResult: undefined,
+  customizationResult: undefined,
+  insights: undefined,
 };
 
 const AnalysisContext = createContext<AnalysisContextType | undefined>(undefined);

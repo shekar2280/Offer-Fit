@@ -6,7 +6,8 @@ import { AnalysisReportProps } from "./types";
 import { ReportToolbar } from "./report/report-toolbar";
 import { ErrorView } from "./report/error-view";
 import { MatchHeader } from "./report/match-header";
-import { CompanyIntelligence, InterviewQuestions, OutreachEmail, RedFlags, SalaryInsight, ScoreMetrics, SkillsView } from "./report/insights-cards";
+import { CompanyIntelligence, EmailDraftSection, InterviewQuestions, RedFlags, SalaryInsight, ScoreMetrics, SkillsView, StrategyCard, AuditBadge } from "./report/insights-cards";
+
 import { MarkdownViewer } from "./report/markdown-viewer";
 import { LoadingScanning } from "./report/loading-scanning";
 
@@ -16,6 +17,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
         isAnalyzing,
         companyName,
         position,
+        analysisId = "",
         onReset,
         mode = "analysis",
         onSwitchMode,
@@ -30,7 +32,8 @@ export function AnalysisReport(props: AnalysisReportProps) {
     const score = insights?.match_score || 0;
     const verdict = insights?.verdict || (score > 75 ? "APPLY" : score > 50 ? "STRETCH" : "REJECT");
 
-    const cleanAnalysis = analysis
+    const cleanAnalysis = (analysis || "")
+        .replace(/\{[\s\S]*?"outreach_email"[\s\S]*?\}/g, "")
         .replace(/===JSON_START===[\s\S]*?===JSON_END===/g, "")
         .trim();
 
@@ -50,7 +53,6 @@ export function AnalysisReport(props: AnalysisReportProps) {
 
     const copyText = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
-        alert(`${label} copied to clipboard!`);
     };
 
     return (
@@ -68,6 +70,9 @@ export function AnalysisReport(props: AnalysisReportProps) {
                 onReset={onReset}
                 isEditingForm={isEditingForm}
                 onToggleForm={onToggleForm}
+                verdict={verdict}
+                missingSkills={insights?.missing_skills}
+                redFlags={insights?.red_flags}
             />
 
             <div id="analysis-report-content" className="bg-black/60 border border-primary/40 ring-1 ring-primary/20 rounded-[2.5rem] p-6 md:p-8 backdrop-blur-3xl relative shadow-[0_0_100px_-20px_rgba(242,170,76,0.15)] overflow-hidden mb-6">
@@ -82,7 +87,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                     verdict={verdict}
                                     position={position}
                                     companyName={companyName}
-                                    isAnalyzing={isAnalyzing && !analysis}
+                                    isAnalyzing={isAnalyzing}
                                     insights={insights}
                                     strokeColorClass={strokeColorClass}
                                     verdictColorClass={verdictColorClass}
@@ -90,7 +95,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                 />
                             )}
 
-                            {isAnalyzing && !analysis && (
+                            {mode === "analysis" && isAnalyzing && !analysis && (
                                 <div className="py-8">
                                     <LoadingScanning mode={mode} />
                                 </div>
@@ -108,7 +113,8 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                             score={insights?.culture_fit_score} 
                                             traits={insights?.culture_traits} 
                                             content={insights?.company_cheat_sheet} 
-                                            companyName={companyName} 
+                                            companyName={companyName}
+                                            intel={insights?.intel} 
                                         />
 
                                         <div className="space-y-12">
@@ -120,21 +126,25 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                             <RedFlags flags={insights?.red_flags || []} />
                                             
                                             <InterviewQuestions 
-                                                questions={insights?.interview_questions || []} 
+                                                data={insights?.interview_questions} 
                                                 onCopy={copyText} 
                                             />
 
-                                            {insights?.outreach_email && insights.outreach_email.trim() !== "" && (
-                                                <OutreachEmail email={insights.outreach_email} onCopy={copyText} />
-                                            )}
                                         </div>
                                     </div>
-                                    <div className="relative z-10 w-full mt-4 border-t border-white/5">
+                                    <div className="relative z-10 w-full mt-4 border-t border-white/5 space-y-12">
                                         <MarkdownViewer 
                                             content={cleanAnalysis} 
                                             mode={mode} 
                                             isAnalyzing={isAnalyzing} 
                                             onCopy={copyText} 
+                                        />
+
+                                        <EmailDraftSection
+                                            analysisId={analysisId}
+                                            verdict={verdict}
+                                            initialEmail={insights?.outreach_email}
+                                            onCopy={copyText}
                                         />
                                     </div>
                                 </>
@@ -152,12 +162,24 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                                             )}
                                         </div>
-                                        <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[0.95] max-w-full">
-                                            <div className="truncate" title={companyName}>{companyName || "New Analysis"}</div>
-                                            <span className="text-primary italic font-light">
-                                                Resume.
-                                            </span>
-                                        </h1>
+                                        <div className="flex items-center gap-6">
+                                            {insights?.intel?.logo_url && (
+                                                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
+                                                    <img 
+                                                        src={insights.intel.logo_url} 
+                                                        alt={companyName} 
+                                                        className="w-full h-full object-contain p-0"
+                                                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                                                    />
+                                                </div>
+                                            )}
+                                            <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[0.95] max-w-full">
+                                                <div className="truncate" title={companyName}>{companyName || "New Analysis"}</div>
+                                                <span className="text-primary italic font-light">
+                                                    Resume.
+                                                </span>
+                                            </h1>
+                                        </div>
                                         <div className="flex flex-col space-y-1 pt-4">
                                             <p className="text-white/60 text-lg font-medium tracking-tight line-clamp-1">
                                                 {position || "Preparing tailored version..."}
@@ -172,7 +194,10 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                     )}
 
                                     {!isAnalyzing && analysis && (
-                                        <div className="space-y-6">
+                                        <div className="space-y-12">
+                                            <StrategyCard strategy={insights?.strategy} verdict={verdict} />
+                                            
+                                            <div className="space-y-6">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-px w-8 bg-primary/30" />
@@ -186,22 +211,15 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                                     Copy Code
                                                 </button>
                                             </div>
+
+                                            <AuditBadge audit={insights?.audit_report} />
+
                                             <div className="bg-slate-950/50 border border-white/5 rounded-3xl p-8 overflow-hidden relative">
                                                 <pre className="text-[13px] font-mono text-white/70 leading-relaxed overflow-x-auto relative z-10">
                                                     {analysis.split("###")[0].trim()}
                                                 </pre>
                                             </div>
-                                        </div>
-                                    )}
-                                    
-                                    {!isAnalyzing && analysis && analysis.includes("###") && (
-                                        <div className="border-t border-white/5">
-                                            <MarkdownViewer 
-                                                content={"###" + analysis.split("###").slice(1).join("###")} 
-                                                mode={mode} 
-                                                isAnalyzing={isAnalyzing} 
-                                                onCopy={copyText} 
-                                            />
+                                            </div>
                                         </div>
                                     )}
                                 </div>

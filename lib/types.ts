@@ -27,6 +27,9 @@ export interface AnalysisResult {
   culture_traits?: string[];
   total_tokens?: number;
   estimated_cost?: number;
+  intel?: CompanyIntel;
+  strategy?: any;
+  audit_report?: any;
 }
 
 export interface AnalysisState {
@@ -37,10 +40,25 @@ export interface AnalysisState {
   location: string;
   jobType: string;
   isAnalyzing: boolean;
+  analysisResult?: string;
+  customizationResult?: string;
+  insights?: AnalysisResult;
 }
 
 export interface AnalysisContextType {
   state: AnalysisState;
   setAnalysisData: (data: Partial<AnalysisState>) => void;
   resetSession: () => void;
+}
+
+export interface CompanyIntel {
+    id: string;
+    company_name: string;
+    tech_stack: any;
+    values_culture: string | null;
+    engineering_blog_summary: string | null;
+    is_startup: boolean;
+    logo_url: string | null;
+    domain: string | null;
+    last_updated: string;
 }
