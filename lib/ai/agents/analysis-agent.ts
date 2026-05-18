@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_MODELS } from "../../constants";
-import { calculateAICost } from "../utils";
+import { calculateAICost, withRetry } from "../utils";
 import { toolDefinitions, toolHandlers } from "../tools";
 import { evaluateAnalysis } from "../evaluator";
 import { logSystemEvent } from "../../supabase/logger";
@@ -17,7 +17,6 @@ export const ANALYSIS_PROMPT = (
   mode: "analyze" | "customize" = "analyze",
   userName?: string,
   intel?: any,
-  strategy?: any,
 ) => `
 You are a dual-mode AI Career Expert.
 
@@ -32,20 +31,10 @@ ROLE CONTEXT:
 ${
   intel
     ? `
-COMPANY INTELLIGENCE:
+COMPANY TECHNICAL & CULTURAL INTELLIGENCE:
 - Tech Stack: ${JSON.stringify(intel.tech_stack)}
 - Culture: ${intel.values_culture}
 - Recent News: ${intel.engineering_blog_summary}
-`
-    : ""
-}
-${
-  strategy
-    ? `
-CUSTOMIZATION STRATEGY (FOLLOW THIS STRICTLY):
-- Pillars: ${strategy.strategy_pillars?.join("\n- ") || "N/A"}
-- Target Keywords: ${strategy.key_keywords_to_inject?.join(", ") || "N/A"}
-- Desired Vibe: ${strategy.culture_vibe || "Professional"}
 `
     : ""
 }
@@ -120,10 +109,27 @@ Output the following JSON block EXACTLY as shown.
 `
     : `
 OUTPUT MODE: CUSTOMIZE RESUME
-Your task is to surgically rewrite the candidate's LaTeX resume to maximize their fit for this specific role.
+Your task is twofold:
+1. Design a high-level customization strategy to align this candidate's background with ${companyName}'s needs for the ${position} role.
+2. Surgically rewrite the candidate's LaTeX resume to maximize their fit for this specific role.
 
-RULES:
-- Output ONLY a COMPLETE, ready-to-compile LaTeX document. Start with \\documentclass.
+You MUST produce the output in this exact structure, utilizing the custom boundary tags:
+
+===STRATEGY_START===
+{
+  "strategy_pillars": [
+    "**[Focus Area]** - Description of the high-level adjustment",
+    "**[Focus Area]** - Description of the high-level adjustment",
+    "**[Focus Area]** - Description of the high-level adjustment"
+  ],
+  "key_keywords_to_inject": ["keyword1", "keyword2"],
+  "culture_vibe": "e.g., Highly technical and scale-focused"
+}
+===STRATEGY_END===
+
+===LATEX_START===
+[Output ONLY a COMPLETE, ready-to-compile LaTeX document. Start with \\documentclass.
+Rules:
 - Rewrite work experience bullet points using Google's X-Y-Z formula: "Accomplished [X] as measured by [Y], by doing [Z]."
 - ABSOLUTE TRUTH: NEVER fabricate tools, metrics, or years of experience. If the candidate doesn't have a skill, do NOT add it.
 - THE SEMANTIC PIVOT: If the JD requires a tool the candidate lacks, identify the most advanced adjacent tool they DO have and highlight the underlying principles (e.g., if they need AWS but have Azure, emphasize 'Cloud Architecture' and 'Serverless Orchestration' patterns used in Azure).
@@ -131,9 +137,8 @@ RULES:
 - Inject JD keywords naturally ONLY if they apply to the candidate's existing background.
 - Reprioritize the Skills section so JD-critical technologies (that the user actually has) appear first.
 - Do NOT truncate — output the entire document.
-- Do NOT include any commentary or analysis.
-
-FORBIDDEN: No markdown text. No strategic analysis. No hallucinated experience or metrics. No pronouns.
+- Do NOT include any commentary or analysis outside the tags.]
+===LATEX_END===
 `
 }
 `;
@@ -185,10 +190,9 @@ export async function runAnalysisAgent(
   location?: string,
   jobType?: string,
   mode?: "analyze" | "customize",
-  bypassJudge: boolean = false,
+  bypassJudge: boolean = true,
   userName?: string,
   intel?: any,
-  strategy?: any,
 ): Promise<AgenticAnalysisResult> {
   let response;
   let finalToolCalls: string[] = [];
@@ -232,10 +236,9 @@ export async function runAnalysisAgent(
         mode,
         userName,
         intel,
-        strategy,
       );
 
-      let result = await chat.sendMessage(prompt);
+      let result = await withRetry(() => chat.sendMessage(prompt));
       response = result.response;
 
       if (response.usageMetadata) {
@@ -256,7 +259,7 @@ export async function runAnalysisAgent(
         const functionCalls = response.functionCalls();
         if (!functionCalls) break;
 
-        const functionResponses = [];
+        const functionResponses: any[] = [];
         for (const call of functionCalls) {
           const handler = toolHandlers[call.name as keyof typeof toolHandlers];
           if (handler) {
@@ -272,7 +275,7 @@ export async function runAnalysisAgent(
         }
 
         if (functionResponses.length > 0) {
-          let nextResult = await chat.sendMessage(functionResponses as any);
+          let nextResult = await withRetry(() => chat.sendMessage(functionResponses as any));
           response = nextResult.response;
           if (response.usageMetadata) {
             totalUsage.promptTokenCount +=
@@ -302,56 +305,83 @@ export async function runAnalysisAgent(
   }
 
   const text = response.text();
-  let data = {};
+  let data: any = {};
+  let strategy: any = null;
   let markdown = text;
-  const jsonStartMarker = "===JSON_START===";
-  const jsonEndMarker = "===JSON_END===";
-  const startIndex = text.indexOf(jsonStartMarker);
-  const endIndex = text.indexOf(jsonEndMarker);
 
-  if (startIndex !== -1 && endIndex !== -1) {
-    let jsonStr = text
-      .substring(startIndex + jsonStartMarker.length, endIndex)
-      .trim();
-    if (jsonStr.includes("```json")) {
-      jsonStr = jsonStr
-        .replace(/```json\s?/, "")
-        .replace(/```/, "")
-        .trim();
-    } else if (jsonStr.includes("```")) {
-      jsonStr = jsonStr
-        .replace(/```\s?/, "")
-        .replace(/```/, "")
-        .trim();
+  if (mode === "customize") {
+    const stratStartMarker = "===STRATEGY_START===";
+    const stratEndMarker = "===STRATEGY_END===";
+    const latexStartMarker = "===LATEX_START===";
+    const latexEndMarker = "===LATEX_END===";
+
+    const sStart = text.indexOf(stratStartMarker);
+    const sEnd = text.indexOf(stratEndMarker);
+    const lStart = text.indexOf(latexStartMarker);
+    const lEnd = text.indexOf(latexEndMarker);
+
+    if (sStart !== -1 && sEnd !== -1) {
+      const sJson = text.substring(sStart + stratStartMarker.length, sEnd).trim();
+      try {
+        strategy = JSON.parse(sJson);
+      } catch (e) {}
     }
-    try {
-      data = JSON.parse(jsonStr);
-    } catch (e) {
+
+    if (lStart !== -1 && lEnd !== -1) {
+      markdown = text.substring(lStart + latexStartMarker.length, lEnd).trim();
+    } else if (lStart !== -1) {
+      markdown = text.substring(lStart + latexStartMarker.length).trim();
+    }
+  } else {
+    const jsonStartMarker = "===JSON_START===";
+    const jsonEndMarker = "===JSON_END===";
+    const startIndex = text.indexOf(jsonStartMarker);
+    const endIndex = text.indexOf(jsonEndMarker);
+
+    if (startIndex !== -1 && endIndex !== -1) {
+      let jsonStr = text
+        .substring(startIndex + jsonStartMarker.length, endIndex)
+        .trim();
+      if (jsonStr.includes("```json")) {
+        jsonStr = jsonStr
+          .replace(/```json\s?/, "")
+          .replace(/```/, "")
+          .trim();
+      } else if (jsonStr.includes("```")) {
+        jsonStr = jsonStr
+          .replace(/```\s?/, "")
+          .replace(/```/, "")
+          .trim();
+      }
+      try {
+        data = JSON.parse(jsonStr);
+      } catch (e) {
+        const jsonMatch = text.match(
+          /===JSON_START===\s*(\{[\s\S]*\})\s*===JSON_END===/,
+        );
+        if (jsonMatch) {
+          try {
+            data = JSON.parse(jsonMatch[1]);
+          } catch (e) {}
+        }
+      }
+      markdown = text
+        .replace(text.substring(startIndex, endIndex + jsonEndMarker.length), "")
+        .replace(/#+ PHASE \d:.*?\n/gi, "")
+        .trim();
+    } else {
       const jsonMatch = text.match(
         /===JSON_START===\s*(\{[\s\S]*\})\s*===JSON_END===/,
       );
       if (jsonMatch) {
         try {
-          data = JSON.parse(jsonMatch[1]);
+          data = JSON.parse(jsonMatch[0]);
+          markdown = text
+            .replace(jsonMatch[0], "")
+            .replace(/#+ PHASE \d:.*?\n/gi, "")
+            .trim();
         } catch (e) {}
       }
-    }
-    markdown = text
-      .replace(text.substring(startIndex, endIndex + jsonEndMarker.length), "")
-      .replace(/#+ PHASE \d:.*?\n/gi, "")
-      .trim();
-  } else {
-    const jsonMatch = text.match(
-      /===JSON_START===\s*(\{[\s\S]*\})\s*===JSON_END===/,
-    );
-    if (jsonMatch) {
-      try {
-        data = JSON.parse(jsonMatch[1]);
-        markdown = text
-          .replace(jsonMatch[0], "")
-          .replace(/#+ PHASE \d:.*?\n/gi, "")
-          .trim();
-      } catch (e) {}
     }
   }
 
@@ -359,6 +389,7 @@ export async function runAnalysisAgent(
     return {
       markdown,
       data,
+      strategy,
       toolUsed: finalToolCalls.join(", ") || "none",
       usage: totalUsage,
       estimated_cost: totalCost,
@@ -381,9 +412,9 @@ export async function runAnalysisAgent(
     for (const modelName of GEMINI_MODELS) {
       try {
         const cModel = genAI.getGenerativeModel({ model: modelName });
-        const cResult = await cModel.generateContent(
+        const cResult = await withRetry(() => cModel.generateContent(
           JUDGE_CORRECTION_PROMPT(evaluation.score, evaluation.critique),
-        );
+        ));
         correctedResponse = cResult.response;
 
         if (correctedResponse.usageMetadata) {
@@ -404,6 +435,8 @@ export async function runAnalysisAgent(
 
     if (correctedResponse) {
       const cText = correctedResponse.text();
+      const jsonStartMarker = "===JSON_START===";
+      const jsonEndMarker = "===JSON_END===";
       const cStartIndex = cText.indexOf(jsonStartMarker);
       const cEndIndex = cText.indexOf(jsonEndMarker);
 
@@ -447,3 +480,4 @@ export async function runAnalysisAgent(
     estimated_cost: totalCost,
   };
 }
+

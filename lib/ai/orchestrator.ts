@@ -1,8 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { runResearchAgent } from "./agents/research-agent";
-import { runStrategyAgent } from "./agents/strategy-agent";
 import { runAnalysisAgent } from "./agents/analysis-agent";
-import { runIntelAgent } from "./agents/intel-agent";
 import { evaluateResumeAudit } from "./evaluator";
 
 export async function runMultiStepCustomization(
@@ -15,35 +13,44 @@ export async function runMultiStepCustomization(
   jobType?: string,
   userName?: string
 ) {
-  const [intel, strategy] = await Promise.all([
-    runResearchAgent(supabase, companyName),
-    runStrategyAgent(companyName, position, context, jd)
-  ]);
+  const intel = await runResearchAgent(supabase, companyName, position, location);
 
-  const [draftResults, intelData] = await Promise.all([
-    runAnalysisAgent(
-      companyName,
-      position,
-      context,
-      jd,
-      location,
-      jobType,
-      "customize",
-      true,
-      userName,
-      intel,
-      strategy
-    ),
-    runIntelAgent(companyName, position, location)
-  ]);
+  const draftResults = await runAnalysisAgent(
+    companyName,
+    position,
+    context,
+    jd,
+    location,
+    jobType,
+    "customize",
+    true,
+    userName,
+    intel
+  );
 
   const audit = await evaluateResumeAudit(draftResults.markdown, jd);
+
+  const intelData = {
+    salary_insight: intel.salary_insight,
+    company_cheat_sheet: intel.company_cheat_sheet,
+    culture_traits: intel.culture_traits
+  };
 
   return {
     ...draftResults,
     data: { ...draftResults.data, ...intelData },
-    strategy,
+    strategy: draftResults.strategy || {
+      strategy_pillars: [
+        "Surgically align technical skills with the Job Description.",
+        "Quantify impact using metrics to demonstrate scale.",
+        "Optimize keywords for ATS systems."
+      ],
+      key_keywords_to_inject: [],
+      culture_vibe: "Professional"
+    },
     intel,
     audit
   };
 }
+
+
