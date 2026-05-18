@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AUDIT_PROMPT, JUDGE_PROMPT } from "./prompts/evaluation-prompts";
 import { GEMINI_MODELS, MODEL_PRICING } from "../constants";
 
-import { calculateAICost } from "./utils";
+import { calculateAICost, withRetry } from "./utils";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -15,7 +15,7 @@ export async function evaluateAnalysis(
     try {
       const model = genAI.getGenerativeModel({ model: modelId });
       const prompt = JUDGE_PROMPT(resume, jd, analysis);
-      const result = await model.generateContent(prompt);
+      const result = await withRetry(() => model.generateContent(prompt));
       const usage = result.response.usageMetadata;
       const data = JSON.parse(
         result.response.text().match(/\{[\s\S]*\}/)?.[0] || "{}",
@@ -48,7 +48,7 @@ export async function evaluateResumeAudit(
   for (const modelId of GEMINI_MODELS) {
     try {
       const model = genAI.getGenerativeModel({ model: modelId });
-      const result = await model.generateContent(prompt);
+      const result = await withRetry(() => model.generateContent(prompt));
       const text = result.response.text();
       const usage = result.response.usageMetadata;
 

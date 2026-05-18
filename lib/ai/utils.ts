@@ -10,3 +10,36 @@ export function calculateAICost(modelId: string, usage?: any): number {
   
   return inputCost + outputCost;
 }
+
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries: number = 3,
+  delayMs: number = 1000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: any) {
+    if (retries <= 0) {
+      throw error;
+    }
+
+    const errMsg = error.message?.toUpperCase() || "";
+    const isTransient =
+      error.status === 429 ||
+      error.status >= 500 ||
+      errMsg.includes("RATE LIMIT") ||
+      errMsg.includes("EXHAUSTED") ||
+      errMsg.includes("TIMEOUT") ||
+      errMsg.includes("FETCH FAILED");
+
+    if (!isTransient) {
+      throw error;
+    }
+
+    console.warn(`[AI Retry] Transient error encountered. Retrying in ${delayMs}ms... (Retries left: ${retries})`);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    return withRetry(fn, retries - 1, delayMs * 2);
+  }
+}
+
+
