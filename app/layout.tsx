@@ -10,7 +10,7 @@ import { TransitionShell } from "@/components/layout/transition-shell";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AI Resume Analyzer",
+  title: "OfferFit",
   description: "Advanced career intelligence and resume optimization engine.",
 };
 
