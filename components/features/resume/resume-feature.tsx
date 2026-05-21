@@ -301,6 +301,7 @@ export function ResumeFeature({
                                 }
                                 return newData;
                             });
+                            queryClient.invalidateQueries({ queryKey: ["history", "infinite"] });
                         }
 
                         if (effectiveMode === "customize") {
