@@ -21,11 +21,9 @@ export function ReportToolbar({
     serverError,
     mode,
     hasCustomization,
-    isHistoryMode,
     onSwitchMode,
     onReset,
     isEditingForm,
-    onToggleForm,
     verdict,
     missingSkills = [],
     redFlags = []

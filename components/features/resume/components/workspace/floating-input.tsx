@@ -5,7 +5,7 @@ interface FloatingInputProps {
     onChange: (val: string) => void;
     label: string;
     disabled?: boolean;
-    icon?: any;
+    icon?: React.ElementType;
     inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 

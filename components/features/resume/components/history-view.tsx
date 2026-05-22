@@ -5,7 +5,7 @@ import { FileText, Trash2, ArrowRight, Clock, Sparkles, Briefcase } from "lucide
 import Link from "next/link";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { HistoryGridSkeleton } from "@/components/ui/skeletons";
-import { useRouter } from "next/navigation";
+
 import { toast } from "sonner";
 
 interface Analysis {
@@ -63,7 +63,7 @@ async function fetchSingleAnalysis(id: string) {
 
 export function HistoryView() {
     const queryClient = useQueryClient();
-    const router = useRouter();
+
 
     const {
         data,

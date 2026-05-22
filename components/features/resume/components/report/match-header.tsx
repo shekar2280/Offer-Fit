@@ -1,5 +1,6 @@
 import React from "react";
-import { DollarSign, Activity, Coins } from "lucide-react";
+import { Activity, Coins } from "lucide-react";
+import Image from "next/image";
 import { AnalysisInsights } from "../types";
 
 interface MatchHeaderProps {
@@ -77,11 +78,13 @@ export function MatchHeader({
                         ) : (
                             <div className="flex items-center gap-3">
                                 {insights?.intel?.logo_url && (
-                                    <div className="w-6 h-6 rounded-md bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
-                                        <img 
+                                    <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                                        <Image 
                                             src={insights.intel.logo_url} 
                                             alt={companyName} 
-                                            className="w-full h-full object-contain"
+                                            fill
+                                            unoptimized
+                                            className="object-contain"
                                             onError={(e) => (e.currentTarget.style.display = 'none')}
                                         />
                                     </div>

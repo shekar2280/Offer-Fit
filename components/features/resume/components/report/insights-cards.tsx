@@ -1,9 +1,11 @@
 import React from 'react';
-import { Target, AlertCircle, Copy, Check, DollarSign, BookOpen, Brain, Briefcase, Zap, Shield, TrendingUp } from 'lucide-react';
+import { Copy, Check, Brain, Briefcase, Zap, Shield } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import Image from 'next/image';
 import remarkGfm from 'remark-gfm';
+import { AnalysisResult, CompanyIntel, SalaryInsight as SalaryInsightType, StrategyData, AuditData, InterviewData, Hallucination } from '@/lib/types';
 
-const SectionHeader = ({ icon: Icon, title, subtitle, color = "primary" }: { icon: any, title: string, subtitle?: string, color?: string }) => (
+const SectionHeader = ({ icon: Icon, title, subtitle, color = "primary" }: { icon: React.ElementType, title: string, subtitle?: string, color?: string }) => (
     <div className="flex items-center gap-4 mb-8">
         <div className={`p-3 rounded-2xl bg-${color}/10 border border-${color}/20`}>
             <Icon className={`w-5 h-5 text-${color}`} />
@@ -52,7 +54,7 @@ const MetricCard = ({ label, value, unit, color, progress, subtitle }: { label: 
     );
 };
 
-export function ScoreMetrics({ insights }: { insights: any }) {
+export function ScoreMetrics({ insights }: { insights: AnalysisResult }) {
     if (!insights) return null;
     return (
         <>
@@ -76,7 +78,7 @@ export function ScoreMetrics({ insights }: { insights: any }) {
     );
 }
 
-export function SalaryInsight({ data }: { data?: any }) {
+export function SalaryInsight({ data }: { data?: SalaryInsightType & { location?: string } }) {
     if (!data) return null;
     const displayValue = data.range.split(' ')[0];
     const displayUnit = data.range.includes('LPA') ? 'LPA INR' : data.currency;
@@ -93,7 +95,7 @@ export function SalaryInsight({ data }: { data?: any }) {
     );
 }
 
-export function CompanyIntelligence({ score, traits = [], content, companyName, intel }: { score?: number, traits?: string[], content?: string, companyName?: string, intel?: any }) {
+export function CompanyIntelligence({ score, traits = [], content, companyName, intel }: { score?: number, traits?: string[], content?: string, companyName?: string, intel?: CompanyIntel }) {
     const bullets = content ? content.split('\n').map(line => line.replace(/^•\s*/, '').trim()).filter(Boolean) : [];
     const hasIntel = !!intel;
 
@@ -124,11 +126,13 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
                 <div className="lg:col-span-8 space-y-8">
                     <div className="flex items-center gap-6">
                         {intel?.logo_url && (
-                            <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
-                                <img 
-                                    src={intel.logo_url} 
-                                    alt={companyName} 
-                                    className="w-full h-full object-contain"
+                            <div className="relative w-12 h-12 rounded-2xl bg-white/10 border border-white/20 overflow-hidden shrink-0">
+                                <Image
+                                    src={intel.logo_url}
+                                    alt={companyName || 'Company logo'}
+                                    fill
+                                    unoptimized
+                                    className="object-contain"
                                     onError={(e) => (e.currentTarget.style.display = 'none')}
                                 />
                             </div>
@@ -138,15 +142,15 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
                             <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest">{companyName || 'Confidential'} {intel?.is_startup ? '(Startup)' : ''}</p>
                         </div>
                     </div>
-                    
+
                     {hasIntel ? (
                         <div className="space-y-6">
-                            {intel.tech_stack && (
+                            {!!intel.tech_stack && Object.keys(intel.tech_stack || {}).length > 0 && (
                                 <div>
                                     <h5 className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-3">Tech Stack</h5>
                                     <div className="flex flex-wrap gap-2">
-                                        {Object.entries(intel.tech_stack).map(([cat, items]: [string, any]) => 
-                                            Array.isArray(items) ? items.map((item, i) => (
+                                        {Object.entries(intel.tech_stack || {}).map(([cat, items]: [string, unknown]) =>
+                                            Array.isArray(items) ? (items as string[]).map((item: string, i: number) => (
                                                 <span key={`${cat}-${i}`} className="px-3 py-1 bg-white/[0.05] border border-white/10 rounded-full text-[11px] font-medium text-white/80">
                                                     {item}
                                                 </span>
@@ -178,9 +182,9 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
     );
 }
 
-export function StrategyCard({ strategy, verdict }: { strategy?: any, verdict?: string }) {
+export function StrategyCard({ strategy, verdict }: { strategy?: StrategyData, verdict?: string }) {
     if (!strategy || !strategy.strategy_pillars) return null;
-    
+
     const filteredPillars = strategy.strategy_pillars.filter((pillar: string) => {
         if (verdict === "REJECT" && (pillar.toLowerCase().includes("call to action") || pillar.toLowerCase().includes("outreach email"))) {
             return false;
@@ -198,7 +202,9 @@ export function StrategyCard({ strategy, verdict }: { strategy?: any, verdict?: 
                     <div key={i} className="flex gap-4 items-start group/pillar">
                         <div className="mt-1.5 w-2 h-2 shrink-0 rounded-sm bg-primary/40 group-hover/pillar:bg-primary transition-colors" />
                         <div className="text-[14px] text-white/80 leading-relaxed font-medium">
-                            <ReactMarkdown components={{ p: ({node, ...props}) => <span {...props} /> }}>
+                            <ReactMarkdown components={{ 
+                                p: ({ node: _node, ...props }) => <span {...props} /> 
+                            }}>
                                 {pillar}
                             </ReactMarkdown>
                         </div>
@@ -221,11 +227,11 @@ export function StrategyCard({ strategy, verdict }: { strategy?: any, verdict?: 
     );
 }
 
-export function AuditBadge({ audit }: { audit?: any }) {
+export function AuditBadge({ audit }: { audit?: AuditData }) {
     if (!audit) return null;
-    
+
     const isClean = audit.verdict === "CLEAN" || audit.integrity_score === 100;
-    
+
     return (
         <div className={`mt-6 p-4 rounded-2xl border flex items-start gap-4 ${isClean ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
             <Shield className={`w-5 h-5 mt-1 shrink-0 ${isClean ? 'text-emerald-500' : 'text-red-500'}`} />
@@ -236,16 +242,16 @@ export function AuditBadge({ audit }: { audit?: any }) {
                 <p className="text-[12px] text-white/60 mt-1 leading-relaxed">
                     {isClean ? 'All tailored facts match original resume. No hallucinations detected.' : 'Some facts could not be verified against the original resume.'}
                 </p>
-                
+
                 {!isClean && audit.hallucinations_found && audit.hallucinations_found.length > 0 && (
                     <div className="mt-4 space-y-3">
-                        {audit.hallucinations_found.map((h: any, i: number) => {
+                        {audit.hallucinations_found.map((h: string | Hallucination, i: number) => {
                             const tailoredText = typeof h === 'string' ? h : h.tailored;
                             const reasonText = typeof h === 'string' ? 'Unverified information found' : h.reason;
-                            
+
                             return (
                                 <div key={i} className="p-3 bg-black/40 rounded-xl border border-red-500/30">
-                                    <p className="text-[11px] text-red-400 font-medium mb-1">Tailored: "{tailoredText}"</p>
+                                    <p className="text-[11px] text-red-400 font-medium mb-1">Tailored: &quot;{tailoredText}&quot;</p>
                                     <p className="text-[11px] text-white/40 italic">Reason: {reasonText}</p>
                                 </div>
                             );
@@ -310,7 +316,7 @@ export function RedFlags({ flags }: { flags: string[] }) {
             </div>
             <div className="flex flex-wrap gap-3">
                 {flags.map((flag, i) => (
-                    <div 
+                    <div
                         key={i}
                         className="group flex items-center gap-3 px-4 py-2.5 rounded-xl bg-red-500/5 border border-red-500/20 hover:bg-red-500/10 hover:border-red-500/40 transition-all duration-300"
                     >
@@ -324,8 +330,9 @@ export function RedFlags({ flags }: { flags: string[] }) {
         </div>
     );
 }
-export function InterviewQuestions({ data, onCopy }: { data: any, onCopy: (text: string, label: string) => void }) {
-    if (!data || !data.questions || data.questions.length === 0) return null;
+export function InterviewQuestions({ data, onCopy }: { data: InterviewData, onCopy: (text: string, label: string) => void }) {
+    if (!data || !Array.isArray(data.questions) || data.questions.length === 0) return null;
+
     return (
         <div className="relative overflow-hidden bg-white/[0.02] border border-primary/30 rounded-[2.5rem] p-8 transition-none">
             <div className="space-y-8">
@@ -343,16 +350,16 @@ export function InterviewQuestions({ data, onCopy }: { data: any, onCopy: (text:
                 </div>
 
                 <div className="space-y-10">
-                    {data.questions.map((q: any, i: number) => {
+                    {(Array.isArray(data.questions) ? data.questions : []).map((q: string | { q: string, intent: string }, i: number) => {
                         const questionText = typeof q === 'string' ? q : q.q;
-                        const intentText = typeof q === 'object' ? q.intent : null;
+                        const intentText = typeof q === 'object' && q !== null && 'intent' in q ? q.intent : null;
 
                         return (
                             <div key={i} className="group/q flex gap-6 items-start">
                                 <div className="mt-2 w-1.5 h-1.5 shrink-0 rounded-full bg-primary/40 group-hover/q:bg-primary transition-colors" />
                                 <div className="flex-1 space-y-3">
                                     <div className="flex justify-between items-start gap-8">
-                                        <p className="text-[14px] font-bold text-white/90 leading-relaxed tracking-tight italic">"{questionText}"</p>
+                                        <p className="text-[14px] font-bold text-white/90 leading-relaxed tracking-tight italic">&quot;{questionText}&quot;</p>
                                         <button
                                             onClick={() => onCopy(questionText, "Question")}
                                             className="p-2 rounded-xl bg-white/[0.02] hover:bg-primary/20 text-white/10 hover:text-primary border border-white/5 transition-all opacity-0 group-hover/q:opacity-100"
@@ -377,7 +384,7 @@ export function InterviewQuestions({ data, onCopy }: { data: any, onCopy: (text:
 }
 
 
-export function EmailDraftSection({ analysisId, verdict, initialEmail, onCopy }: { analysisId: string, verdict: string, initialEmail?: string, onCopy: (text: string, label: string) => void }) {
+export function EmailDraftSection({ analysisId, verdict, initialEmail }: { analysisId: string, verdict: string, initialEmail?: string }) {
     const [email, setEmail] = React.useState(initialEmail || "");
     const [loading, setLoading] = React.useState(false);
     const [done, setDone] = React.useState(!!initialEmail);
@@ -453,11 +460,10 @@ export function EmailDraftSection({ analysisId, verdict, initialEmail, onCopy }:
                         {done && (
                             <button
                                 onClick={handleCopy}
-                                className={`px-6 py-3 rounded-2xl border transition-all flex items-center gap-2 ${
-                                    copied 
-                                    ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" 
+                                className={`px-6 py-3 rounded-2xl border transition-all flex items-center gap-2 ${copied
+                                    ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
                                     : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
-                                }`}
+                                    }`}
                             >
                                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                                 {copied ? "Copied!" : "Copy"}
@@ -490,11 +496,11 @@ export function EmailDraftSection({ analysisId, verdict, initialEmail, onCopy }:
                         <div className="relative p-10 min-h-[200px]">
                             <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[120px] pointer-events-none rounded-full" />
                             <div className="relative z-10 text-[15px] text-white/70 leading-relaxed font-serif selection:bg-primary/30 selection:text-white">
-                                <ReactMarkdown 
+                                <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={{
-                                        strong: ({node, ...props}) => <strong className="font-black text-white tracking-wide" {...props} />,
-                                        p: ({node, ...props}) => <p className="mb-4 last:mb-0" {...props} />
+                                        strong: ({ node: _node, ...props }) => <strong className="font-black text-white tracking-wide" {...props} />,
+                                        p: ({ node: _node, ...props }) => <p className="mb-4 last:mb-0" {...props} />
                                     }}
                                 >
                                     {email}

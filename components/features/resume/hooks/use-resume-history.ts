@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useAnalysis } from "@/lib/context/analysis-context";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
-export function useResumeHistory(selectedId: string | null | undefined, user: any, mode: string) {
-  const { state: globalState } = useAnalysis();
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { User } from "@supabase/supabase-js";
+import { AnalysisResult } from "@/lib/types";
+
+export function useResumeHistory(selectedId: string | null | undefined, user: User | null, mode: string) {
+
 
   const [analysisOverride, setAnalysisOverride] = useState<string | null>(null);
   const [customizeOverride, setCustomizeOverride] = useState<string | null>(null);
-  const [insightsOverride, setInsightsOverride] = useState<any>(null);
+  const [insightsOverride, setInsightsOverride] = useState<Partial<AnalysisResult> | null>(null);
   const [hasCustomizationOverride, setHasCustomizationOverride] = useState<boolean | null>(null);
   const [jobOverrides, setJobOverrides] = useState<{ company?: string; role?: string; description?: string }>({});
 
@@ -54,9 +56,9 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
     description: jobOverrides.description || savedData?.jd_text || "",
   };
 
-  const setJobData = useCallback((update: any) => {
+  const setJobData = useCallback((update: Partial<typeof jobData> | ((prev: typeof jobData) => Partial<typeof jobData>)) => {
     if (typeof update === "function") {
-      setJobOverrides((prev: any) => {
+      setJobOverrides((prev) => {
         const currentJobData = {
           company: prev.company ?? savedData?.company_name ?? "",
           role: prev.role ?? savedData?.position ?? "",
@@ -99,7 +101,7 @@ export function useResumeHistory(selectedId: string | null | undefined, user: an
     insights,
   };
 
-  const setAnalysisState = useCallback((update: any) => {
+  const setAnalysisState = useCallback((update: Partial<typeof analysisState> | ((prev: typeof analysisState) => Partial<typeof analysisState>)) => {
     const next = typeof update === "function" ? update(analysisState) : update;
     
     if (next.analysis !== undefined) {

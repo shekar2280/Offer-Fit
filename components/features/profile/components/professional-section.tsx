@@ -1,8 +1,10 @@
 "use client";
 
+import { ProfileData } from "../profile-form";
+
 interface ProfessionalSectionProps {
-    formData: any;
-    setFormData: (data: any) => void;
+    formData: ProfileData;
+    setFormData: (data: ProfileData) => void;
 }
 
 export function ProfessionalSection({ formData, setFormData }: ProfessionalSectionProps) {

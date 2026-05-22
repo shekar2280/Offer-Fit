@@ -12,7 +12,7 @@ export async function logSystemEvent({
   level: LogLevel;
   source: string;
   message: string;
-  details?: any;
+  details?: unknown;
   userId?: string;
 }) {
   if (level === "ERROR") {
@@ -30,7 +30,6 @@ export async function logSystemEvent({
       details,
       user_id: userId
     });
-  } catch (e) {
-    // Silent fail for logging to prevent infinite loops
+  } catch {
   }
 }
