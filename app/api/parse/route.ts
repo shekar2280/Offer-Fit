@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const profileUpdate: any = { 
+    const profileUpdate: Record<string, unknown> = { 
         id: user.id,
         updated_at: new Date().toISOString() 
     };
@@ -47,12 +47,12 @@ export async function POST(req: NextRequest) {
       text: text,
       isLatex: !isPdf
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     await logSystemEvent({
       level: "ERROR",
       source: "API_PARSE",
       message: "File parsing failed",
-      details: { error: error.message, fileName: file.name, fileType: file.type }
+      details: { error: (error as Error).message, fileName: file.name, fileType: file.type }
     });
     return NextResponse.json(
       { error: "Failed to parse file" },
