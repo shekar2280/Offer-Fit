@@ -13,8 +13,9 @@ export function QueryProvider({ children }: { children: ReactNode }) {
             gcTime: 1000 * 60 * 30,
             refetchOnWindowFocus: false,
             refetchOnReconnect: true,
-            retry: (failureCount, error: any) => {
-              if (error?.status >= 400 && error?.status < 500) return false;
+            retry: (failureCount, error: unknown) => {
+              const status = (error as { status?: number })?.status;
+              if (status && status >= 400 && status < 500) return false;
               return failureCount < 2;
             },
             structuralSharing: true,

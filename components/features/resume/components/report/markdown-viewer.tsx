@@ -11,25 +11,25 @@ interface MarkdownViewerProps {
 
 export function MarkdownViewer({ content, mode, isAnalyzing, onCopy }: MarkdownViewerProps) {
     const customComponents: Components = {
-        h2: ({ node, ...props }) => (
+        h2: ({ node: _node, ...props }) => (
             <div className="mt-12 mb-8 flex items-center gap-4 border-b border-primary/20 pb-4 hover:bg-white/[0.03] hover:border-primary/40 transition-all px-4 -mx-4 rounded-t-2xl group/h2">
                 <div className="h-6 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(242,170,76,0.5)] group-hover/h2:scale-y-125 transition-transform"></div>
                 <h2 className="text-2xl font-heading font-bold text-white tracking-tight m-0" {...props} />
             </div>
         ),
-        h3: ({ node, ...props }) => (
+        h3: ({ node: _node, ...props }) => (
             <div className="mt-8 mb-4 border-l-2 border-primary/50 pl-4 py-2 bg-gradient-to-r from-primary/[0.05] to-transparent rounded-r-xl hover:from-primary/[0.1] hover:border-primary/80 transition-all group/h3">
                 <h3 className="text-lg font-bold text-white tracking-tight m-0 group-hover/h3:translate-x-1 transition-transform" {...props} />
             </div>
         ),
-        h4: ({ node, ...props }) => (
+        h4: ({ node: _node, ...props }) => (
             <div className="mt-6 mb-3 flex items-center gap-3 px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl group/h4">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover/h4:bg-primary group-hover/h4:scale-125 transition-all" />
                 <h4 className="text-[13px] font-black uppercase tracking-[0.2em] text-white/70 group-hover/h4:text-white transition-colors m-0" {...props} />
             </div>
         ),
-        ul: ({ node, ...props }) => <ul className="grid grid-cols-1 gap-3 my-4" {...props} />,
-        li: ({ node, children, ...props }) => (
+        ul: ({ node: _node, ...props }) => <ul className="grid grid-cols-1 gap-3 my-4" {...props} />,
+        li: ({ node: _node, children, ...props }) => (
             <li className="bg-transparent hover:bg-white/[0.02] transition-colors rounded-xl p-3 flex flex-col gap-1" {...props}>
                 <div className="flex items-start gap-3">
                     <div className="mt-2 w-1.5 h-1.5 rounded-full bg-primary shrink-0 shadow-[0_0_8px_rgba(242,170,76,0.5)]" />
@@ -39,15 +39,15 @@ export function MarkdownViewer({ content, mode, isAnalyzing, onCopy }: MarkdownV
                 </div>
             </li>
         ),
-        blockquote: ({ node, ...props }) => (
+        blockquote: ({ node: _node, ...props }) => (
             <div className="my-8 relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/[0.02] to-transparent border-l-2 border-primary/40 p-6 shadow-sm group/quote">
                 <div className="absolute top-0 left-0 w-[2px] h-full bg-primary group-hover/quote:w-1 transition-all" />
                 <blockquote className="relative z-10 text-base font-serif italic text-primary/90 leading-relaxed m-0" {...props} />
             </div>
         ),
-        strong: ({ node, ...props }) => <strong className="font-bold text-white tracking-wide" {...props} />,
-        p: ({ node, ...props }) => <p className="text-white/60 leading-[1.7] text-[15px] mb-4 font-light" {...props} />,
-        code: ({ node, className, children, ...props }: any) => {
+        strong: ({ node: _node, ...props }) => <strong className="font-bold text-white tracking-wide" {...props} />,
+        p: ({ node: _node, ...props }) => <p className="text-white/60 leading-[1.7] text-[15px] mb-4 font-light" {...props} />,
+        code: ({ node: _node, className, children, ...props }: React.HTMLAttributes<HTMLElement> & { node?: unknown }) => {
             const match = /language-(\w+)/.exec(className || '');
             const isInline = !match && !String(children).includes('\n');
             return isInline ? (

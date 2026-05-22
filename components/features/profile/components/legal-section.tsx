@@ -1,8 +1,10 @@
 "use client";
 
+import { ProfileData } from "../profile-form";
+
 interface LegalSectionProps {
-    formData: any;
-    setFormData: (data: any) => void;
+    formData: ProfileData;
+    setFormData: (data: ProfileData) => void;
 }
 
 export function LegalSection({ formData, setFormData }: LegalSectionProps) {
@@ -45,7 +47,7 @@ export function LegalSection({ formData, setFormData }: LegalSectionProps) {
                     />
                 </div>
                 <div className="space-y-2.5 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 ml-1">Strategic "Why Me" Pitch</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 ml-1">Strategic &quot;Why Me&quot; Pitch</label>
                     <textarea 
                         value={formData.hire_pitch} 
                         onChange={(e) => setFormData({ ...formData, hire_pitch: e.target.value })} 

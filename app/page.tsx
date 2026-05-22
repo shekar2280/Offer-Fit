@@ -5,12 +5,13 @@ import { createClient } from "@/lib/supabase/client";
 import { Suspense, useEffect, useState } from "react";
 import { useAnalysis } from "@/lib/context/analysis-context";
 import { useRouter } from "next/navigation";
+import { User } from "@supabase/supabase-js";
 
 export default function Home() {
   const { resetSession } = useAnalysis();
-  const [user, setUser] = useState<any>(null);
   const supabase = createClient();
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     resetSession();
@@ -26,7 +27,7 @@ export default function Home() {
         } else {
           setUser(user);
         }
-      } catch (error: unknown) {
+      } catch {
         router.push("/auth/login");
       }
     };

@@ -1,32 +1,35 @@
 "use client";
 
-import { Menu, Archive, Sparkles, ScanText, RotateCcw, User } from "lucide-react";
+import { Menu, Archive, User, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { LogoutButton } from "../features/auth/logout-button";
 import logoIcon from "@/assets/icon.png";
 import { useAnalysis } from "@/lib/context/analysis-context";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { USAGE_LIMITS } from "@/lib/constants";
 
 interface NavbarProps {
     username: string;
     onMenuClick?: () => void;
     showMenuButton?: boolean;
+    usage?: { daily_count: number; hourly_count: number; last_request_at: string | null } | null;
 }
 
-export function Navbar({ 
-    username, 
-    onMenuClick, 
+export function Navbar({
+    username: _username,
+    onMenuClick,
     showMenuButton = true,
+    usage = null,
 }: NavbarProps) {
     const { resetSession } = useAnalysis();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-    const router = useRouter();
 
-    const navLinks = [
-        { href: "/history",  label: "Archive",  icon: Archive   },
-    ];
+    const getDailyCount = () => {
+        if (!usage) return 0;
+        const msSinceLast = usage.last_request_at ? Date.now() - new Date(usage.last_request_at).getTime() : 0;
+        return msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS ? 0 : usage.daily_count;
+    };
+    
+    const dailyCount = getDailyCount();
+    const remainingCredits = Math.max(0, USAGE_LIMITS.DAILY_QUOTA - dailyCount);
 
     return (
         <header className="w-full h-[68px] shrink-0 sticky top-0 z-50 bg-black/60 backdrop-blur-2xl border-b border-white/[0.06]">
@@ -61,7 +64,18 @@ export function Navbar({
                     </Link>
                 </div>
 
-                <div className="flex-1" />
+                <div className="flex-1 flex justify-center">
+                    {usage && (
+                        <div className="hidden sm:flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_0_12px_rgba(255,255,255,0.02)] rounded-full px-3 py-1.5 transition-all hover:bg-white/[0.05] hover:border-white/[0.15]">
+                            <Sparkles className="w-3.5 h-3.5 text-[#F2AA4C]" />
+                            <span className="text-xs font-medium tracking-wide text-white/80">
+                                <span className={remainingCredits === 0 ? "text-red-400" : "text-white"}>{remainingCredits}</span>
+                                <span className="text-white/40 mx-1">/</span>
+                                {USAGE_LIMITS.DAILY_QUOTA} Credits
+                            </span>
+                        </div>
+                    )}
+                </div>
 
                 <div className="flex items-center gap-2 flex-none">
                     <Link

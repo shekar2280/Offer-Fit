@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "./logout-button";
 import { UserCircle } from "lucide-react";
@@ -22,14 +21,14 @@ export async function AuthButton() {
     </div>
   ) : (
     <div className="flex gap-4">
-      <Link 
-        href="/auth/login" 
+      <Link
+        href="/auth/login"
         className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors flex items-center px-4"
       >
         Sign In
       </Link>
-      <Link 
-        href="/auth/sign-up" 
+      <Link
+        href="/auth/sign-up"
         className="h-9 px-5 bg-white/5 hover:bg-white/10 text-white text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] rounded-full border border-white/10 transition-all shadow-[0_4px_12px_rgba(0,0,0,0.2)] flex items-center"
       >
         Get Started

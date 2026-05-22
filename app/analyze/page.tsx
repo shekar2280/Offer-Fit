@@ -36,7 +36,16 @@ function AnalyzePageContent() {
     );
 }
 
-function AnalyzeContent({ id, companyName, position, jd, location, jobType }: any) {
+interface AnalyzeContentProps {
+    id: string | null;
+    companyName: string;
+    position: string;
+    jd: string;
+    location: string;
+    jobType: string;
+}
+
+function AnalyzeContent({ id, companyName, position, jd, location, jobType }: AnalyzeContentProps) {
     return (
         <ResumeFeature 
             mode="analysis" 

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Copy } from "lucide-react";
+import Image from "next/image";
 import { AnalysisReportProps } from "./types";
 import { ReportToolbar } from "./report/report-toolbar";
 import { ErrorView } from "./report/error-view";
@@ -26,7 +27,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
         insights = null,
         serverError = null,
         isEditingForm = false,
-        onToggleForm = () => {}
+        onToggleForm = () => { }
     } = props;
 
     const score = insights?.match_score || 0;
@@ -51,7 +52,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
         bgColorClass = 'bg-destructive/20 border-destructive/30';
     }
 
-    const copyText = (text: string, label: string) => {
+    const copyText = (text: string, _label: string) => {
         navigator.clipboard.writeText(text);
     };
 
@@ -60,7 +61,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-indigo-500/5 rounded-full blur-[160px] pointer-events-none" />
             <div className="absolute bottom-0 left-1/4 w-[600px] h-[300px] bg-emerald-500/[0.02] rounded-full blur-[120px] pointer-events-none" />
 
-            <ReportToolbar 
+            <ReportToolbar
                 isAnalyzing={isAnalyzing}
                 serverError={serverError}
                 mode={mode}
@@ -82,7 +83,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
                     <>
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                             {mode === "analysis" && (
-                                <MatchHeader 
+                                <MatchHeader
                                     score={score}
                                     verdict={verdict}
                                     position={position}
@@ -105,46 +106,45 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                 <>
                                     <div className="space-y-12">
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <ScoreMetrics insights={insights} />
+                                            <ScoreMetrics insights={(insights || {}) as unknown as NonNullable<typeof insights>} />
                                             <SalaryInsight data={insights?.salary_insight} />
                                         </div>
 
-                                        <CompanyIntelligence 
-                                            score={insights?.culture_fit_score} 
-                                            traits={insights?.culture_traits} 
-                                            content={insights?.company_cheat_sheet} 
+                                        <CompanyIntelligence
+                                            score={insights?.culture_fit_score}
+                                            traits={insights?.culture_traits}
+                                            content={insights?.company_cheat_sheet}
                                             companyName={companyName}
-                                            intel={insights?.intel} 
+                                            intel={insights?.intel}
                                         />
 
                                         <div className="space-y-12">
-                                            <SkillsView 
-                                                matched={insights?.matched_skills || []} 
-                                                missing={insights?.missing_skills || []} 
+                                            <SkillsView
+                                                matched={insights?.matched_skills || []}
+                                                missing={insights?.missing_skills || []}
                                             />
-                                            
+
                                             <RedFlags flags={insights?.red_flags || []} />
-                                            
-                                            <InterviewQuestions 
-                                                data={insights?.interview_questions} 
-                                                onCopy={copyText} 
+
+                                            <InterviewQuestions
+                                                data={{ questions: insights?.interview_questions || [] }}
+                                                onCopy={copyText}
                                             />
 
                                         </div>
                                     </div>
                                     <div className="relative z-10 w-full mt-4 border-t border-white/5 space-y-12">
-                                        <MarkdownViewer 
-                                            content={cleanAnalysis} 
-                                            mode={mode} 
-                                            isAnalyzing={isAnalyzing} 
-                                            onCopy={copyText} 
+                                        <MarkdownViewer
+                                            content={cleanAnalysis}
+                                            mode={mode}
+                                            isAnalyzing={isAnalyzing}
+                                            onCopy={copyText}
                                         />
 
                                         <EmailDraftSection
                                             analysisId={analysisId}
                                             verdict={verdict}
                                             initialEmail={insights?.outreach_email}
-                                            onCopy={copyText}
                                         />
                                     </div>
                                 </>
@@ -164,11 +164,13 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                         </div>
                                         <div className="flex items-center gap-6">
                                             {insights?.intel?.logo_url && (
-                                                <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
-                                                    <img 
-                                                        src={insights.intel.logo_url} 
-                                                        alt={companyName} 
-                                                        className="w-full h-full object-contain p-0"
+                                                <div className="relative w-16 h-16 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
+                                                    <Image
+                                                        src={insights.intel.logo_url}
+                                                        alt={companyName || "Logo"}
+                                                        fill
+                                                        unoptimized
+                                                        className="object-contain p-0"
                                                         onError={(e) => (e.currentTarget.style.display = 'none')}
                                                     />
                                                 </div>
@@ -196,29 +198,29 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                     {!isAnalyzing && analysis && (
                                         <div className="space-y-12">
                                             <StrategyCard strategy={insights?.strategy} verdict={verdict} />
-                                            
+
                                             <div className="space-y-6">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-px w-8 bg-primary/30" />
-                                                    <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">Tailored LaTeX Source</span>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-px w-8 bg-primary/30" />
+                                                        <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">Tailored LaTeX Source</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => copyText(analysis.split("###")[0].trim(), "LaTeX Code")}
+                                                        className="px-6 py-2 rounded-xl bg-primary text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/10 flex items-center gap-2"
+                                                    >
+                                                        <Copy className="w-3 h-3" />
+                                                        Copy Code
+                                                    </button>
                                                 </div>
-                                                <button 
-                                                    onClick={() => copyText(analysis.split("###")[0].trim(), "LaTeX Code")}
-                                                    className="px-6 py-2 rounded-xl bg-primary text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/10 flex items-center gap-2"
-                                                >
-                                                    <Copy className="w-3 h-3" />
-                                                    Copy Code
-                                                </button>
-                                            </div>
 
-                                            <AuditBadge audit={insights?.audit_report} />
+                                                <AuditBadge audit={insights?.audit_report} />
 
-                                            <div className="bg-slate-950/50 border border-white/5 rounded-3xl p-8 overflow-hidden relative">
-                                                <pre className="text-[13px] font-mono text-white/70 leading-relaxed overflow-x-auto relative z-10">
-                                                    {analysis.split("###")[0].trim()}
-                                                </pre>
-                                            </div>
+                                                <div className="bg-slate-950/50 border border-white/5 rounded-3xl p-8 overflow-hidden relative">
+                                                    <pre className="text-[13px] font-mono text-white/70 leading-relaxed overflow-x-auto relative z-10">
+                                                        {analysis.split("###")[0].trim()}
+                                                    </pre>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
