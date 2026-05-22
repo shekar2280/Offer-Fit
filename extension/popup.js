@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('no-job').style.display = 'none';
-  document.getElementById('job-info').style.display = 'block';
+  document.getElementById('job-info').style.display = 'none';
 
   chrome.tabs.sendMessage(tab.id, { action: "extractJobData" }, (response) => {
     if (chrome.runtime.lastError) {
@@ -80,14 +80,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    if (response && response.role) {
+    if (response && (response.role || response.company)) {
+      document.getElementById('no-job').style.display = 'none';
+      document.getElementById('job-info').style.display = 'block';
+
       document.getElementById('company').innerText = response.company || "Unknown Company";
       document.getElementById('role').innerText = response.role || "Unknown Position";
       document.getElementById('location').innerText = response.location || "Not Detected";
       document.getElementById('jobType').innerText = response.jobType || "Not Detected";
       
       document.getElementById('sync-btn').onclick = () => {
-        const baseUrl = "http://localhost:3000/analyze"; 
+        const baseUrl = "http://localhost:3000/analyze";
         const params = new URLSearchParams({
           company: response.company || "",
           role: response.role || "",
@@ -113,6 +116,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       chrome.tabs.sendMessage(tab.id, { 
         action: "performAutofill", 
         profile: result.profile 
+      }, () => {
+        void chrome.runtime.lastError;
       });
     });
   });
