@@ -4,9 +4,11 @@ import {
   runAnalysisAgent,
   runMultiStepCustomization,
   runResearchAgent,
+  AgenticAnalysisResult
 } from "@/lib/ai/agent";
 import { logSystemEvent } from "@/lib/supabase/logger";
 import { USAGE_LIMITS } from "@/lib/constants";
+import { AnalysisResult } from "@/lib/types";
 import { checkRateLimit, getCache, setCache } from "@/lib/redis";
 import { createHash } from "crypto";
 
@@ -104,15 +106,7 @@ export async function POST(req: Request) {
             return;
           }
 
-          supabase.from("user_usage").upsert(
-            {
-              user_id: user.id,
-              daily_count: 1,
-              hourly_count: 1,
-              last_request_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" }
-          ).then(() => {});
+          supabase.rpc("increment_user_usage", { p_user_id: user.id }).then(() => {});
         }
 
         sse.send({
@@ -132,7 +126,7 @@ export async function POST(req: Request) {
 
         const jdHash = createHash("sha256").update(context + jd + mode).digest("hex");
         const cacheKey = `report:${user?.id || "benchmark"}:${jdHash}`;
-        const cachedReport = await getCache(cacheKey);
+        const cachedReport = (await getCache(cacheKey)) as { markdown?: string; metadata?: unknown; toolUsed?: string } | null;
 
         if (cachedReport) {
           sse.send({
@@ -165,7 +159,7 @@ export async function POST(req: Request) {
         const userName =
           user?.user_metadata?.full_name || user?.user_metadata?.name;
 
-        let result: any;
+        let result: AgenticAnalysisResult;
 
         if (mode === "customize") {
           sse.send({
@@ -225,7 +219,7 @@ export async function POST(req: Request) {
 
           result = { 
             ...analysisResult, 
-            data: { ...analysisResult.data, ...intelData },
+            data: { ...(analysisResult.data as Record<string, unknown>), ...intelData },
             intel: researchResult 
           };
         }
@@ -251,6 +245,8 @@ export async function POST(req: Request) {
         });
 
 
+        const parsedData = data as Partial<AnalysisResult>;
+
         if (analysisId && user) {
           if (agentMode === "customize") {
             await supabase
@@ -266,20 +262,20 @@ export async function POST(req: Request) {
               })
               .eq("id", analysisId);
           } else {
-            const updatePayload: Record<string, any> = {
-              match_score: data.match_score || 0,
-              verdict: data.verdict || "REJECT",
-              ats_score: data.ats_score || 0,
-              keyword_density: data.keyword_density || 0,
-              matched_skills: data.matched_skills || [],
-              missing_skills: data.missing_skills || [],
-              salary_insight: data.salary_insight || null,
-              red_flags: data.red_flags || [],
-              interview_questions: data.interview_questions || [],
-              outreach_email: data.outreach_email || "",
-              culture_fit_score: data.culture_fit_score ?? null,
-              company_cheat_sheet: data.company_cheat_sheet || null,
-              culture_traits: data.culture_traits || [],
+            const updatePayload: Record<string, unknown> = {
+              match_score: parsedData.match_score || 0,
+              verdict: parsedData.verdict || "REJECT",
+              ats_score: parsedData.ats_score || 0,
+              keyword_density: parsedData.keyword_density || 0,
+              matched_skills: parsedData.matched_skills || [],
+              missing_skills: parsedData.missing_skills || [],
+              salary_insight: parsedData.salary_insight || null,
+              red_flags: parsedData.red_flags || [],
+              interview_questions: parsedData.interview_questions || [],
+              outreach_email: parsedData.outreach_email || "",
+              culture_fit_score: parsedData.culture_fit_score ?? null,
+              company_cheat_sheet: parsedData.company_cheat_sheet || null,
+              culture_traits: parsedData.culture_traits || [],
               total_tokens: usage?.totalTokenCount || 0,
               estimated_cost: estimated_cost,
               analysis_result: markdown,
@@ -309,19 +305,19 @@ export async function POST(req: Request) {
                 audit: audit || null,
               }
             : {
-                match_score: data.match_score || 0,
-                verdict: data.verdict || "REJECT",
-                ats_score: data.ats_score || 0,
-                keyword_density: data.keyword_density || 0,
-                matched_skills: data.matched_skills || [],
-                missing_skills: data.missing_skills || [],
-                salary_insight: data.salary_insight || null,
-                red_flags: data.red_flags || [],
-                interview_questions: data.interview_questions || [],
-                outreach_email: data.outreach_email || "",
-                culture_fit_score: data.culture_fit_score ?? null,
-                company_cheat_sheet: data.company_cheat_sheet || null,
-                culture_traits: data.culture_traits || [],
+                match_score: parsedData.match_score || 0,
+                verdict: parsedData.verdict || "REJECT",
+                ats_score: parsedData.ats_score || 0,
+                keyword_density: parsedData.keyword_density || 0,
+                matched_skills: parsedData.matched_skills || [],
+                missing_skills: parsedData.missing_skills || [],
+                salary_insight: parsedData.salary_insight || null,
+                red_flags: parsedData.red_flags || [],
+                interview_questions: parsedData.interview_questions || [],
+                outreach_email: parsedData.outreach_email || "",
+                culture_fit_score: parsedData.culture_fit_score ?? null,
+                company_cheat_sheet: parsedData.company_cheat_sheet || null,
+                culture_traits: parsedData.culture_traits || [],
                 total_tokens: usage?.totalTokenCount || 0,
                 estimated_cost: estimated_cost,
                 intel: finalIntel || null,
@@ -337,11 +333,11 @@ export async function POST(req: Request) {
         });
 
         sse.close();
-      } catch (error: any) {
+      } catch (error: unknown) {
         await logSystemEvent({
           level: "ERROR",
           source: "API_CHAT",
-          message: error.message || "Analysis failed",
+          message: (error as Error).message || "Analysis failed",
           details: { error },
         });
 

@@ -47,12 +47,12 @@ Return exactly this shape:
         if (!jsonMatch) throw new Error("No JSON found in response");
         const data = JSON.parse(jsonMatch[0]);
         return NextResponse.json(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
         await logSystemEvent({
             level: "ERROR",
             source: "API_INSIGHTS",
             message: "ATS insights generation failed",
-            details: { error: err.message }
+            details: { error: (err as Error).message }
         });
         return NextResponse.json({ atsScore: 0, keywordDensity: 0, matchedSkills: [], missingSkills: [] });
     }
