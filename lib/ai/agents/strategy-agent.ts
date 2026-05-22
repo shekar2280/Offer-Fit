@@ -60,11 +60,11 @@ export async function runStrategyAgent(
         }
         try {
           strategy = JSON.parse(jsonStr);
-        } catch (e) {}
+        } catch {}
       }
 
       return strategy;
-    } catch (error: any) {
+    } catch {
       continue;
     }
   }

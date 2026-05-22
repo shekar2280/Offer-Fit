@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AUDIT_PROMPT, JUDGE_PROMPT } from "./prompts/evaluation-prompts";
-import { GEMINI_MODELS, MODEL_PRICING } from "../constants";
+import { GEMINI_MODELS } from "../constants";
 
 import { calculateAICost, withRetry } from "./utils";
 
@@ -26,7 +26,7 @@ export async function evaluateAnalysis(
         usage,
         estimated_cost: calculateAICost(modelId, usage),
       };
-    } catch (error) {
+    } catch {
       continue;
     }
   }
@@ -59,7 +59,7 @@ export async function evaluateResumeAudit(
         usage,
         estimated_cost: calculateAICost(modelId, usage),
       };
-    } catch (error: any) {
+    } catch {
       console.warn(
         `[AGENT_AI] Audit Evaluation failed on ${modelId}, trying next...`,
       );

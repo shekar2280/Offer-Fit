@@ -4,6 +4,7 @@ import { calculateAICost, withRetry } from "../utils";
 import { toolDefinitions, toolHandlers } from "../tools";
 import { evaluateAnalysis } from "../evaluator";
 import { logSystemEvent } from "../../supabase/logger";
+import { CompanyIntel, StrategyData, AuditData } from "../../types";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -16,7 +17,7 @@ export const ANALYSIS_PROMPT = (
   jobType?: string,
   mode: "analyze" | "customize" = "analyze",
   userName?: string,
-  intel?: any,
+  intel?: CompanyIntel,
 ) => `
 You are a dual-mode AI Career Expert.
 
@@ -169,7 +170,7 @@ Output format MUST follow this exact structure:
 
 export interface AgenticAnalysisResult {
   markdown: string;
-  data: any;
+  data: unknown;
   toolUsed: string;
   usage: {
     promptTokenCount: number;
@@ -177,9 +178,9 @@ export interface AgenticAnalysisResult {
     totalTokenCount: number;
   };
   estimated_cost: number;
-  intel?: any;
-  strategy?: any;
-  audit?: any;
+  intel?: CompanyIntel;
+  strategy?: StrategyData;
+  audit?: AuditData;
 }
 
 export async function runAnalysisAgent(
@@ -192,11 +193,11 @@ export async function runAnalysisAgent(
   mode?: "analyze" | "customize",
   bypassJudge: boolean = true,
   userName?: string,
-  intel?: any,
+  intel?: CompanyIntel,
 ): Promise<AgenticAnalysisResult> {
   let response;
-  let finalToolCalls: string[] = [];
-  let totalUsage = {
+  const finalToolCalls: string[] = [];
+  const totalUsage = {
     promptTokenCount: 0,
     candidatesTokenCount: 0,
     totalTokenCount: 0,
@@ -238,7 +239,7 @@ export async function runAnalysisAgent(
         intel,
       );
 
-      let result = await withRetry(() => chat.sendMessage(prompt));
+      const result = await withRetry(() => chat.sendMessage(prompt));
       response = result.response;
 
       if (response.usageMetadata) {
@@ -259,11 +260,12 @@ export async function runAnalysisAgent(
         const functionCalls = response.functionCalls();
         if (!functionCalls) break;
 
-        const functionResponses: any[] = [];
+        const functionResponses: Record<string, unknown>[] = [];
         for (const call of functionCalls) {
           const handler = toolHandlers[call.name as keyof typeof toolHandlers];
           if (handler) {
             finalToolCalls.push(call.name);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const output = await (handler as any)(call.args);
             functionResponses.push({
               functionResponse: {
@@ -275,7 +277,8 @@ export async function runAnalysisAgent(
         }
 
         if (functionResponses.length > 0) {
-          let nextResult = await withRetry(() => chat.sendMessage(functionResponses as any));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const nextResult = await withRetry(() => chat.sendMessage(functionResponses as any));
           response = nextResult.response;
           if (response.usageMetadata) {
             totalUsage.promptTokenCount +=
@@ -289,12 +292,12 @@ export async function runAnalysisAgent(
         }
       }
       break;
-    } catch (error: any) {
+    } catch (error: unknown) {
       await logSystemEvent({
         level: "WARN",
         source: "AGENT_AI_RETRY",
         message: `Model ${modelId} failed, trying next...`,
-        details: { error: error.message }
+        details: { error: (error as Error).message }
       });
       continue;
     }
@@ -305,8 +308,8 @@ export async function runAnalysisAgent(
   }
 
   const text = response.text();
-  let data: any = {};
-  let strategy: any = null;
+  let data: Record<string, unknown> = {};
+  let strategy: StrategyData | undefined = undefined;
   let markdown = text;
 
   if (mode === "customize") {
@@ -324,7 +327,7 @@ export async function runAnalysisAgent(
       const sJson = text.substring(sStart + stratStartMarker.length, sEnd).trim();
       try {
         strategy = JSON.parse(sJson);
-      } catch (e) {}
+      } catch {}
     }
 
     if (lStart !== -1 && lEnd !== -1) {
@@ -355,14 +358,14 @@ export async function runAnalysisAgent(
       }
       try {
         data = JSON.parse(jsonStr);
-      } catch (e) {
+      } catch {
         const jsonMatch = text.match(
           /===JSON_START===\s*(\{[\s\S]*\})\s*===JSON_END===/,
         );
         if (jsonMatch) {
           try {
             data = JSON.parse(jsonMatch[1]);
-          } catch (e) {}
+          } catch {}
         }
       }
       markdown = text
@@ -380,7 +383,7 @@ export async function runAnalysisAgent(
             .replace(jsonMatch[0], "")
             .replace(/#+ PHASE \d:.*?\n/gi, "")
             .trim();
-        } catch (e) {}
+        } catch {}
       }
     }
   }
@@ -430,7 +433,7 @@ export async function runAnalysisAgent(
           );
         }
         break;
-      } catch (e) {}
+      } catch {}
     }
 
     if (correctedResponse) {
@@ -441,7 +444,7 @@ export async function runAnalysisAgent(
       const cEndIndex = cText.indexOf(jsonEndMarker);
 
       if (cStartIndex !== -1 && cEndIndex !== -1) {
-        let cJsonStr = cText
+        const cJsonStr = cText
           .substring(cStartIndex + jsonStartMarker.length, cEndIndex)
           .trim();
         try {
@@ -459,17 +462,17 @@ export async function runAnalysisAgent(
               "",
             )
             .trim();
-        } catch (e) {}
+        } catch {}
       }
     }
   }
 
   if (
     data &&
-    (data as any).verdict &&
-    (data as any).verdict.toString().trim().toUpperCase() === "REJECT"
+    (data as Record<string, unknown>).verdict &&
+    String((data as Record<string, unknown>).verdict).trim().toUpperCase() === "REJECT"
   ) {
-    (data as any).outreach_email = "";
+    (data as Record<string, unknown>).outreach_email = "";
   }
 
   return {
