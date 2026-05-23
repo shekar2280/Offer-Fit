@@ -51,12 +51,6 @@ export function MatchHeader({
 
                 <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
                     <div className="space-y-3">
-                        <div className="flex items-center justify-center lg:justify-start gap-4">
-                            <div className="h-px w-12 bg-primary/40" />
-                            <span className="text-[11px] font-mono uppercase tracking-[0.5em] text-primary font-black">
-                                Match Summary
-                            </span>
-                        </div>
                         <h1 className="font-heading text-6xl md:text-8xl font-black text-white tracking-tight leading-[0.95]">
                             Hiring<br />
                             <span className="text-primary italic font-light">
@@ -72,16 +66,16 @@ export function MatchHeader({
                                 {position}
                             </p>
                         ) : null}
-                        
+
                         {isAnalyzing && !companyName ? (
                             <div className="h-4 w-32 bg-white/5 animate-pulse rounded mt-1" />
                         ) : (
                             <div className="flex items-center gap-3">
                                 {insights?.intel?.logo_url && (
                                     <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                                        <Image 
-                                            src={insights.intel.logo_url} 
-                                            alt={companyName} 
+                                        <Image
+                                            src={insights.intel.logo_url}
+                                            alt={companyName}
                                             fill
                                             unoptimized
                                             className="object-contain"
@@ -132,7 +126,7 @@ export function MatchHeader({
                             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 group/stat hover:border-primary/30 transition-colors">
                                 <Activity className="w-3 h-3 text-white/40 group-hover/stat:text-primary transition-colors" />
                                 <span className="text-[10px] font-mono text-white/40 group-hover/stat:text-white transition-colors">
-                                    {insights.total_tokens.toLocaleString()} <span className="text-[8px] opacity-50 uppercase tracking-tighter">tkns</span>
+                                    {insights.total_tokens.toLocaleString()} <span className="text-[8px] opacity-50 uppercase tracking-tighter">tokens</span>
                                 </span>
                             </div>
                             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 group/stat hover:border-green-500/30 transition-colors">

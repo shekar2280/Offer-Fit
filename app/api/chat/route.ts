@@ -121,7 +121,16 @@ export async function POST(req: Request) {
             return;
           }
 
-          supabase.rpc("increment_user_usage", { p_user_id: user.id }).then(() => {});
+          supabase.rpc("increment_user_usage", { p_user_id: user.id }).then(() => {
+            console.log(`[QUOTA CHARGED] User ${user.id} charged 1 credit. Mode: ${mode}, Cache Miss.`);
+            logSystemEvent({
+              level: "INFO",
+              source: "QUOTA_CHARGED",
+              message: `Charged 1 credit for ${mode}`,
+              userId: user.id,
+              details: { mode, jdHash }
+            });
+          });
         }
 
         sse.send({
