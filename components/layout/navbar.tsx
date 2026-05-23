@@ -23,11 +23,24 @@ export function Navbar({
     usage = null,
 }: NavbarProps) {
     const { resetSession } = useAnalysis();
-    const [clientUsage, setClientUsage] = useState<{ daily_count: number; last_request_at: string | null } | null>(null);
+    const [clientUsage, setClientUsage] = useState<{ daily_count: number; last_request_at: string | null } | null>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("resume_ai_usage");
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch {
+                    return null;
+                }
+            }
+        }
+        return null;
+    });
 
     useEffect(() => {
         if (usage) {
             setClientUsage(usage);
+            localStorage.setItem("resume_ai_usage", JSON.stringify(usage));
             return;
         }
 
@@ -42,6 +55,7 @@ export function Navbar({
                     .single();
                 if (usageData) {
                     setClientUsage(usageData);
+                    localStorage.setItem("resume_ai_usage", JSON.stringify(usageData));
                 }
             }
         };
@@ -50,13 +64,13 @@ export function Navbar({
     }, [usage]);
 
     const getDailyCount = () => {
-        if (!clientUsage) return 0;
+        if (!clientUsage) return null;
         const msSinceLast = clientUsage.last_request_at ? Date.now() - new Date(clientUsage.last_request_at).getTime() : 0;
         return msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS ? 0 : clientUsage.daily_count;
     };
 
     const dailyCount = getDailyCount();
-    const remainingCredits = Math.max(0, USAGE_LIMITS.DAILY_QUOTA - dailyCount);
+    const remainingCredits = dailyCount !== null ? Math.max(0, USAGE_LIMITS.DAILY_QUOTA - dailyCount) : null;
 
     return (
         <header className="w-full h-[68px] shrink-0 sticky top-0 z-50 bg-black/60 backdrop-blur-2xl border-b border-white/[0.06]">
@@ -92,12 +106,27 @@ export function Navbar({
                 </div>
 
                 <div className="flex items-center gap-2.5 flex-none">
-                    <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_0_12px_rgba(255,255,255,0.02)] rounded-full px-3 py-1.5 transition-all hover:bg-white/[0.05] hover:border-white/[0.15]">
-                        <Sparkles className="w-3.5 h-3.5 text-[#F2AA4C]" />
-                        <span className="text-xs font-medium tracking-wide text-white/80">
-                            <span className={remainingCredits === 0 ? "text-red-400" : "text-white"}>{remainingCredits}</span>
-                            <span className="text-white/40 mx-1">/</span>
-                            {USAGE_LIMITS.DAILY_QUOTA} Credits
+                    <div className={`flex items-center gap-1.5 shadow-[inset_0_0_12px_rgba(255,255,255,0.02)] rounded-full px-3.5 py-1.5 transition-all duration-500 ${remainingCredits === 0
+                            ? "bg-rose-950/40 border border-rose-500/30 shadow-[0_0_20px_rgba(239,68,68,0.1)] hover:bg-rose-950/60 hover:border-rose-500/50"
+                            : "bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] hover:border-white/[0.15]"
+                        }`}>
+                        <Sparkles className={`w-3.5 h-3.5 ${remainingCredits === 0 ? "text-rose-400 animate-pulse" : "text-[#F2AA4C]"}`} />
+                        <span className="text-xs font-bold tracking-wide">
+                            {remainingCredits !== null ? (
+                                remainingCredits === 0 ? (
+                                    <span className="text-rose-400 uppercase tracking-widest text-[9px] font-black flex items-center gap-1.5">
+                                        No Credits Remaining
+                                    </span>
+                                ) : (
+                                    <span className="text-white/80">
+                                        <span className="text-white font-extrabold">{remainingCredits}</span>
+                                        <span className="text-white/30 mx-1">/</span>
+                                        <span className="text-white/40">{USAGE_LIMITS.DAILY_QUOTA} Credits</span>
+                                    </span>
+                                )
+                            ) : (
+                                <span className="text-white/30 animate-pulse">-- Credits</span>
+                            )}
                         </span>
                     </div>
 
