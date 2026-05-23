@@ -16,7 +16,7 @@ import { useWorkspaceUI } from "@/lib/context/workspace-ui-context";
 import { AnalysisReportSkeleton, CustomizeReportSkeleton } from "@/components/ui/skeletons";
 import { useDraftPersistence, clearDraft } from "./hooks/use-draft-persistence";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { AnalysisResult } from "@/lib/types";
 
 export function ResumeFeature({
@@ -39,7 +39,6 @@ export function ResumeFeature({
     const queryClient = useQueryClient();
 
     const mode: "analysis" | "customize" = pathname.includes("/customize") ? "customize" : "analysis";
-    const [user, setUser] = useState<User | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [loadingStep, setLoadingStep] = useState(0);
@@ -47,37 +46,45 @@ export function ResumeFeature({
     const [jobLocation, setJobLocation] = useState(initialData?.location || "");
     const [jobType, setJobType] = useState(initialData?.jobType || "");
     const [isEditingForm, setIsEditingForm] = useState(false);
-    const [usage, setUsage] = useState<{ daily_count: number; last_request_at: string | null } | null>(null);
 
-    useEffect(() => {
-        const fetchUser = async () => {
+    const { data: user } = useQuery<User | null>({
+        queryKey: ["user"],
+        queryFn: async () => {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
+            return user;
+        },
+        staleTime: Infinity,
+        gcTime: Infinity,
+    });
 
-            if (user) {
-                const { data: usageData } = await supabase
-                    .from("user_usage")
-                    .select("daily_count, last_request_at")
-                    .eq("user_id", user.id)
-                    .single();
-                setUsage(usageData);
-            }
-        };
-        fetchUser();
-    }, []);
+    const { data: usage } = useQuery({
+        queryKey: ["usage", user?.id],
+        queryFn: async () => {
+            if (!user) return null;
+            const supabase = createClient();
+            const { data } = await supabase
+                .from("user_usage")
+                .select("daily_count, last_request_at")
+                .eq("user_id", user.id)
+                .single();
+            return data;
+        },
+        enabled: !!user,
+        staleTime: 1000 * 30,
+    });
 
     const {
         extractedText, setExtractedText,
         latexText, setLatexText,
         hasExistingResume, setHasExistingResume
-    } = useResumeProfile(user);
+    } = useResumeProfile(user ?? null);
 
     const {
         isHistoryLoading,
         jobData, setJobData,
         analysisState, setAnalysisState
-    } = useResumeHistory(selectedId, user, mode);
+    } = useResumeHistory(selectedId, user ?? null, mode);
 
     useEffect(() => {
         if (initialData) {
@@ -136,6 +143,16 @@ export function ResumeFeature({
         }
     }, [pathname]);
 
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (el) {
+            el.scrollTop = 0;
+        }
+        if (typeof window !== "undefined") {
+            window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        }
+    }, [selectedId, mode, isAnalyzing]);
+
     useDraftPersistence({
         mode,
         selectedId: selectedId ?? null,
@@ -192,13 +209,22 @@ export function ResumeFeature({
 
         router.replace(cleanUrl, { scroll: false });
     };
-
     const analyzeResume = async (text: string, targetMode?: "analysis" | "customize") => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = 0;
+        }
+        if (typeof window !== "undefined") {
+            window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        }
+        const effectiveMode = targetMode || mode;
         setIsAnalyzing(true);
-        setAnalysisState((prev) => ({ ...prev, analysis: "", insights: null }));
+        if (effectiveMode === "customize") {
+            setAnalysisState((prev: any) => ({ ...prev, analysis: "" }));
+        } else {
+            setAnalysisState((prev: any) => ({ ...prev, analysis: "", insights: null }));
+        }
         setServerError(null);
         setLoadingStep(0);
-        const effectiveMode = targetMode || mode;
 
         try {
             const supabase = createClient();
@@ -224,7 +250,7 @@ export function ResumeFeature({
                 }
                 if (newAnalysis) {
                     targetId = newAnalysis.id;
-                    setAnalysisState((prev) => ({ ...prev, currentAnalysisId: newAnalysis.id }));
+                    setAnalysisState((prev: any) => ({ ...prev, currentAnalysisId: newAnalysis.id }));
                     router.replace(`/analyze?id=${newAnalysis.id}`, { scroll: false });
                 }
             }
@@ -302,28 +328,30 @@ export function ResumeFeature({
 
                         if (targetId) {
                             queryClient.setQueryData(["analysis", targetId], (oldData: Record<string, unknown> | undefined) => {
-                                if (!oldData) return oldData;
-
-                                const newData = { ...oldData };
+                                const baseData = (oldData || { id: targetId }) as any;
+                                const newData = { ...baseData } as any;
+                                
                                 if (effectiveMode === "customize") {
                                     newData.customized_latex = event.analysis;
                                     newData.customization_strategy = commonMetadata.strategy;
                                     newData.audit_report = commonMetadata.audit_report;
-                                    newData.intel = commonMetadata.intel || oldData.intel;
+                                    newData.intel = commonMetadata.intel || baseData.intel;
                                 } else {
                                     newData.analysis_result = event.analysis;
                                     newData.match_score = commonMetadata.match_score;
                                     newData.verdict = commonMetadata.verdict;
                                     newData.ats_score = commonMetadata.ats_score;
-                                    newData.intel = commonMetadata.intel || oldData.intel;
+                                    newData.intel = commonMetadata.intel || baseData.intel;
                                 }
+                                
+                                Object.assign(newData, commonMetadata);
                                 return newData;
                             });
                             queryClient.invalidateQueries({ queryKey: ["history", "infinite"] });
                         }
 
                         if (effectiveMode === "customize") {
-                            setAnalysisState((prev) => ({
+                            setAnalysisState((prev: any) => ({
                                 ...prev,
                                 analysis: event.analysis,
                                 insights: {
@@ -334,7 +362,7 @@ export function ResumeFeature({
                                 hasCustomization: true
                             }));
                         } else {
-                            setAnalysisState((prev) => ({
+                            setAnalysisState((prev: any) => ({
                                 ...prev,
                                 analysis: event.analysis,
                                 insights: commonMetadata,
@@ -353,15 +381,7 @@ export function ResumeFeature({
         } finally {
             setIsAnalyzing(false);
             if (user) {
-                const supabase = createClient();
-                supabase
-                    .from("user_usage")
-                    .select("daily_count, last_request_at")
-                    .eq("user_id", user.id)
-                    .single()
-                    .then(({ data }) => {
-                        if (data) setUsage(data);
-                    });
+                queryClient.invalidateQueries({ queryKey: ["usage", user.id] });
             }
         }
     };
