@@ -3,6 +3,7 @@ import { Copy, Check, Brain, Briefcase, Zap, Shield } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
 import remarkGfm from 'remark-gfm';
+import { useQueryClient } from "@tanstack/react-query";
 import { AnalysisResult, CompanyIntel, SalaryInsight as SalaryInsightType, StrategyData, AuditData, InterviewData, Hallucination } from '@/lib/types';
 
 const SectionHeader = ({ icon: Icon, title, subtitle, color = "primary" }: { icon: React.ElementType, title: string, subtitle?: string, color?: string }) => (
@@ -385,6 +386,7 @@ export function InterviewQuestions({ data, onCopy }: { data: InterviewData, onCo
 
 
 export function EmailDraftSection({ analysisId, verdict, initialEmail }: { analysisId: string, verdict: string, initialEmail?: string }) {
+    const queryClient = useQueryClient();
     const [email, setEmail] = React.useState(initialEmail || "");
     const [loading, setLoading] = React.useState(false);
     const [done, setDone] = React.useState(!!initialEmail);
@@ -411,6 +413,7 @@ export function EmailDraftSection({ analysisId, verdict, initialEmail }: { analy
         setLoading(true);
         setEmail("");
         setDone(false);
+        let currentEmail = "";
         try {
             const res = await fetch("/api/generate-email", {
                 method: "POST",
@@ -434,8 +437,25 @@ export function EmailDraftSection({ analysisId, verdict, initialEmail }: { analy
                 for (const line of lines) {
                     if (!line.startsWith("data: ")) continue;
                     const parsed = JSON.parse(line.replace("data: ", ""));
-                    if (parsed.done) { setDone(true); break; }
-                    if (parsed.text) setEmail(prev => prev + parsed.text);
+                    if (parsed.done) { 
+                        setDone(true); 
+                        if (parsed.totalTokens !== undefined && parsed.estimatedCost !== undefined) {
+                            queryClient.setQueryData(["analysis", analysisId], (oldData: any) => {
+                                if (!oldData) return oldData;
+                                return {
+                                    ...oldData,
+                                    total_tokens: parsed.totalTokens,
+                                    estimated_cost: parsed.estimatedCost,
+                                    outreach_email: currentEmail
+                                };
+                            });
+                        }
+                        break; 
+                    }
+                    if (parsed.text) {
+                        currentEmail += parsed.text;
+                        setEmail(prev => prev + parsed.text);
+                    }
                 }
             }
         } finally {
