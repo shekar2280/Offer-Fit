@@ -1,17 +1,19 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Menu, Archive, User, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import logoIcon from "@/assets/icon.png";
 import { useAnalysis } from "@/lib/context/analysis-context";
 import { USAGE_LIMITS } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/client";
 
 interface NavbarProps {
     username: string;
     onMenuClick?: () => void;
     showMenuButton?: boolean;
-    usage?: { daily_count: number; hourly_count: number; last_request_at: string | null } | null;
+    usage?: { daily_count: number; last_request_at: string | null } | null;
 }
 
 export function Navbar({
@@ -21,13 +23,38 @@ export function Navbar({
     usage = null,
 }: NavbarProps) {
     const { resetSession } = useAnalysis();
+    const [clientUsage, setClientUsage] = useState<{ daily_count: number; last_request_at: string | null } | null>(null);
+
+    useEffect(() => {
+        if (usage) {
+            setClientUsage(usage);
+            return;
+        }
+
+        const fetchUsage = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: usageData } = await supabase
+                    .from("user_usage")
+                    .select("daily_count, last_request_at")
+                    .eq("user_id", user.id)
+                    .single();
+                if (usageData) {
+                    setClientUsage(usageData);
+                }
+            }
+        };
+
+        fetchUsage();
+    }, [usage]);
 
     const getDailyCount = () => {
-        if (!usage) return 0;
-        const msSinceLast = usage.last_request_at ? Date.now() - new Date(usage.last_request_at).getTime() : 0;
-        return msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS ? 0 : usage.daily_count;
+        if (!clientUsage) return 0;
+        const msSinceLast = clientUsage.last_request_at ? Date.now() - new Date(clientUsage.last_request_at).getTime() : 0;
+        return msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS ? 0 : clientUsage.daily_count;
     };
-    
+
     const dailyCount = getDailyCount();
     const remainingCredits = Math.max(0, USAGE_LIMITS.DAILY_QUOTA - dailyCount);
 
@@ -64,29 +91,22 @@ export function Navbar({
                     </Link>
                 </div>
 
-                <div className="flex-1 flex justify-center">
-                    {usage && (
-                        <div className="hidden sm:flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_0_12px_rgba(255,255,255,0.02)] rounded-full px-3 py-1.5 transition-all hover:bg-white/[0.05] hover:border-white/[0.15]">
-                            <Sparkles className="w-3.5 h-3.5 text-[#F2AA4C]" />
-                            <span className="text-xs font-medium tracking-wide text-white/80">
-                                <span className={remainingCredits === 0 ? "text-red-400" : "text-white"}>{remainingCredits}</span>
-                                <span className="text-white/40 mx-1">/</span>
-                                {USAGE_LIMITS.DAILY_QUOTA} Credits
-                            </span>
-                        </div>
-                    )}
-                </div>
+                <div className="flex items-center gap-2.5 flex-none">
+                    <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_0_12px_rgba(255,255,255,0.02)] rounded-full px-3 py-1.5 transition-all hover:bg-white/[0.05] hover:border-white/[0.15]">
+                        <Sparkles className="w-3.5 h-3.5 text-[#F2AA4C]" />
+                        <span className="text-xs font-medium tracking-wide text-white/80">
+                            <span className={remainingCredits === 0 ? "text-red-400" : "text-white"}>{remainingCredits}</span>
+                            <span className="text-white/40 mx-1">/</span>
+                            {USAGE_LIMITS.DAILY_QUOTA} Credits
+                        </span>
+                    </div>
 
-                <div className="flex items-center gap-2 flex-none">
                     <Link
                         href="/history"
                         className="flex items-center gap-2 h-8 px-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/20 transition-all group"
                     >
-                        <Archive className="w-3.5 h-3.5 text-primary/60 group-hover:text-primary transition-colors" />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-white/20 group-hover:text-white/80 hidden sm:block">Archive</span>
+                        <Archive className="w-3.5 h-3.5 text-primary group-hover:text-primary transition-colors" />
                     </Link>
-
-                    <div className="w-px h-4 bg-white/10 mx-1" />
 
                     <Link
                         href="/profile"

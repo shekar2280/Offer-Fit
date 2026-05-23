@@ -47,7 +47,7 @@ export function ResumeFeature({
     const [jobLocation, setJobLocation] = useState(initialData?.location || "");
     const [jobType, setJobType] = useState(initialData?.jobType || "");
     const [isEditingForm, setIsEditingForm] = useState(false);
-    const [usage, setUsage] = useState<{ daily_count: number; hourly_count: number; last_request_at: string | null } | null>(null);
+    const [usage, setUsage] = useState<{ daily_count: number; last_request_at: string | null } | null>(null);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -58,7 +58,7 @@ export function ResumeFeature({
             if (user) {
                 const { data: usageData } = await supabase
                     .from("user_usage")
-                    .select("daily_count, hourly_count, last_request_at")
+                    .select("daily_count, last_request_at")
                     .eq("user_id", user.id)
                     .single();
                 setUsage(usageData);
@@ -159,9 +159,8 @@ export function ResumeFeature({
         const msSinceLast = now.getTime() - lastRequest.getTime();
 
         const dailyCount = msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS ? 0 : usage.daily_count;
-        const hourlyCount = msSinceLast > USAGE_LIMITS.HOURLY_REFRESH_MS ? 0 : usage.hourly_count;
 
-        return dailyCount >= USAGE_LIMITS.DAILY_QUOTA || hourlyCount >= USAGE_LIMITS.HOURLY_QUOTA;
+        return dailyCount >= USAGE_LIMITS.DAILY_QUOTA;
     })();
 
     const isSubmitReady = !isAnalyzing && !isUploading && !isOverQuota &&
@@ -353,6 +352,17 @@ export function ResumeFeature({
             toast.error("Generation failed.");
         } finally {
             setIsAnalyzing(false);
+            if (user) {
+                const supabase = createClient();
+                supabase
+                    .from("user_usage")
+                    .select("daily_count, last_request_at")
+                    .eq("user_id", user.id)
+                    .single()
+                    .then(({ data }) => {
+                        if (data) setUsage(data);
+                    });
+            }
         }
     };
 
