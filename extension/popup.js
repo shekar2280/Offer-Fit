@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('jobType').innerText = response.jobType || "Not Detected";
       
       document.getElementById('sync-btn').onclick = () => {
-        const baseUrl = "http://localhost:3000/analyze";
+        const baseUrl = "https://offerfit.vercel.app/analyze";
         const params = new URLSearchParams({
           company: response.company || "",
           role: response.role || "",
