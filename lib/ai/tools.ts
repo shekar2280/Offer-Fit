@@ -42,17 +42,17 @@ export async function performSearch(query: string) {
     });
     if (!response.ok) throw new Error("Search failed");
     const data = await response.json();
-    return data.results.map((r: any) => ({
+    return data.results.map((r: { title: string; content: string; url: string }) => ({
       title: r.title,
       content: r.content,
       url: r.url
     }));
-  } catch (error: any) {
+  } catch (error: unknown) {
     await logSystemEvent({
       level: "ERROR",
       source: "TOOLS_SEARCH",
       message: `Search failed for: ${query}`,
-      details: { error: error.message }
+      details: { error: error instanceof Error ? error.message : String(error) }
     });
     return [];
   }

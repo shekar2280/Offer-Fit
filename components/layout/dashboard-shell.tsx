@@ -1,7 +1,8 @@
 import { ResumeUpload } from "@/components/features/resume/resume-upload";
 import { Navbar } from "@/components/layout/navbar";
+import { User } from "@supabase/supabase-js";
 
-export function DashboardShell({ user }: { user: any }) {
+export function DashboardShell({ user }: { user: User | null }) {
     const username = user?.email?.split('@')[0] || "User";
 
     return (

@@ -4,9 +4,11 @@ import {
   runAnalysisAgent,
   runMultiStepCustomization,
   runResearchAgent,
+  AgenticAnalysisResult
 } from "@/lib/ai/agent";
 import { logSystemEvent } from "@/lib/supabase/logger";
 import { USAGE_LIMITS } from "@/lib/constants";
+import { AnalysisResult } from "@/lib/types";
 import { checkRateLimit, getCache, setCache } from "@/lib/redis";
 import { createHash } from "crypto";
 
@@ -66,6 +68,35 @@ export async function POST(req: Request) {
           return;
         }
 
+        const jd = messages[messages.length - 1].content;
+        const context =
+          resumeText ||
+          (await getRelevantContext(
+            supabase,
+            user?.id || "benchmark_test_id",
+            jd,
+          ));
+
+        const jdHash = createHash("sha256").update(context + jd + mode).digest("hex");
+        const cacheKey = `report:${user?.id || "benchmark"}:${jdHash}`;
+        const cachedReport = (await getCache(cacheKey)) as { markdown?: string; metadata?: unknown; toolUsed?: string } | null;
+
+        if (cachedReport) {
+          sse.send({
+            type: "progress",
+            step: 5,
+            message: "Restoring report from cache...",
+          });
+          sse.send({
+            type: "result",
+            analysis: cachedReport.markdown,
+            metadata: cachedReport.metadata,
+            toolUsed: cachedReport.toolUsed || "none",
+          });
+          sse.close();
+          return;
+        }
+
         if (user) {
           const dailyLimitCheck = await checkRateLimit(
             `rate:daily:${user.id}`,
@@ -90,29 +121,16 @@ export async function POST(req: Request) {
             return;
           }
 
-          const hourlyLimitCheck = await checkRateLimit(
-            `rate:hourly:${user.id}`,
-            USAGE_LIMITS.HOURLY_QUOTA,
-            USAGE_LIMITS.HOURLY_REFRESH_MS
-          );
-          if (!hourlyLimitCheck.success) {
-            sse.send({
-              type: "error",
-              error: `Hourly limit exceeded (${USAGE_LIMITS.HOURLY_QUOTA}/hr). Please wait a few minutes.`,
+          supabase.rpc("increment_user_usage", { p_user_id: user.id }).then(() => {
+            console.log(`[QUOTA CHARGED] User ${user.id} charged 1 credit. Mode: ${mode}, Cache Miss.`);
+            logSystemEvent({
+              level: "INFO",
+              source: "QUOTA_CHARGED",
+              message: `Charged 1 credit for ${mode}`,
+              userId: user.id,
+              details: { mode, jdHash }
             });
-            sse.close();
-            return;
-          }
-
-          supabase.from("user_usage").upsert(
-            {
-              user_id: user.id,
-              daily_count: 1,
-              hourly_count: 1,
-              last_request_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" }
-          ).then(() => {});
+          });
         }
 
         sse.send({
@@ -120,35 +138,6 @@ export async function POST(req: Request) {
           step: 1,
           message: "Loading resume context...",
         });
-
-        const jd = messages[messages.length - 1].content;
-        const context =
-          resumeText ||
-          (await getRelevantContext(
-            supabase,
-            user?.id || "benchmark_test_id",
-            jd,
-          ));
-
-        const jdHash = createHash("sha256").update(context + jd + mode).digest("hex");
-        const cacheKey = `report:${user?.id || "benchmark"}:${jdHash}`;
-        const cachedReport = await getCache(cacheKey);
-
-        if (cachedReport) {
-          sse.send({
-            type: "progress",
-            step: 5,
-            message: "Restoring report from cache...",
-          });
-          sse.send({
-            type: "result",
-            analysis: cachedReport.markdown,
-            metadata: cachedReport.metadata,
-            toolUsed: cachedReport.toolUsed || "none",
-          });
-          sse.close();
-          return;
-        }
 
 
         sse.send({
@@ -165,7 +154,7 @@ export async function POST(req: Request) {
         const userName =
           user?.user_metadata?.full_name || user?.user_metadata?.name;
 
-        let result: any;
+        let result: AgenticAnalysisResult;
 
         if (mode === "customize") {
           sse.send({
@@ -225,7 +214,7 @@ export async function POST(req: Request) {
 
           result = { 
             ...analysisResult, 
-            data: { ...analysisResult.data, ...intelData },
+            data: { ...(analysisResult.data as Record<string, unknown>), ...intelData },
             intel: researchResult 
           };
         }
@@ -251,14 +240,28 @@ export async function POST(req: Request) {
         });
 
 
+        const parsedData = data as Partial<AnalysisResult>;
+
+        let existingTokens = 0;
+        let existingCost = 0;
+
         if (analysisId && user) {
+          const { data: existingAnalysis } = await supabase
+            .from("analyses")
+            .select("total_tokens, estimated_cost")
+            .eq("id", analysisId)
+            .single();
+
+          existingTokens = Number(existingAnalysis?.total_tokens || 0);
+          existingCost = Number(existingAnalysis?.estimated_cost || 0);
+
           if (agentMode === "customize") {
             await supabase
               .from("analyses")
               .update({
                 customized_latex: markdown,
-                total_tokens: usage?.totalTokenCount || 0,
-                estimated_cost: estimated_cost,
+                total_tokens: existingTokens + (usage?.totalTokenCount || 0),
+                estimated_cost: existingCost + (estimated_cost || 0),
                 intel_id: finalIntel?.id || null,
                 customization_strategy: strategy || null,
                 audit_report: audit || null,
@@ -266,22 +269,22 @@ export async function POST(req: Request) {
               })
               .eq("id", analysisId);
           } else {
-            const updatePayload: Record<string, any> = {
-              match_score: data.match_score || 0,
-              verdict: data.verdict || "REJECT",
-              ats_score: data.ats_score || 0,
-              keyword_density: data.keyword_density || 0,
-              matched_skills: data.matched_skills || [],
-              missing_skills: data.missing_skills || [],
-              salary_insight: data.salary_insight || null,
-              red_flags: data.red_flags || [],
-              interview_questions: data.interview_questions || [],
-              outreach_email: data.outreach_email || "",
-              culture_fit_score: data.culture_fit_score ?? null,
-              company_cheat_sheet: data.company_cheat_sheet || null,
-              culture_traits: data.culture_traits || [],
-              total_tokens: usage?.totalTokenCount || 0,
-              estimated_cost: estimated_cost,
+            const updatePayload: Record<string, unknown> = {
+              match_score: parsedData.match_score || 0,
+              verdict: parsedData.verdict || "REJECT",
+              ats_score: parsedData.ats_score || 0,
+              keyword_density: parsedData.keyword_density || 0,
+              matched_skills: parsedData.matched_skills || [],
+              missing_skills: parsedData.missing_skills || [],
+              salary_insight: parsedData.salary_insight || null,
+              red_flags: parsedData.red_flags || [],
+              interview_questions: parsedData.interview_questions || [],
+              outreach_email: parsedData.outreach_email || "",
+              culture_fit_score: parsedData.culture_fit_score ?? null,
+              company_cheat_sheet: parsedData.company_cheat_sheet || null,
+              culture_traits: parsedData.culture_traits || [],
+              total_tokens: existingTokens + (usage?.totalTokenCount || 0),
+              estimated_cost: existingCost + (estimated_cost || 0),
               analysis_result: markdown,
               intel_id: finalIntel?.id || null,
               status: "completed"
@@ -302,28 +305,28 @@ export async function POST(req: Request) {
         const metadata =
           agentMode === "customize"
             ? {
-                total_tokens: usage?.totalTokenCount || 0,
-                estimated_cost: estimated_cost,
+                total_tokens: existingTokens + (usage?.totalTokenCount || 0),
+                estimated_cost: existingCost + (estimated_cost || 0),
                 intel: finalIntel || null,
                 strategy: strategy || null,
                 audit: audit || null,
               }
             : {
-                match_score: data.match_score || 0,
-                verdict: data.verdict || "REJECT",
-                ats_score: data.ats_score || 0,
-                keyword_density: data.keyword_density || 0,
-                matched_skills: data.matched_skills || [],
-                missing_skills: data.missing_skills || [],
-                salary_insight: data.salary_insight || null,
-                red_flags: data.red_flags || [],
-                interview_questions: data.interview_questions || [],
-                outreach_email: data.outreach_email || "",
-                culture_fit_score: data.culture_fit_score ?? null,
-                company_cheat_sheet: data.company_cheat_sheet || null,
-                culture_traits: data.culture_traits || [],
-                total_tokens: usage?.totalTokenCount || 0,
-                estimated_cost: estimated_cost,
+                match_score: parsedData.match_score || 0,
+                verdict: parsedData.verdict || "REJECT",
+                ats_score: parsedData.ats_score || 0,
+                keyword_density: parsedData.keyword_density || 0,
+                matched_skills: parsedData.matched_skills || [],
+                missing_skills: parsedData.missing_skills || [],
+                salary_insight: parsedData.salary_insight || null,
+                red_flags: parsedData.red_flags || [],
+                interview_questions: parsedData.interview_questions || [],
+                outreach_email: parsedData.outreach_email || "",
+                culture_fit_score: parsedData.culture_fit_score ?? null,
+                company_cheat_sheet: parsedData.company_cheat_sheet || null,
+                culture_traits: parsedData.culture_traits || [],
+                total_tokens: existingTokens + (usage?.totalTokenCount || 0),
+                estimated_cost: existingCost + (estimated_cost || 0),
                 intel: finalIntel || null,
               };
 
@@ -337,11 +340,11 @@ export async function POST(req: Request) {
         });
 
         sse.close();
-      } catch (error: any) {
+      } catch (error: unknown) {
         await logSystemEvent({
           level: "ERROR",
           source: "API_CHAT",
-          message: error.message || "Analysis failed",
+          message: (error as Error).message || "Analysis failed",
           details: { error },
         });
 

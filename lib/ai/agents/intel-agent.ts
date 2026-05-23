@@ -52,7 +52,7 @@ export async function runIntelAgent(
         }
         return JSON.parse(jsonStr);
       }
-    } catch (error) {
+    } catch {
       continue;
     }
   }

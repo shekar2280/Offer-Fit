@@ -9,6 +9,27 @@ export interface InterviewQuestion {
   intent: string;
 }
 
+export interface InterviewData {
+  questions: (string | InterviewQuestion)[];
+  preparation_focus?: string;
+}
+
+export interface StrategyData {
+  strategy_pillars: string[];
+  key_keywords_to_inject?: string[];
+}
+
+export interface Hallucination {
+  tailored: string;
+  reason: string;
+}
+
+export interface AuditData {
+  verdict: string;
+  integrity_score: number;
+  hallucinations_found?: (string | Hallucination)[];
+}
+
 export interface AnalysisResult {
   match_score?: number;
   verdict?: string;
@@ -28,8 +49,8 @@ export interface AnalysisResult {
   total_tokens?: number;
   estimated_cost?: number;
   intel?: CompanyIntel;
-  strategy?: any;
-  audit_report?: any;
+  strategy?: StrategyData;
+  audit_report?: AuditData;
 }
 
 export interface AnalysisState {
@@ -54,7 +75,7 @@ export interface AnalysisContextType {
 export interface CompanyIntel {
     id: string;
     company_name: string;
-    tech_stack: any;
+    tech_stack: unknown;
     values_culture: string | null;
     engineering_blog_summary: string | null;
     is_startup: boolean;

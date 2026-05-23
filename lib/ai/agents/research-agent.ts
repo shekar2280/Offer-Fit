@@ -3,6 +3,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { GEMINI_MODELS } from "../../constants";
 import { getCompanyIntel, upsertCompanyIntel } from "../../supabase/intel";
 import { performSearch } from "../tools";
+import { CompanyIntel } from "../../types";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -52,13 +53,14 @@ export async function runResearchAgent(
 ) {
   const cachedIntel = await getCompanyIntel(supabase, companyName);
   if (cachedIntel) {
-    const techStack = cachedIntel.tech_stack || {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const techStack = (cachedIntel.tech_stack as Record<string, any>) || {};
     return {
       ...cachedIntel,
       salary_insight: techStack.salary_insight || { range: "Competitive", currency: "INR", seniority: "Mid" },
       company_cheat_sheet: techStack.company_cheat_sheet || "• High-growth tech company\n• Values innovation and impact",
       culture_traits: techStack.culture_traits || ["Innovative", "Fast-paced"]
-    };
+    } as CompanyIntel & { salary_insight: Record<string, string>; company_cheat_sheet: string; culture_traits: string[] };
   }
 
   const searchQueries = [
@@ -103,7 +105,7 @@ export async function runResearchAgent(
         }
         try {
           distilledData = JSON.parse(jsonStr);
-        } catch (e) {}
+        } catch {}
       }
 
       const dbPayload = {
@@ -130,8 +132,8 @@ export async function runResearchAgent(
         salary_insight: distilledData.salary_insight,
         company_cheat_sheet: distilledData.company_cheat_sheet,
         culture_traits: distilledData.culture_traits
-      };
-    } catch (error: any) {
+      } as CompanyIntel & { salary_insight: Record<string, string>; company_cheat_sheet: string; culture_traits: string[] };
+    } catch {
       continue;
     }
   }
@@ -164,7 +166,7 @@ export async function runResearchAgent(
     salary_insight: fallbackIntel.salary_insight,
     company_cheat_sheet: fallbackIntel.company_cheat_sheet,
     culture_traits: fallbackIntel.culture_traits
-  };
+  } as CompanyIntel & { salary_insight: Record<string, string>; company_cheat_sheet: string; culture_traits: string[] };
 }
 
 

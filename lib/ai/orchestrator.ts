@@ -38,7 +38,7 @@ export async function runMultiStepCustomization(
 
   return {
     ...draftResults,
-    data: { ...draftResults.data, ...intelData },
+    data: { ...(draftResults.data as Record<string, unknown>), ...intelData },
     strategy: draftResults.strategy || {
       strategy_pillars: [
         "Surgically align technical skills with the Job Description.",

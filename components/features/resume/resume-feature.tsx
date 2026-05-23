@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { AnalysisReport } from "./components/analysis-report";
 import { ActiveWorkspace } from "./components/active-workspace";
@@ -15,10 +16,11 @@ import { useWorkspaceUI } from "@/lib/context/workspace-ui-context";
 import { AnalysisReportSkeleton, CustomizeReportSkeleton } from "@/components/ui/skeletons";
 import { useDraftPersistence, clearDraft } from "./hooks/use-draft-persistence";
 import { useKeyboardShortcuts } from "./hooks/use-keyboard-shortcuts";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { AnalysisResult } from "@/lib/types";
 
 export function ResumeFeature({
-    mode: initialMode,
+    mode: _initialMode,
     selectedId,
     initialData
 }: {
@@ -37,7 +39,6 @@ export function ResumeFeature({
     const queryClient = useQueryClient();
 
     const mode: "analysis" | "customize" = pathname.includes("/customize") ? "customize" : "analysis";
-    const [user, setUser] = useState<any>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [loadingStep, setLoadingStep] = useState(0);
@@ -45,42 +46,49 @@ export function ResumeFeature({
     const [jobLocation, setJobLocation] = useState(initialData?.location || "");
     const [jobType, setJobType] = useState(initialData?.jobType || "");
     const [isEditingForm, setIsEditingForm] = useState(false);
-    const [usage, setUsage] = useState<{ daily_count: number; hourly_count: number; last_request_at: string | null } | null>(null);
 
-    useEffect(() => {
-        const fetchUser = async () => {
+    const { data: user } = useQuery<User | null>({
+        queryKey: ["user"],
+        queryFn: async () => {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
+            return user;
+        },
+        staleTime: Infinity,
+        gcTime: Infinity,
+    });
 
-            if (user) {
-                const { data: usageData } = await supabase
-                    .from("user_usage")
-                    .select("daily_count, hourly_count, last_request_at")
-                    .eq("user_id", user.id)
-                    .single();
-                setUsage(usageData);
-            }
-        };
-        fetchUser();
-    }, []);
+    const { data: usage } = useQuery({
+        queryKey: ["usage", user?.id],
+        queryFn: async () => {
+            if (!user) return null;
+            const supabase = createClient();
+            const { data } = await supabase
+                .from("user_usage")
+                .select("daily_count, last_request_at")
+                .eq("user_id", user.id)
+                .single();
+            return data;
+        },
+        enabled: !!user,
+        staleTime: 1000 * 30,
+    });
 
     const {
         extractedText, setExtractedText,
         latexText, setLatexText,
-        hasExistingResume, setHasExistingResume,
-        masterLatex, masterExtractedText
-    } = useResumeProfile(user);
+        hasExistingResume, setHasExistingResume
+    } = useResumeProfile(user ?? null);
 
     const {
         isHistoryLoading,
         jobData, setJobData,
         analysisState, setAnalysisState
-    } = useResumeHistory(selectedId, user, mode);
+    } = useResumeHistory(selectedId, user ?? null, mode);
 
     useEffect(() => {
         if (initialData) {
-            setJobData((prev: any) => ({
+            setJobData((prev) => ({
                 company: initialData.companyName || prev.company,
                 role: initialData.position || prev.role,
                 description: initialData.jd || prev.description
@@ -116,13 +124,13 @@ export function ResumeFeature({
         }
     }, [mode, isHistoryLoading, isAnalyzing, analysisState.analysis, jobData.description, latexText, extractedText]);
 
-    const { saveScrollPosition, getScrollPosition, setLastRoute } = useWorkspaceUI();
+    const { saveScrollPosition, getScrollPosition } = useWorkspaceUI();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const companyInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        const el = scrollContainerRef.current;
         return () => {
-            const el = scrollContainerRef.current;
             if (el) saveScrollPosition(pathname, el.scrollTop);
         };
     }, [pathname, saveScrollPosition]);
@@ -134,6 +142,16 @@ export function ResumeFeature({
             el.scrollTop = savedOffset;
         }
     }, [pathname]);
+
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (el) {
+            el.scrollTop = 0;
+        }
+        if (typeof window !== "undefined") {
+            window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        }
+    }, [selectedId, mode, isAnalyzing]);
 
     useDraftPersistence({
         mode,
@@ -158,9 +176,8 @@ export function ResumeFeature({
         const msSinceLast = now.getTime() - lastRequest.getTime();
 
         const dailyCount = msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS ? 0 : usage.daily_count;
-        const hourlyCount = msSinceLast > USAGE_LIMITS.HOURLY_REFRESH_MS ? 0 : usage.hourly_count;
 
-        return dailyCount >= USAGE_LIMITS.DAILY_QUOTA || hourlyCount >= USAGE_LIMITS.HOURLY_QUOTA;
+        return dailyCount >= USAGE_LIMITS.DAILY_QUOTA;
     })();
 
     const isSubmitReady = !isAnalyzing && !isUploading && !isOverQuota &&
@@ -172,9 +189,7 @@ export function ResumeFeature({
         onSubmit: () => {
             if (!isSubmitReady) return;
             toast.info("⌘↵ Analyzing...", { duration: 1500 });
-            mode === "customize"
-                ? analyzeResume(latexText || "")
-                : analyzeResume(extractedText || "");
+            analyzeResume(mode === "customize" ? (latexText || "") : (extractedText || ""));
         },
         onFocusSearch: () => {
             companyInputRef.current?.focus();
@@ -194,13 +209,22 @@ export function ResumeFeature({
 
         router.replace(cleanUrl, { scroll: false });
     };
-
     const analyzeResume = async (text: string, targetMode?: "analysis" | "customize") => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = 0;
+        }
+        if (typeof window !== "undefined") {
+            window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        }
+        const effectiveMode = targetMode || mode;
         setIsAnalyzing(true);
-        setAnalysisState((prev: any) => ({ ...prev, analysis: "", insights: null }));
+        if (effectiveMode === "customize") {
+            setAnalysisState((prev: any) => ({ ...prev, analysis: "" }));
+        } else {
+            setAnalysisState((prev: any) => ({ ...prev, analysis: "", insights: null }));
+        }
         setServerError(null);
         setLoadingStep(0);
-        const effectiveMode = targetMode || mode;
 
         try {
             const supabase = createClient();
@@ -267,40 +291,63 @@ export function ResumeFeature({
                     const dataPart = line.replace(/^data: /, "").trim();
                     if (!dataPart) continue;
 
-                    let event: any;
+                    let event: { 
+                        type?: string; 
+                        step?: number; 
+                        message?: string; 
+                        error?: string; 
+                        toolUsed?: string; 
+                        analysis?: string; 
+                        metadata?: { 
+                            audit?: unknown; 
+                            strategy?: unknown; 
+                            intel?: unknown; 
+                            match_score?: number; 
+                            verdict?: string; 
+                            ats_score?: number; 
+                            [key: string]: unknown;
+                        } 
+                    };
                     try { event = JSON.parse(dataPart); } catch { continue; }
 
                     if (event.type === "progress") {
-                        setLoadingStep(event.step - 1);
-                        LOADING_MESSAGES[event.step - 1] = event.message;
+                        if (event.step !== undefined) {
+                            setLoadingStep(event.step - 1);
+                            if (event.message !== undefined) {
+                                LOADING_MESSAGES[event.step - 1] = event.message;
+                            }
+                        }
                     } else if (event.type === "result") {
                         clearDraft(effectiveMode === "customize" ? "customize" : "analysis");
 
                         const commonMetadata = {
-                            ...event.metadata,
-                            audit_report: event.metadata.audit,
-                            toolUsed: event.toolUsed !== "none" ? event.toolUsed?.split(", ") : []
-                        };
+                            ...(event.metadata || {}),
+                            audit_report: event.metadata?.audit,
+                            toolUsed: event.toolUsed !== "none" ? event.toolUsed : undefined
+                        } as Partial<AnalysisResult>;
 
                         if (targetId) {
-                            queryClient.setQueryData(["analysis", targetId], (oldData: any) => {
-                                if (!oldData) return oldData;
-
-                                const newData = { ...oldData };
+                            queryClient.setQueryData(["analysis", targetId], (oldData: Record<string, unknown> | undefined) => {
+                                const baseData = (oldData || { id: targetId }) as any;
+                                const newData = { ...baseData } as any;
+                                
                                 if (effectiveMode === "customize") {
                                     newData.customized_latex = event.analysis;
                                     newData.customization_strategy = commonMetadata.strategy;
                                     newData.audit_report = commonMetadata.audit_report;
-                                    newData.intel = commonMetadata.intel || oldData.intel;
+                                    newData.intel = commonMetadata.intel || baseData.intel;
                                 } else {
                                     newData.analysis_result = event.analysis;
                                     newData.match_score = commonMetadata.match_score;
                                     newData.verdict = commonMetadata.verdict;
                                     newData.ats_score = commonMetadata.ats_score;
-                                    newData.intel = commonMetadata.intel || oldData.intel;
+                                    newData.intel = commonMetadata.intel || baseData.intel;
                                 }
+                                
+                                Object.assign(newData, commonMetadata);
                                 return newData;
                             });
+                            queryClient.invalidateQueries({ queryKey: ["history", "infinite"] });
                         }
 
                         if (effectiveMode === "customize") {
@@ -327,11 +374,15 @@ export function ResumeFeature({
                     }
                 }
             }
-        } catch (error: any) {
-            setServerError(error.message || "Analysis failed. Please try again.");
+        } catch (error: unknown) {
+            const err = error as Error;
+            setServerError(err.message || "Analysis failed. Please try again.");
             toast.error("Generation failed.");
         } finally {
             setIsAnalyzing(false);
+            if (user) {
+                queryClient.invalidateQueries({ queryKey: ["usage", user.id] });
+            }
         }
     };
 
@@ -345,17 +396,19 @@ export function ResumeFeature({
             if (data.text) {
                 if (file.type === "application/pdf") {
                     setExtractedText(data.text);
-                    const supabase = createClient();
-                    await supabase.from("profiles").update({ resume_text: data.text }).eq("id", user.id);
+                    if (user) {
+                        const supabase = createClient();
+                        await supabase.from("profiles").update({ resume_text: data.text }).eq("id", user.id);
 
-                    await fetch("/api/index", {
-                        method: "POST",
-                        body: JSON.stringify({ text: data.text }),
-                    });
+                        await fetch("/api/index", {
+                            method: "POST",
+                            body: JSON.stringify({ text: data.text }),
+                        });
+                    }
                 }
                 else setLatexText(data.text);
             }
-        } catch (error) {
+        } catch {
             toast.error("Upload failed");
         } finally { setIsUploading(false); }
     };
@@ -385,7 +438,7 @@ export function ResumeFeature({
             if (error) throw error;
             setHasExistingResume(true);
             toast.success("Master LaTeX saved to your profile!");
-        } catch (error) { toast.error("Failed to save to profile."); }
+        } catch { toast.error("Failed to save to profile."); }
     };
 
     const username = user?.email?.split('@')[0] || "User";
@@ -397,6 +450,7 @@ export function ResumeFeature({
             <Navbar
                 username={username}
                 showMenuButton={false}
+                usage={usage}
             />
             <main ref={scrollContainerRef} className="relative z-10 flex items-start justify-center p-0 md:px-4 md:pt-2 md:pb-0 overflow-y-auto min-h-[calc(100vh-68px)]">
                 {isHistoryLoading && !jobData.company ? (
@@ -430,15 +484,15 @@ export function ResumeFeature({
                                 mainTab={mode}
                                 onBack={() => router.push("/", { scroll: false })}
                                 companyName={jobData.company}
-                                setCompanyName={(v) => setJobData((p: any) => ({ ...p, company: v }))}
+                                setCompanyName={(v) => setJobData((p) => ({ ...p, company: v }))}
                                 position={jobData.role}
-                                setPosition={(v) => setJobData((p: any) => ({ ...p, role: v }))}
+                                setPosition={(v) => setJobData((p) => ({ ...p, role: v }))}
                                 location={jobLocation}
                                 setLocation={setJobLocation}
                                 jobType={jobType}
                                 setJobType={setJobType}
                                 jobDescription={jobData.description}
-                                setJobDescription={(v) => setJobData((p: any) => ({ ...p, description: v }))}
+                                setJobDescription={(v) => setJobData((p) => ({ ...p, description: v }))}
                                 latexText={latexText}
                                 setLatexText={setLatexText}
                                 extractedText={extractedText}

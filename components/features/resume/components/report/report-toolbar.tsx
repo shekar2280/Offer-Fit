@@ -21,11 +21,9 @@ export function ReportToolbar({
     serverError,
     mode,
     hasCustomization,
-    isHistoryMode,
     onSwitchMode,
     onReset,
     isEditingForm,
-    onToggleForm,
     verdict,
     missingSkills = [],
     redFlags = []
@@ -45,32 +43,35 @@ export function ReportToolbar({
             <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${serverError ? 'bg-red-500' : 'bg-primary'} animate-pulse`} />
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">
-                    {serverError ? "Analysis Failed" : isAnalyzing ? "Scanning Resume" : "Analysis Complete"}
+                    {serverError
+                        ? "Analysis Failed"
+                        : isAnalyzing
+                            ? (mode === "customize" ? "Optimizing LaTeX..." : "Generating Deep Analysis...")
+                            : (mode === "customize" ? "Resume Customized" : "Analysis Complete")
+                    }
                 </span>
             </div>
-            
+
             <div className="flex items-center gap-3">
                 {!isAnalyzing && !isEditingForm && (
-                    <button 
+                    <button
                         onClick={handleCustomizeClick}
-                        className={`min-w-[200px] h-10 px-6 rounded-full border transition-all backdrop-blur-md group/mode flex items-center justify-center ${
-                            mode === "analysis" 
-                                ? (hasCustomization 
-                                    ? "border-primary/40 bg-primary/10 hover:bg-primary/20 shadow-[0_0_20px_-5px_rgba(242,170,76,0.2)]" 
-                                    : (verdict === "REJECT" 
-                                        ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10" 
-                                        : "border-white/20 bg-black hover:bg-white/5")
-                                ) 
-                                : "border-primary/40 bg-primary/10 hover:bg-primary/20"
-                        }`}
+                        className={`min-w-[200px] h-10 px-6 rounded-full border transition-all backdrop-blur-md group/mode flex items-center justify-center ${mode === "analysis"
+                            ? (hasCustomization
+                                ? "border-primary/40 bg-primary/10 hover:bg-primary/20 shadow-[0_0_20px_-5px_rgba(242,170,76,0.2)]"
+                                : (verdict === "REJECT"
+                                    ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
+                                    : "border-white/20 bg-black hover:bg-white/5")
+                            )
+                            : "border-primary/40 bg-primary/10 hover:bg-primary/20"
+                            }`}
                     >
-                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-300 ${
-                            mode === "analysis"
-                                ? (hasCustomization ? "text-primary" : (verdict === "REJECT" ? "text-destructive" : "text-white"))
-                                : "text-primary"
-                        }`}>
-                            {mode === "analysis" 
-                                ? (hasCustomization ? "View Tailored Resume" : (verdict === "REJECT" ? "⚠️ Customize (High Risk)" : "Customize Resume")) 
+                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-300 ${mode === "analysis"
+                            ? (hasCustomization ? "text-primary" : (verdict === "REJECT" ? "text-destructive" : "text-white"))
+                            : "text-primary"
+                            }`}>
+                            {mode === "analysis"
+                                ? (hasCustomization ? "View Tailored Resume" : (verdict === "REJECT" ? "⚠️ Customize (High Risk)" : "Customize Resume"))
                                 : "View Analysis Report"
                             }
                         </span>
@@ -92,7 +93,7 @@ export function ReportToolbar({
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 backdrop-blur-xl bg-black/80 animate-in fade-in duration-300">
                     <div className="relative w-full max-w-xl bg-zinc-950 border border-destructive/30 rounded-[2.5rem] p-8 md:p-10 shadow-[0_0_100px_-20px_rgba(239,68,68,0.2)] overflow-hidden">
                         <div className="absolute -top-24 -right-24 w-64 h-64 bg-destructive/10 blur-[80px] rounded-full" />
-                        
+
                         <div className="relative z-10 space-y-8">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-2">
@@ -104,7 +105,7 @@ export function ReportToolbar({
                                     </div>
                                     <h2 className="text-3xl font-black text-white tracking-tight">Fundamental <span className="text-destructive">Gaps</span> Detected.</h2>
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => setShowDisclosure(false)}
                                     className="p-2 rounded-full hover:bg-white/5 transition-colors text-white/20 hover:text-white"
                                 >
@@ -151,13 +152,13 @@ export function ReportToolbar({
                             </div>
 
                             <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-                                <button 
+                                <button
                                     onClick={() => setShowDisclosure(false)}
                                     className="w-full sm:w-auto px-8 h-12 rounded-2xl border border-white/10 text-white/60 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all"
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => {
                                         setShowDisclosure(false);
                                         onSwitchMode("customize");

@@ -1,6 +1,6 @@
 import { MODEL_PRICING } from "../constants";
 
-export function calculateAICost(modelId: string, usage?: any): number {
+export function calculateAICost(modelId: string, usage?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number }): number {
   if (!usage) return 0;
   const pricing = MODEL_PRICING[modelId as keyof typeof MODEL_PRICING];
   if (!pricing) return 0;
@@ -18,15 +18,16 @@ export async function withRetry<T>(
 ): Promise<T> {
   try {
     return await fn();
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (retries <= 0) {
       throw error;
     }
 
-    const errMsg = error.message?.toUpperCase() || "";
+    const err = error as Error & { status?: number };
+    const errMsg = err.message?.toUpperCase() || "";
     const isTransient =
-      error.status === 429 ||
-      error.status >= 500 ||
+      err.status === 429 ||
+      (err.status && err.status >= 500) ||
       errMsg.includes("RATE LIMIT") ||
       errMsg.includes("EXHAUSTED") ||
       errMsg.includes("TIMEOUT") ||

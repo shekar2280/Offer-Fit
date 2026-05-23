@@ -1,32 +1,76 @@
 "use client";
 
-import { Menu, Archive, Sparkles, ScanText, RotateCcw, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Menu, Archive, User, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { LogoutButton } from "../features/auth/logout-button";
 import logoIcon from "@/assets/icon.png";
 import { useAnalysis } from "@/lib/context/analysis-context";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { USAGE_LIMITS } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/client";
 
 interface NavbarProps {
     username: string;
     onMenuClick?: () => void;
     showMenuButton?: boolean;
+    usage?: { daily_count: number; last_request_at: string | null } | null;
 }
 
-export function Navbar({ 
-    username, 
-    onMenuClick, 
+export function Navbar({
+    username: _username,
+    onMenuClick,
     showMenuButton = true,
+    usage = null,
 }: NavbarProps) {
     const { resetSession } = useAnalysis();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-    const router = useRouter();
+    const [clientUsage, setClientUsage] = useState<{ daily_count: number; last_request_at: string | null } | null>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("resume_ai_usage");
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch {
+                    return null;
+                }
+            }
+        }
+        return null;
+    });
 
-    const navLinks = [
-        { href: "/history",  label: "Archive",  icon: Archive   },
-    ];
+    useEffect(() => {
+        if (usage) {
+            setClientUsage(usage);
+            localStorage.setItem("resume_ai_usage", JSON.stringify(usage));
+            return;
+        }
+
+        const fetchUsage = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: usageData } = await supabase
+                    .from("user_usage")
+                    .select("daily_count, last_request_at")
+                    .eq("user_id", user.id)
+                    .single();
+                if (usageData) {
+                    setClientUsage(usageData);
+                    localStorage.setItem("resume_ai_usage", JSON.stringify(usageData));
+                }
+            }
+        };
+
+        fetchUsage();
+    }, [usage]);
+
+    const getDailyCount = () => {
+        if (!clientUsage) return null;
+        const msSinceLast = clientUsage.last_request_at ? Date.now() - new Date(clientUsage.last_request_at).getTime() : 0;
+        return msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS ? 0 : clientUsage.daily_count;
+    };
+
+    const dailyCount = getDailyCount();
+    const remainingCredits = dailyCount !== null ? Math.max(0, USAGE_LIMITS.DAILY_QUOTA - dailyCount) : null;
 
     return (
         <header className="w-full h-[68px] shrink-0 sticky top-0 z-50 bg-black/60 backdrop-blur-2xl border-b border-white/[0.06]">
@@ -61,18 +105,37 @@ export function Navbar({
                     </Link>
                 </div>
 
-                <div className="flex-1" />
+                <div className="flex items-center gap-2.5 flex-none">
+                    <div className={`flex items-center gap-1.5 shadow-[inset_0_0_12px_rgba(255,255,255,0.02)] rounded-full px-3.5 py-1.5 transition-all duration-500 ${remainingCredits === 0
+                            ? "bg-rose-950/40 border border-rose-500/30 shadow-[0_0_20px_rgba(239,68,68,0.1)] hover:bg-rose-950/60 hover:border-rose-500/50"
+                            : "bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] hover:border-white/[0.15]"
+                        }`}>
+                        <Sparkles className={`w-3.5 h-3.5 ${remainingCredits === 0 ? "text-rose-400 animate-pulse" : "text-[#F2AA4C]"}`} />
+                        <span className="text-xs font-bold tracking-wide">
+                            {remainingCredits !== null ? (
+                                remainingCredits === 0 ? (
+                                    <span className="text-rose-400 uppercase tracking-widest text-[9px] font-black flex items-center gap-1.5">
+                                        No Credits Remaining
+                                    </span>
+                                ) : (
+                                    <span className="text-white/80">
+                                        <span className="text-white font-extrabold">{remainingCredits}</span>
+                                        <span className="text-white/30 mx-1">/</span>
+                                        <span className="text-white/40">{USAGE_LIMITS.DAILY_QUOTA} Credits</span>
+                                    </span>
+                                )
+                            ) : (
+                                <span className="text-white/30 animate-pulse">-- Credits</span>
+                            )}
+                        </span>
+                    </div>
 
-                <div className="flex items-center gap-2 flex-none">
                     <Link
                         href="/history"
                         className="flex items-center gap-2 h-8 px-3 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/20 transition-all group"
                     >
-                        <Archive className="w-3.5 h-3.5 text-primary/60 group-hover:text-primary transition-colors" />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-white/20 group-hover:text-white/80 hidden sm:block">Archive</span>
+                        <Archive className="w-3.5 h-3.5 text-primary group-hover:text-primary transition-colors" />
                     </Link>
-
-                    <div className="w-px h-4 bg-white/10 mx-1" />
 
                     <Link
                         href="/profile"

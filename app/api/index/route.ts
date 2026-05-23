@@ -21,12 +21,12 @@ export async function POST(req: NextRequest) {
     await embedAndStore(supabase, user.id, text);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     await logSystemEvent({
       level: "ERROR",
       source: "API_INDEX",
       message: "RAG indexing failed",
-      details: { error: error.message }
+      details: { error: (error as Error).message }
     });
     return NextResponse.json({ error: "Failed to index context" }, { status: 500 });
   }
