@@ -2,7 +2,9 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-export function useResumeProfile(user: any) {
+import { User } from "@supabase/supabase-js";
+
+export function useResumeProfile(user: User | null) {
   const [latexOverride, setLatexOverride] = useState<string | null>(null);
   const [extractedOverride, setExtractedOverride] = useState<string | null>(null);
   const [hasExistingResumeOverride, setHasExistingResumeOverride] = useState<boolean | null>(null);
@@ -12,11 +14,14 @@ export function useResumeProfile(user: any) {
     queryFn: async () => {
       if (!user) return null;
       const supabase = createClient();
-      let { data, error } = await supabase
+      const response = await supabase
         .from("profiles")
         .select("resume_text, latex_source")
         .eq("id", user.id)
         .maybeSingle();
+
+      let data = response.data;
+      const error = response.error;
 
       if (!data && !error) {
         const { data: newProfile } = await supabase

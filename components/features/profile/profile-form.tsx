@@ -9,11 +9,33 @@ import { EducationSection } from "./components/education-section";
 import { PreferencesSection } from "./components/preferences-section";
 import { LegalSection } from "./components/legal-section";
 import { LogoutButton } from "../auth/logout-button";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 
-export function ProfileForm({ initialData, user }: { initialData?: any, user: any }) {
+export interface ProfileData {
+    full_name?: string;
+    email?: string;
+    phone_number?: string;
+    city_country?: string;
+    dob?: string;
+    headline?: string;
+    years_experience?: number | string;
+    portfolio_url?: string;
+    primary_skills?: string;
+    university?: string;
+    field_of_study?: string;
+    graduation_year?: string;
+    work_authorization?: string;
+    nationality?: string;
+    hire_pitch?: string;
+    ideal_culture?: string;
+    work_preference?: string;
+    non_negotiables?: string;
+}
+
+export function ProfileForm({ initialData, user }: { initialData?: ProfileData, user: SupabaseUser }) {
     const [section, setSection] = useState("personal");
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<ProfileData>({
         full_name: initialData?.full_name || "",
         email: initialData?.email || user?.email || "",
         phone_number: initialData?.phone_number || "",
@@ -47,7 +69,7 @@ export function ProfileForm({ initialData, user }: { initialData?: any, user: an
         const supabase = createClient();
         const cleanedData = {
             ...formData,
-            years_experience: formData.years_experience === "" ? null : parseInt(formData.years_experience.toString()),
+            years_experience: formData.years_experience === undefined || formData.years_experience === "" ? null : parseInt(formData.years_experience.toString()),
             dob: formData.dob === "" ? null : formData.dob,
         };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const DRAFT_KEYS = {
   analysis: "resume_ai_draft_analysis",

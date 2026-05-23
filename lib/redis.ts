@@ -1,7 +1,7 @@
-const memoryCache = new Map<string, { value: any; expiresAt: number }>();
+const memoryCache = new Map<string, { value: unknown; expiresAt: number }>();
 const rateLimitMemory = new Map<string, number[]>();
 
-export async function getCache(key: string): Promise<any> {
+export async function getCache(key: string): Promise<unknown> {
   const cached = memoryCache.get(key);
   if (!cached) return null;
   
@@ -12,7 +12,7 @@ export async function getCache(key: string): Promise<any> {
   return cached.value;
 }
 
-export async function setCache(key: string, value: any, ttlSeconds: number = 86400): Promise<void> {
+export async function setCache(key: string, value: unknown, ttlSeconds: number = 86400): Promise<void> {
   memoryCache.set(key, {
     value,
     expiresAt: Date.now() + ttlSeconds * 1000,

@@ -12,71 +12,154 @@ const ScraperEngine = {
     const isLinkedIn = window.location.hostname.includes("linkedin.com");
     if (!isLinkedIn) return null;
 
-    const role =
-      document.querySelector(".job-details-jobs-unified-top-card__job-title h1")?.innerText?.trim() ||
-      document.querySelector(".jobs-unified-top-card__job-title h1")?.innerText?.trim() ||
-      document.querySelector(".job-details-jobs-unified-top-card__job-title")?.innerText?.trim() ||
-      "";
-
-    const company =
-      document.querySelector(".job-details-jobs-unified-top-card__company-name a")?.innerText?.trim() ||
-      document.querySelector(".job-details-jobs-unified-top-card__company-name")?.innerText?.trim() ||
-      document.querySelector(".jobs-unified-top-card__company-name")?.innerText?.trim() ||
-      "";
-
-    const descriptionEl =
-      document.querySelector(".jobs-description__content .jobs-box__html-content") ||
-      document.querySelector(".jobs-description-content__text") ||
-      document.querySelector(".description__text") ||
-      document.querySelector("[class*='jobs-description']");
-
-    const description = descriptionEl
-      ? this.cleanText(descriptionEl.innerText)
-      : "";
-
-    const locationSelectors = [
-      ".job-details-jobs-unified-top-card__tertiary-description-container span.tvm__text",
-      ".job-details-jobs-unified-top-card__primary-description-container span.tvm__text",
-      ".jobs-unified-top-card__primary-description span:first-child",
-      ".job-details-jobs-unified-top-card__primary-description",
-      ".topcard__flavor--bullet",
-      "span.tvm__text"
+    const roleSelectors = [
+      "h1.job-details-jobs-unified-top-card__job-title",
+      ".jobs-unified-top-card__job-title h1",
+      ".jobs-unified-top-card__job-title",
+      "h1.t-24",
+      ".job-details-jobs-unified-top-card__job-title-link",
+      "h1[class*='job-title']",
+      ".jobs-details__main-content h1",
+      ".job-details-jobs-unified-top-card__job-title a",
+      "h1.t-24.t-bold.inline",
+      "div[class*='job-details-jobs-unified-top-card'] h1",
+      "h1",
     ];
 
-    let location = "";
-    for (const selector of locationSelectors) {
-      const el = document.querySelector(selector);
-      if (el && el.innerText.trim()) {
-        const text = el.innerText.trim();
-        if (text.includes("ago") || text.includes("applicants")) continue;
-        location = text.split(/[·•●|]/)[0].split('\n')[0].trim();
-        if (location && location.length > 2) break;
+    let role = "";
+    for (const sel of roleSelectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const text = (el.innerText || el.textContent || "").trim();
+        if (text.length > 0) {
+          role = text;
+          break;
+        }
       }
     }
 
-    const insightSelectors = [
-      ".job-details-fit-level-preferences strong",
-      ".job-details-fit-level-preferences span",
-      ".job-details-fit-level-preferences button",
-      ".job-details-jobs-unified-top-card__job-insight",
-      ".jobs-unified-top-card__job-insight",
-      ".ui-label",
-      ".job-details-jobs-unified-top-card__subtitle-grid-item"
+    const companySelectors = [
+      ".job-details-jobs-unified-top-card__company-name",
+      ".jobs-unified-top-card__company-name",
+      ".job-details-jobs-unified-top-card__company-name a",
+      ".jobs-unified-top-card__company-name a",
+      "div[class*='company-name']",
+      ".job-details-jobs-unified-top-card__primary-description a",
+      "a[data-tracking-control-name='public_jobs_topcard-org-name']",
+      ".topcard__org-name-link",
+      "span[class*='company']",
     ];
 
-    const jobInsights = Array.from(document.querySelectorAll(insightSelectors.join(", ")))
-      .map(el => el.innerText.trim())
-      .filter(text => text.length > 0 && text.length < 50);
-    
-    const topCardText = document.querySelector(".job-details-jobs-unified-top-card, .jobs-unified-top-card")?.innerText || "";
-    const commonTypes = ["Full-time", "Part-time", "Contract", "Internship", "On-site", "Remote", "Hybrid"];
-    commonTypes.forEach(type => {
-      if (topCardText.includes(type) && !jobInsights.includes(type)) {
-        jobInsights.push(type);
+    let company = "";
+    for (const sel of companySelectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const text = (el.innerText || el.textContent || "").trim();
+        if (text.length > 0) {
+          company = text;
+          break;
+        }
       }
-    });
-    
-    const jobType = [...new Set(jobInsights)].join(" | ");
+    }
+
+    const descSelectors = [
+      ".jobs-description-content__text",
+      ".jobs-box__html-content",
+      ".description__text",
+      ".jobs-description__content",
+      "#job-details",
+      ".jobs-description",
+      "div[class*='jobs-description']",
+      "section[class*='description']",
+      ".job-view-layout",
+      "article",
+    ];
+
+    let description = "";
+    for (const sel of descSelectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const text = (el.innerText || el.textContent || "").trim();
+        if (text.length > 50) {
+          description = this.cleanText(text);
+          break;
+        }
+      }
+    }
+
+    const locationContainerSelectors = [
+      ".job-details-jobs-unified-top-card__primary-description-container",
+      ".jobs-unified-top-card__primary-description",
+      ".topcard__flavor-row",
+      ".job-details-jobs-unified-top-card__primary-description",
+    ];
+
+    let location = "";
+    for (const sel of locationContainerSelectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const fullText = (el.innerText || el.textContent || "").trim();
+        if (fullText.length > 0) {
+          const segment = fullText.split("·")[0].trim();
+          if (segment.length > 2 && segment.length < 120 && !/^\d+$/.test(segment)) {
+            location = segment;
+            break;
+          }
+        }
+      }
+    }
+
+    const EXACT_JOB_TERMS = [
+      "Remote", "Hybrid", "On-site", "On-Site", "In-person",
+      "Full-time", "Part-time", "Contract", "Internship",
+      "Temporary", "Freelance", "Volunteer",
+      "remote", "hybrid", "on-site", "full-time", "part-time",
+      "contract", "internship", "temporary"
+    ];
+    const EXACT_JOB_SET = new Set(EXACT_JOB_TERMS);
+
+    const directText = (el) =>
+      [...el.childNodes]
+        .filter((n) => n.nodeType === Node.TEXT_NODE)
+        .map((n) => n.textContent.trim())
+        .join("")
+        .trim();
+
+    const jobTypeParts = new Set();
+
+    const topCard =
+      document.querySelector(".job-details-jobs-unified-top-card") ||
+      document.querySelector(".jobs-unified-top-card") ||
+      document.querySelector(".scaffold-layout__detail");
+
+    const scanRoot = topCard || document.body;
+
+    const walker = document.createTreeWalker(scanRoot, NodeFilter.SHOW_ELEMENT);
+    let node = walker.nextNode();
+    while (node) {
+      const txt = directText(node);
+      if (EXACT_JOB_SET.has(txt)) {
+        jobTypeParts.add(txt);
+      }
+      const aria = (node.getAttribute && node.getAttribute("aria-label")) || "";
+      if (aria && EXACT_JOB_SET.has(aria.trim())) {
+        jobTypeParts.add(aria.trim());
+      }
+      node = walker.nextNode();
+    }
+
+    if (jobTypeParts.size === 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const wt = urlParams.get("f_WT");
+      if (wt) {
+        const wtMap = { "1": "On-site", "2": "Remote", "3": "Hybrid" };
+        wt.split(",").forEach((v) => {
+          if (wtMap[v.trim()]) jobTypeParts.add(wtMap[v.trim()]);
+        });
+      }
+    }
+
+    const jobType = [...jobTypeParts].join(" | ");
 
     if (!role && !company) return null;
 
@@ -87,26 +170,44 @@ const ScraperEngine = {
     const scripts = document.querySelectorAll('script[type="application/ld+json"]');
     for (const script of scripts) {
       try {
-        const data = JSON.parse(script.innerText);
+        const data = JSON.parse(script.innerText || script.textContent);
         const job = this.findJobObject(data);
         if (job) {
           return {
             company: job.hiringOrganization?.name || job.hiringOrganization || "",
             role: job.title || "",
-            location: job.jobLocation?.address?.addressLocality || job.jobLocation?.address?.addressRegion || "",
-            jobType: job.employmentType || "",
+            location:
+              job.jobLocation?.address?.addressLocality ||
+              job.jobLocation?.address?.addressRegion ||
+              (Array.isArray(job.jobLocation)
+                ? job.jobLocation[0]?.address?.addressLocality || ""
+                : "") ||
+              "",
+            jobType: Array.isArray(job.employmentType)
+              ? job.employmentType.join(", ")
+              : job.employmentType || "",
             description: this.cleanDescription(job.description || ""),
-            source: "JSON-LD"
+            source: "JSON-LD",
           };
         }
-      } catch (e) {}
+      } catch (_) {
+      }
     }
     return null;
   },
 
   findJobObject(obj) {
+    if (!obj || typeof obj !== "object") return null;
     if (obj["@type"] === "JobPosting") return obj;
-    if (obj["@graph"]) return obj["@graph"].find(item => item["@type"] === "JobPosting");
+    if (Array.isArray(obj["@graph"])) {
+      return obj["@graph"].find((item) => item["@type"] === "JobPosting") || null;
+    }
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = this.findJobObject(item);
+        if (found) return found;
+      }
+    }
     return null;
   },
 
@@ -118,26 +219,35 @@ const ScraperEngine = {
     if (ogTitle && ogDesc) {
       return {
         company: company || "",
-        role: ogTitle.split('|')[0].split('-')[0].trim(),
+        role: ogTitle.split("|")[0].split("-")[0].trim(),
+        location: "",
+        jobType: "",
         description: ogDesc,
-        source: "Meta"
+        source: "Meta",
       };
     }
     return null;
   },
 
   fromHeuristics() {
-    const role = document.querySelector('h1')?.innerText || document.title.split('|')[0].trim();
-    const company = document.querySelector('[class*="company"], [class*="employer"], [class*="organization"]')?.innerText || "";
-    const description = document.querySelector('article, #job-description, .description, [class*="job-details"]')?.innerText || "";
+    const role =
+      document.querySelector("h1")?.innerText?.trim() ||
+      document.title.split("|")[0].trim();
+    const company =
+      document.querySelector('[class*="company"], [class*="employer"], [class*="organization"]')
+        ?.innerText || "";
+    const description =
+      document.querySelector(
+        'article, #job-description, .description, [class*="job-details"]'
+      )?.innerText || "";
 
     return {
-      company: company.split('\n')[0].trim(),
+      company: company.split("\n")[0].trim(),
       role: role.trim(),
       location: "",
       jobType: "",
       description: this.cleanText(description.trim()),
-      source: "Heuristic"
+      source: "Heuristic",
     };
   },
 
@@ -169,6 +279,8 @@ const ScraperEngine = {
       /^Promoted by hirer.*$/gim,
       /^Matches your job preferences.*$/gim,
       /^\(3rd\)|^3rd$/gim,
+      /^Report this job$/gim,
+      /^Set alert$/gim,
     ];
 
     let cleaned = text;
@@ -177,10 +289,10 @@ const ScraperEngine = {
     }
 
     return cleaned
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0)
-      .join('\n')
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .join("\n")
       .trim();
   },
 
@@ -188,5 +300,5 @@ const ScraperEngine = {
     const tmp = document.createElement("DIV");
     tmp.innerHTML = html;
     return this.cleanText(tmp.textContent || tmp.innerText || "");
-  }
+  },
 };

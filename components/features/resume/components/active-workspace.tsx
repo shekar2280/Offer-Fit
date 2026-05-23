@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { ActiveWorkspaceProps } from "./workspace-types";
 import { ResumeSetup } from "./workspace/resume-setup";
 import { JobDetails } from "./workspace/job-details";
@@ -50,9 +50,9 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                     </div>
 
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none translate-x-1/3 -translate-y-1/3" />
-                    
+
                     <div className="relative z-10 flex flex-col space-y-10">
-                        <ResumeSetup 
+                        <ResumeSetup
                             mainTab={mainTab}
                             latexText={latexText}
                             setLatexText={setLatexText}
@@ -63,7 +63,7 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                             selectedId={selectedId}
                         />
 
-                        <JobDetails 
+                        <JobDetails
                             companyName={companyName}
                             setCompanyName={setCompanyName}
                             position={position}
@@ -82,7 +82,7 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                             <button
                                 onClick={() => {
                                     if (!isSubmitDisabled) {
-                                        mainTab === "customize" ? analyzeResume(latexText) : analyzeResume(extractedText || "");
+                                        analyzeResume(mainTab === "customize" ? latexText : (extractedText || ""));
                                     }
                                 }}
                                 className={`relative w-full max-w-2xl px-8 py-5 rounded-full font-heading font-black text-xs uppercase tracking-[0.3em] transition-all duration-700 overflow-hidden group/submit shadow-[0_0_40px_rgba(242,170,76,0.1)] hover:shadow-[0_0_60px_rgba(242,170,76,0.3)] ${isSubmitDisabled ? "cursor-not-allowed opacity-50" : ""}`}

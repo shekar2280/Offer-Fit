@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { SupabaseClient } from "@supabase/supabase-js";
 import { logSystemEvent } from "./logger";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -51,7 +52,7 @@ function lowerSection(s: string) {
 }
 
 export async function embedAndStore(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   text: string,
 ) {
@@ -75,19 +76,19 @@ export async function embedAndStore(
         content: chunk,
         embedding: embedding,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       await logSystemEvent({
         level: "ERROR",
         source: "SUPABASE_RAG",
         message: "Embedding chunk failed",
-        details: { error: e.message }
+        details: { error: (e as Error).message }
       });
     }
   }
 }
 
 export async function getRelevantContext(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   query: string,
 ): Promise<string> {
@@ -114,7 +115,7 @@ export async function getRelevantContext(
     source: "RAG_RETRIEVAL",
     message: `Retrieved ${chunks.length} resume chunks`,
     details: {
-      chunks_retrieved: chunks.map((c: any, i: number) => ({
+      chunks_retrieved: chunks.map((c: { content?: string } & Record<string, unknown>, i: number) => ({
         index: i + 1,
         similarity: c.similarity,
         preview: c.content?.substring(0, 120)
@@ -122,5 +123,5 @@ export async function getRelevantContext(
     }
   });
 
-  return chunks.map((c: any) => c.content).join("\n\n");
+  return chunks.map((c: { content?: string } & Record<string, unknown>) => c.content || "").join("\n\n");
 }

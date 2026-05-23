@@ -2,7 +2,7 @@
 
 import { SelectionGate } from "./components/selection-gate";
 
-export function ResumeUpload({ selectedId }: { selectedId: string | null }) {
+export function ResumeUpload({ selectedId: _selectedId }: { selectedId: string | null }) {
     return (
         <div className="w-full max-w-[1400px] mx-auto animate-in fade-in duration-1000 relative px-2 sm:px-0 h-full flex flex-col justify-center">
             <div className="text-center px-4 space-y-6 mb-8 shrink-0">
