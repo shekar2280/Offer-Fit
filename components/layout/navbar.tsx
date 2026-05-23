@@ -54,14 +54,19 @@ export function Navbar({
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                const { data: usageData } = await supabase
+                const { data: usageData, error } = await supabase
                     .from("user_usage")
                     .select("daily_count, last_request_at")
                     .eq("user_id", user.id)
-                    .single();
+                    .maybeSingle();
+                
                 if (usageData) {
                     setClientUsage(usageData);
                     localStorage.setItem("resume_ai_usage", JSON.stringify(usageData));
+                } else if (!error) {
+                    const freshUsage = { daily_count: 0, last_request_at: null };
+                    setClientUsage(freshUsage);
+                    localStorage.setItem("resume_ai_usage", JSON.stringify(freshUsage));
                 }
             }
         };
