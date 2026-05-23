@@ -28,16 +28,7 @@ export async function POST(req: Request) {
   }
 
   supabase
-    .from("user_usage")
-    .upsert(
-      {
-        user_id: user.id,
-        daily_count: 1,
-        hourly_count: 1,
-        last_request_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    )
+    .rpc("increment_user_usage", { p_user_id: user.id })
     .then(() => {});
 
   const body = await req.json();
@@ -80,6 +71,8 @@ export async function POST(req: Request) {
       const encoder = new TextEncoder();
       let fullEmail = "";
       try {
+        const { totalTokens: inputTokens } = await model.countTokens(prompt);
+
         const result = await withRetry(() =>
           model.generateContentStream(prompt),
         );
@@ -93,9 +86,26 @@ export async function POST(req: Request) {
           }
         }
 
+        const { totalTokens: outputTokens } = await model.countTokens(fullEmail);
+        const emailCost = ((inputTokens * 0.25) + (outputTokens * 1.50)) / 1000000;
+
+        const { data: existingAnalysis } = await supabase
+          .from("analyses")
+          .select("total_tokens, estimated_cost")
+          .eq("id", analysisId)
+          .eq("user_id", user.id)
+          .single();
+
+        const existingTokens = Number(existingAnalysis?.total_tokens || 0);
+        const existingCost = Number(existingAnalysis?.estimated_cost || 0);
+
         await supabase
           .from("analyses")
-          .update({ outreach_email: fullEmail })
+          .update({
+            outreach_email: fullEmail,
+            total_tokens: existingTokens + inputTokens + outputTokens,
+            estimated_cost: existingCost + emailCost
+          })
           .eq("id", analysisId)
           .eq("user_id", user.id);
 

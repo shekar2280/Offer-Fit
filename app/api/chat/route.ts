@@ -68,53 +68,6 @@ export async function POST(req: Request) {
           return;
         }
 
-        if (user) {
-          const dailyLimitCheck = await checkRateLimit(
-            `rate:daily:${user.id}`,
-            USAGE_LIMITS.DAILY_QUOTA,
-            USAGE_LIMITS.DAILY_REFRESH_MS
-          );
-          if (!dailyLimitCheck.success) {
-            await logSystemEvent({
-              level: "WARN",
-              source: "QUOTA_EXHAUSTED",
-              message: "Daily quota reached for user",
-              userId: user.id,
-              details: { limit: USAGE_LIMITS.DAILY_QUOTA }
-            });
-            sse.send({
-              type: "error",
-              error: `Daily quota reached (${USAGE_LIMITS.DAILY_QUOTA}/day). Your limits refresh in ${Math.round(
-                dailyLimitCheck.resetMs / 1000 / 60 / 60
-              )} hours.`,
-            });
-            sse.close();
-            return;
-          }
-
-          const hourlyLimitCheck = await checkRateLimit(
-            `rate:hourly:${user.id}`,
-            USAGE_LIMITS.HOURLY_QUOTA,
-            USAGE_LIMITS.HOURLY_REFRESH_MS
-          );
-          if (!hourlyLimitCheck.success) {
-            sse.send({
-              type: "error",
-              error: `Hourly limit exceeded (${USAGE_LIMITS.HOURLY_QUOTA}/hr). Please wait a few minutes.`,
-            });
-            sse.close();
-            return;
-          }
-
-          supabase.rpc("increment_user_usage", { p_user_id: user.id }).then(() => {});
-        }
-
-        sse.send({
-          type: "progress",
-          step: 1,
-          message: "Loading resume context...",
-        });
-
         const jd = messages[messages.length - 1].content;
         const context =
           resumeText ||
@@ -143,6 +96,39 @@ export async function POST(req: Request) {
           sse.close();
           return;
         }
+
+        if (user) {
+          const dailyLimitCheck = await checkRateLimit(
+            `rate:daily:${user.id}`,
+            USAGE_LIMITS.DAILY_QUOTA,
+            USAGE_LIMITS.DAILY_REFRESH_MS
+          );
+          if (!dailyLimitCheck.success) {
+            await logSystemEvent({
+              level: "WARN",
+              source: "QUOTA_EXHAUSTED",
+              message: "Daily quota reached for user",
+              userId: user.id,
+              details: { limit: USAGE_LIMITS.DAILY_QUOTA }
+            });
+            sse.send({
+              type: "error",
+              error: `Daily quota reached (${USAGE_LIMITS.DAILY_QUOTA}/day). Your limits refresh in ${Math.round(
+                dailyLimitCheck.resetMs / 1000 / 60 / 60
+              )} hours.`,
+            });
+            sse.close();
+            return;
+          }
+
+          supabase.rpc("increment_user_usage", { p_user_id: user.id }).then(() => {});
+        }
+
+        sse.send({
+          type: "progress",
+          step: 1,
+          message: "Loading resume context...",
+        });
 
 
         sse.send({
@@ -247,14 +233,26 @@ export async function POST(req: Request) {
 
         const parsedData = data as Partial<AnalysisResult>;
 
+        let existingTokens = 0;
+        let existingCost = 0;
+
         if (analysisId && user) {
+          const { data: existingAnalysis } = await supabase
+            .from("analyses")
+            .select("total_tokens, estimated_cost")
+            .eq("id", analysisId)
+            .single();
+
+          existingTokens = Number(existingAnalysis?.total_tokens || 0);
+          existingCost = Number(existingAnalysis?.estimated_cost || 0);
+
           if (agentMode === "customize") {
             await supabase
               .from("analyses")
               .update({
                 customized_latex: markdown,
-                total_tokens: usage?.totalTokenCount || 0,
-                estimated_cost: estimated_cost,
+                total_tokens: existingTokens + (usage?.totalTokenCount || 0),
+                estimated_cost: existingCost + (estimated_cost || 0),
                 intel_id: finalIntel?.id || null,
                 customization_strategy: strategy || null,
                 audit_report: audit || null,
@@ -276,8 +274,8 @@ export async function POST(req: Request) {
               culture_fit_score: parsedData.culture_fit_score ?? null,
               company_cheat_sheet: parsedData.company_cheat_sheet || null,
               culture_traits: parsedData.culture_traits || [],
-              total_tokens: usage?.totalTokenCount || 0,
-              estimated_cost: estimated_cost,
+              total_tokens: existingTokens + (usage?.totalTokenCount || 0),
+              estimated_cost: existingCost + (estimated_cost || 0),
               analysis_result: markdown,
               intel_id: finalIntel?.id || null,
               status: "completed"
@@ -298,8 +296,8 @@ export async function POST(req: Request) {
         const metadata =
           agentMode === "customize"
             ? {
-                total_tokens: usage?.totalTokenCount || 0,
-                estimated_cost: estimated_cost,
+                total_tokens: existingTokens + (usage?.totalTokenCount || 0),
+                estimated_cost: existingCost + (estimated_cost || 0),
                 intel: finalIntel || null,
                 strategy: strategy || null,
                 audit: audit || null,
@@ -318,8 +316,8 @@ export async function POST(req: Request) {
                 culture_fit_score: parsedData.culture_fit_score ?? null,
                 company_cheat_sheet: parsedData.company_cheat_sheet || null,
                 culture_traits: parsedData.culture_traits || [],
-                total_tokens: usage?.totalTokenCount || 0,
-                estimated_cost: estimated_cost,
+                total_tokens: existingTokens + (usage?.totalTokenCount || 0),
+                estimated_cost: existingCost + (estimated_cost || 0),
                 intel: finalIntel || null,
               };
 
