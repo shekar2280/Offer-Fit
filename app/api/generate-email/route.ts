@@ -27,10 +27,6 @@ export async function POST(req: Request) {
     );
   }
 
-  supabase
-    .rpc("increment_user_usage", { p_user_id: user.id })
-    .then(() => {});
-
   const body = await req.json();
   const { analysisId } = body;
 
@@ -110,7 +106,11 @@ export async function POST(req: Request) {
           .eq("user_id", user.id);
 
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`),
+          encoder.encode(`data: ${JSON.stringify({ 
+            done: true,
+            totalTokens: existingTokens + inputTokens + outputTokens,
+            estimatedCost: existingCost + emailCost
+          })}\n\n`),
         );
       } catch {
         controller.enqueue(
