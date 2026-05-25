@@ -291,22 +291,22 @@ export function ResumeFeature({
                     const dataPart = line.replace(/^data: /, "").trim();
                     if (!dataPart) continue;
 
-                    let event: { 
-                        type?: string; 
-                        step?: number; 
-                        message?: string; 
-                        error?: string; 
-                        toolUsed?: string; 
-                        analysis?: string; 
-                        metadata?: { 
-                            audit?: unknown; 
-                            strategy?: unknown; 
-                            intel?: unknown; 
-                            match_score?: number; 
-                            verdict?: string; 
-                            ats_score?: number; 
+                    let event: {
+                        type?: string;
+                        step?: number;
+                        message?: string;
+                        error?: string;
+                        toolUsed?: string;
+                        analysis?: string;
+                        metadata?: {
+                            audit?: unknown;
+                            strategy?: unknown;
+                            intel?: unknown;
+                            match_score?: number;
+                            verdict?: string;
+                            ats_score?: number;
                             [key: string]: unknown;
-                        } 
+                        }
                     };
                     try { event = JSON.parse(dataPart); } catch { continue; }
 
@@ -330,7 +330,7 @@ export function ResumeFeature({
                             queryClient.setQueryData(["analysis", targetId], (oldData: Record<string, unknown> | undefined) => {
                                 const baseData = (oldData || { id: targetId }) as any;
                                 const newData = { ...baseData } as any;
-                                
+
                                 if (effectiveMode === "customize") {
                                     newData.customized_latex = event.analysis;
                                     newData.customization_strategy = commonMetadata.strategy;
@@ -343,7 +343,7 @@ export function ResumeFeature({
                                     newData.ats_score = commonMetadata.ats_score;
                                     newData.intel = commonMetadata.intel || baseData.intel;
                                 }
-                                
+
                                 Object.assign(newData, commonMetadata);
                                 return newData;
                             });
@@ -386,15 +386,19 @@ export function ResumeFeature({
         }
     };
 
-    const handleFile = async (file: File) => {
+    const handleFile = async (file: File, uploadMode: "analysis" | "customize" = "analysis") => {
         setIsUploading(true);
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("parseMode", uploadMode);
         try {
             const res = await fetch("/api/parse", { method: "POST", body: formData });
             const data = await res.json();
             if (data.text) {
-                if (file.type === "application/pdf") {
+                const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
+                const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.name.endsWith(".docx");
+
+                if (isPdf) {
                     setExtractedText(data.text);
                     if (user) {
                         const supabase = createClient();
@@ -405,8 +409,33 @@ export function ResumeFeature({
                             body: JSON.stringify({ text: data.text }),
                         });
                     }
+                } else if (isDocx) {
+                    if (uploadMode === "customize") {
+                        setLatexText(data.text);
+                        if (user) {
+                            const supabase = createClient();
+                            await supabase.from("profiles").update({ latex_source: data.text }).eq("id", user.id);
+                        }
+                    } else {
+                        setExtractedText(data.text);
+                        setLatexText(data.text);
+                        if (user) {
+                            const supabase = createClient();
+                            await supabase.from("profiles").update({ resume_text: data.text, latex_source: data.text }).eq("id", user.id);
+
+                            await fetch("/api/index", {
+                                method: "POST",
+                                body: JSON.stringify({ text: data.text }),
+                            });
+                        }
+                    }
+                } else {
+                    setLatexText(data.text);
+                    if (user) {
+                        const supabase = createClient();
+                        await supabase.from("profiles").update({ latex_source: data.text }).eq("id", user.id);
+                    }
                 }
-                else setLatexText(data.text);
             }
         } catch {
             toast.error("Upload failed");
@@ -414,18 +443,12 @@ export function ResumeFeature({
     };
 
     const resetSession = () => {
-        setExtractedText(null);
-        setLatexText("");
         setJobLocation("");
         setJobType("");
         setJobData({ company: "", role: "", description: "" });
-        setAnalysisState({ analysis: "", cachedAnalysis: "", cachedCustomize: "", currentAnalysisId: null, hasCustomization: false, insights: null });
-        setHasExistingResume(false);
-        setServerError(null);
-        setIsEditingForm(false);
         clearDraft("analysis");
         clearDraft("customize");
-        router.push("/", { scroll: false });
+        router.push(mode === "customize" ? "/customize" : "/analyze", { scroll: false });
     };
 
     const saveBaselineLatex = async () => {
