@@ -225,15 +225,27 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
                                                         <div className="h-px w-8 bg-primary/30" />
-                                                        <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">Tailored LaTeX Source</span>
+                                                        {(() => {
+                                                            const isLatex = (analysis || "").includes("\\documentclass") || (analysis || "").includes("\\begin{document}");
+                                                            return (
+                                                                <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">
+                                                                    {isLatex ? "Tailored LaTeX Source" : "Tailored Plain-Text Resume"}
+                                                                </span>
+                                                            );
+                                                        })()}
                                                     </div>
-                                                    <button
-                                                        onClick={() => copyText(analysis.split("###")[0].trim(), "LaTeX Code")}
-                                                        className="px-6 py-2 rounded-xl bg-primary text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/10 flex items-center gap-2"
-                                                    >
-                                                        <Copy className="w-3 h-3" />
-                                                        Copy Code
-                                                    </button>
+                                                    {(() => {
+                                                        const isLatex = (analysis || "").includes("\\documentclass") || (analysis || "").includes("\\begin{document}");
+                                                        return (
+                                                            <button
+                                                                onClick={() => copyText(analysis.split("###")[0].trim(), isLatex ? "LaTeX Code" : "Resume")}
+                                                                className="px-6 py-2 rounded-xl bg-primary text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/10 flex items-center gap-2"
+                                                            >
+                                                                <Copy className="w-3 h-3" />
+                                                                Copy {isLatex ? "Code" : "Resume"}
+                                                            </button>
+                                                        );
+                                                    })()}
                                                 </div>
 
                                                 <AuditBadge audit={insights?.audit_report} />

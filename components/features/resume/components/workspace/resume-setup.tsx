@@ -6,9 +6,8 @@ interface ResumeSetupProps {
     latexText: string;
     setLatexText: (val: string) => void;
     extractedText: string | null;
-    handleFile: (file: File) => void;
+    handleFile: (file: File, uploadMode?: "analysis" | "customize") => void;
     isUploading: boolean;
-    saveBaselineLatex: () => Promise<void>;
     selectedId: string | null;
 }
 
@@ -19,10 +18,10 @@ export function ResumeSetup({
     extractedText,
     handleFile,
     isUploading,
-    saveBaselineLatex,
     selectedId
 }: ResumeSetupProps) {
     const [isReplacingLatex, setIsReplacingLatex] = useState(false);
+    const [isReplacingAnalysis, setIsReplacingAnalysis] = useState(false);
 
     if (mainTab === "customize") {
         return (
@@ -34,55 +33,92 @@ export function ResumeSetup({
                         </div>
                         <div className="flex flex-col">
                             <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${latexText ? "text-primary" : "text-white/40"}`}>
-                                {latexText ? "Master Source Synchronized" : "Master Source Setup Required"}
+                                                                 {latexText ? "Resume Text already there" : "Upload Resume for Customization"}
                             </span>
                             <span className="text-[9px] text-white/20 font-medium uppercase tracking-widest mt-1">
-                                {latexText ? "Global Profile Linked" : "Provide your Overleaf source below"}
+                                {latexText ? "Global Profile Linked" : "Select a resume file or paste below"}
                             </span>
                         </div>
                     </div>
-                    {latexText && (
-                        <button 
-                            onClick={() => setIsReplacingLatex(!isReplacingLatex)}
-                            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all"
-                        >
-                            {isReplacingLatex ? "Cancel" : "Replace"}
-                        </button>
+                    {latexText ? (
+                        isReplacingLatex ? (
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="file"
+                                    accept=".docx,.doc"
+                                    onChange={(e) => e.target.files && handleFile(e.target.files[0], "customize")}
+                                    className="hidden"
+                                    id="resume-upload-customize-docx-top"
+                                    disabled={isUploading}
+                                />
+                                <input
+                                    type="file"
+                                    accept=".tex"
+                                    onChange={(e) => e.target.files && handleFile(e.target.files[0], "customize")}
+                                    className="hidden"
+                                    id="resume-upload-customize-latex-top"
+                                    disabled={isUploading}
+                                />
+                                <label
+                                    htmlFor="resume-upload-customize-docx-top"
+                                    className="px-4 py-2 rounded-xl bg-primary text-black text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all cursor-pointer"
+                                >
+                                    Upload Word
+                                </label>
+                                <label
+                                    htmlFor="resume-upload-customize-latex-top"
+                                    className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/80 text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all cursor-pointer"
+                                >
+                                    Upload LaTeX
+                                </label>
+                                <button
+                                    onClick={() => setIsReplacingLatex(false)}
+                                    className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all ml-2"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
+                            <button 
+                                onClick={() => setIsReplacingLatex(true)}
+                                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all"
+                            >
+                                Replace
+                            </button>
+                        )
+                    ) : (
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="file"
+                                accept=".docx,.doc"
+                                onChange={(e) => e.target.files && handleFile(e.target.files[0], "customize")}
+                                className="hidden"
+                                id="resume-upload-customize-docx-top"
+                                disabled={isUploading}
+                            />
+                            <input
+                                type="file"
+                                accept=".tex"
+                                onChange={(e) => e.target.files && handleFile(e.target.files[0], "customize")}
+                                className="hidden"
+                                id="resume-upload-customize-latex-top"
+                                disabled={isUploading}
+                            />
+                            <label
+                                htmlFor="resume-upload-customize-docx-top"
+                                className="px-4 py-2 rounded-xl bg-primary text-black text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all cursor-pointer"
+                            >
+                                Upload Word
+                            </label>
+                            <label
+                                htmlFor="resume-upload-customize-latex-top"
+                                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/80 text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all cursor-pointer"
+                            >
+                                Upload LaTeX
+                            </label>
+                        </div>
                     )}
                 </div>
-
-                {(!latexText || isReplacingLatex) && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="flex items-center justify-between px-2">
-                            <h2 className="font-heading text-[10px] font-bold uppercase tracking-[0.3em] text-white/50">LaTeX Source</h2>
-                            {latexText && !selectedId && (
-                                <button 
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        saveBaselineLatex();
-                                        setIsReplacingLatex(false);
-                                    }}
-                                    className="text-[9px] font-bold uppercase tracking-widest text-primary hover:text-primary/70 transition-colors flex items-center gap-2"
-                                >
-                                    Update Master Profile
-                                </button>
-                            )}
-                        </div>
-                        <div className="relative group/latex min-h-[160px] rounded-[2rem] overflow-hidden bg-black/40 border border-white/20 shadow-[0_30px_60px_rgba(0,0,0,0.5),inset_0_0_80px_rgba(0,0,0,0.8)] backdrop-blur-3xl">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[100px] bg-primary/10 blur-[80px] pointer-events-none" />
-                            <textarea
-                                className="w-full h-full min-h-[160px] bg-transparent px-8 py-6 text-[13px] font-mono leading-[1.8] text-white/80 placeholder:text-white/20 outline-none resize-none no-scrollbar selection:bg-primary/30 selection:text-white"
-                                placeholder="% Paste your Overleaf LaTeX source code here..."
-                                value={latexText}
-                                onChange={(e) => setLatexText(e.target.value)}
-                                spellCheck={false}
-                            />
-                        </div>
-                        <p className="text-[10px] text-white/20 font-medium tracking-wide px-2 leading-relaxed italic">
-                            Paste your master LaTeX source code above. The AI will customize it specifically for the JD.
-                        </p>
-                    </div>
-                )}
             </div>
         );
     }
@@ -99,46 +135,88 @@ export function ResumeSetup({
                             {isUploading ? "Reading Resume..." : extractedText ? "Resume Loaded" : "Upload Resume"}
                         </span>
                         <span className="text-[9px] text-white/20 font-medium uppercase tracking-widest mt-1">
-                            {extractedText ? "Your resume is ready for analysis" : "Select a PDF to get started"}
+                            {extractedText ? "Your resume is ready for analysis" : "Select a PDF or Word document (.docx) to get started"}
                         </span>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {extractedText && (
-                        <>
-                            <input
-                                type="file"
-                                accept=".pdf"
-                                onChange={(e) => e.target.files && handleFile(e.target.files[0])}
-                                className="hidden"
-                                id="resume-replace-active"
-                                disabled={isUploading}
-                            />
-                            <label
-                                htmlFor="resume-replace-active"
-                                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer"
+                    {extractedText ? (
+                        isReplacingAnalysis ? (
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="file"
+                                    accept=".pdf"
+                                    onChange={(e) => e.target.files && handleFile(e.target.files[0], "analysis")}
+                                    className="hidden"
+                                    id="resume-upload-pdf-replace"
+                                    disabled={isUploading}
+                                />
+                                <input
+                                    type="file"
+                                    accept=".docx,.doc"
+                                    onChange={(e) => e.target.files && handleFile(e.target.files[0], "analysis")}
+                                    className="hidden"
+                                    id="resume-upload-docx-replace"
+                                    disabled={isUploading}
+                                />
+                                <label
+                                    htmlFor="resume-upload-pdf-replace"
+                                    className="px-4 py-2 rounded-xl bg-primary text-black text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all cursor-pointer"
+                                >
+                                    Upload PDF
+                                </label>
+                                <label
+                                    htmlFor="resume-upload-docx-replace"
+                                    className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/80 text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all cursor-pointer"
+                                >
+                                    Upload Word
+                                </label>
+                                <button
+                                    onClick={() => setIsReplacingAnalysis(false)}
+                                    className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all ml-2"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setIsReplacingAnalysis(true)}
+                                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all"
                             >
                                 Replace
-                            </label>
-                        </>
-                    )}
-                    {!extractedText && (
-                        <>
+                            </button>
+                        )
+                    ) : (
+                        <div className="flex items-center gap-3">
                             <input
                                 type="file"
                                 accept=".pdf"
-                                onChange={(e) => e.target.files && handleFile(e.target.files[0])}
+                                onChange={(e) => e.target.files && handleFile(e.target.files[0], "analysis")}
                                 className="hidden"
-                                id="resume-upload-active"
+                                id="resume-upload-pdf"
+                                disabled={!!selectedId || isUploading}
+                            />
+                            <input
+                                type="file"
+                                accept=".docx"
+                                onChange={(e) => e.target.files && handleFile(e.target.files[0], "analysis")}
+                                className="hidden"
+                                id="resume-upload-docx"
                                 disabled={!!selectedId || isUploading}
                             />
                             <label
-                                htmlFor="resume-upload-active"
+                                htmlFor="resume-upload-pdf"
                                 className="px-4 py-2 rounded-xl bg-primary text-black text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all cursor-pointer"
                             >
                                 Upload PDF
                             </label>
-                        </>
+                            <label
+                                htmlFor="resume-upload-docx"
+                                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/80 text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all cursor-pointer animate-pulse"
+                            >
+                                Upload Word
+                            </label>
+                        </div>
                     )}
                 </div>
             </div>

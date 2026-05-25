@@ -16,7 +16,7 @@ export interface ActiveWorkspaceProps {
     latexText: string;
     setLatexText: (val: string) => void;
     extractedText: string | null;
-    handleFile: (file: File) => void;
+    handleFile: (file: File, uploadMode?: "analysis" | "customize") => void;
     isUploading: boolean;
     isAnalyzing: boolean;
     hasExistingResume: boolean;
