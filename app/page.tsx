@@ -1,9 +1,9 @@
 "use client";
 
 import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/services/supabase/client";
 import { Suspense, useEffect, useState } from "react";
-import { useAnalysis } from "@/lib/context/analysis-context";
+import { useAnalysis } from "@/components/providers/analysis-provider";
 import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
 

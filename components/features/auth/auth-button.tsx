@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/services/supabase/client";
 import { LogoutButton } from "./logout-button";
 import { UserCircle } from "lucide-react";
 

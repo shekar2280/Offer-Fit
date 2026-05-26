@@ -3,7 +3,7 @@
 import React from "react";
 import { Copy, Activity, Coins } from "lucide-react";
 import Image from "next/image";
-import { AnalysisReportProps } from "./types";
+import { AnalysisReportProps } from "@/types";
 import { ReportToolbar } from "./report/report-toolbar";
 import { ErrorView } from "./report/error-view";
 import { MatchHeader } from "./report/match-header";

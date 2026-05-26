@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useAnalysis } from "@/lib/context/analysis-context";
+import { useAnalysis } from "@/components/providers/analysis-provider";
 
 export function useAnalysisSession() {
   const searchParams = useSearchParams();

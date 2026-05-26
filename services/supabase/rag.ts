@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { logSystemEvent } from "./logger";
+import { logSystemEvent } from "@/services/supabase/logger";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 

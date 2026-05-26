@@ -18,19 +18,7 @@ interface ParsedSection {
     strategicBridge: { title: string; desc: string } | null;
 }
 
-function sanitizeMd(text: string): string {
-    return text
-        .replace(/^#{1,6}\s*/gm, "")
-        .replace(/\*{1,3}(.*?)\*{1,3}/g, "$1")
-        .replace(/_{1,3}(.*?)_{1,3}/g, "$1")
-        .replace(/`{1,3}[^`]*`{1,3}/g, (m) => m.replace(/`/g, ""))
-        .replace(/^>+\s*/gm, "")
-        .replace(/^[-*+]\s+/gm, "")
-        .replace(/^\d+\.\s+/gm, "")
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
-}
+import { sanitizeMd } from "@/lib/utils";
 
 function parseMarkdownReport(content: string): ParsedSection | null {
     if (!content) return null;

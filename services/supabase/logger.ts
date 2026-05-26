@@ -1,4 +1,4 @@
-import { createClient } from "./server";
+import { createClient } from "@/services/supabase/server";
 
 export type LogLevel = "ERROR" | "WARN" | "INFO";
 

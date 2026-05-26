@@ -1,9 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/services/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { EMAIL_PROMPT } from "@/lib/ai/email-prompt";
-import { GEMINI_MODELS, USAGE_LIMITS } from "@/lib/constants";
+import { GEMINI_MODELS, USAGE_LIMITS } from "@/config/constants";
 import { withRetry } from "@/lib/ai/utils";
-import { checkRateLimit } from "@/lib/redis";
+import { checkRateLimit } from "@/services/redis";
 
 export async function POST(req: Request) {
   const supabase = await createClient();

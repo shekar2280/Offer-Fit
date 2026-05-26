@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
-import { AnalysisState, AnalysisContextType } from "@/lib/types";
+import { AnalysisState, AnalysisContextType } from "@/types";
 
 const initialState: AnalysisState = {
   id: null,

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/features/profile/profile-form";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/services/supabase/server";
 import { Suspense } from "react";
 
 export default function ProfilePage() {

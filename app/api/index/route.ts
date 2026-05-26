@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { embedAndStore } from "@/lib/supabase/rag";
-import { logSystemEvent } from "@/lib/supabase/logger";
+import { createClient } from "@/services/supabase/server";
+import { embedAndStore } from "@/services/supabase/rag";
+import { logSystemEvent } from "@/services/supabase/logger";
 
 export async function POST(req: NextRequest) {
   try {

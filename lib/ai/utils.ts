@@ -1,4 +1,4 @@
-import { MODEL_PRICING } from "../constants";
+import { MODEL_PRICING } from "@/config/constants";
 
 export function calculateAICost(modelId: string, usage?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number }): number {
   if (!usage) return 0;

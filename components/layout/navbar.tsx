@@ -5,9 +5,9 @@ import { Menu, Archive, User, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import logoIcon from "@/assets/icon.png";
-import { useAnalysis } from "@/lib/context/analysis-context";
-import { USAGE_LIMITS } from "@/lib/constants";
-import { createClient } from "@/lib/supabase/client";
+import { useAnalysis } from "@/components/providers/analysis-provider";
+import { USAGE_LIMITS } from "@/config/constants";
+import { createClient } from "@/services/supabase/client";
 
 interface NavbarProps {
     username: string;

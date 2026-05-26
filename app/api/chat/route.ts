@@ -1,15 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
-import { getRelevantContext } from "@/lib/supabase/rag";
+import { createClient } from "@/services/supabase/server";
+import { getRelevantContext } from "@/services/supabase/rag";
 import {
   runAnalysisAgent,
   runMultiStepCustomization,
   runResearchAgent,
   AgenticAnalysisResult
 } from "@/lib/ai/agent";
-import { logSystemEvent } from "@/lib/supabase/logger";
-import { USAGE_LIMITS } from "@/lib/constants";
-import { AnalysisResult } from "@/lib/types";
-import { checkRateLimit, getCache, setCache } from "@/lib/redis";
+import { logSystemEvent } from "@/services/supabase/logger";
+import { USAGE_LIMITS } from "@/config/constants";
+import { AnalysisResult } from "@/types";
+import { checkRateLimit, getCache, setCache } from "@/services/redis";
 import { createHash } from "crypto";
 
 function makeSSE(controller: ReadableStreamDefaultController) {

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/services/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {

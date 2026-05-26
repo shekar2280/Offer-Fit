@@ -17,7 +17,7 @@ function getAnalysisSteps(company?: string, position?: string) {
     return [
         { text: `Loading Resume...` },
         { text: `Researching ${co}...` },
-        { text: `Scanning for ${role} fit...` },
+        { text: `Scanning resume...` },
         { text: `Matching skills to JD...` },
         { text: `Computing match score...` },
         { text: `Finalizing report...` },
@@ -53,7 +53,7 @@ export function LoadingScanning({
         if (!showText) return;
         setCurrentStep(0);
         const interval = setInterval(() => {
-            setCurrentStep((prev) => (prev < steps.length - 1 ? prev + 1 : 0));
+            setCurrentStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
         }, 2500);
         return () => clearInterval(interval);
     }, [steps.length, showText, mode, position, companyName]);

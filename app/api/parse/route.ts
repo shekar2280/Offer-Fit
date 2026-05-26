@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractText } from "unpdf";
 import mammoth from "mammoth";
-import { createClient } from "@/lib/supabase/server";
-import { logSystemEvent } from "@/lib/supabase/logger";
+import { createClient } from "@/services/supabase/server";
+import { logSystemEvent } from "@/services/supabase/logger";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();

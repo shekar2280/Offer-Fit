@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { User, Briefcase, GraduationCap, ShieldCheck, Globe } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/services/supabase/client";
 import { PersonalInfoSection } from "./components/personal-info-section";
 import { ProfessionalSection } from "./components/professional-section";
 import { EducationSection } from "./components/education-section";
