@@ -8,6 +8,114 @@ import { CompanyIntel, StrategyData, AuditData } from "../../types";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+function getDynamicPersona(position: string): string {
+  const pos = (position || "").toLowerCase();
+  
+  if (
+    pos.includes("engineer") ||
+    pos.includes("developer") ||
+    pos.includes("architect") ||
+    pos.includes("programmer") ||
+    pos.includes("devops") ||
+    pos.includes("sysadmin") ||
+    pos.includes("qa") ||
+    pos.includes("tester") ||
+    pos.includes("data scientist") ||
+    (pos.includes("analyst") && (pos.includes("data") || pos.includes("system"))) ||
+    pos.includes("tech")
+  ) {
+    return `Act as a skeptical FAANG Engineering Manager. Be brutally honest, data-driven, and penalize YOE gaps heavily. Focus on technical stack depth, architectural complexity, system scale (e.g., latency, user counts), and coding proficiency. Use third-person, gender-neutral language only.`;
+  }
+  
+  if (
+    pos.includes("product") ||
+    pos.includes("project") ||
+    pos.includes("scrum") ||
+    pos.includes("agile") ||
+    pos.includes("designer") ||
+    pos.includes("ux") ||
+    pos.includes("ui")
+  ) {
+    return `Act as a seasoned Product Leader or Design Director. Be highly critical of user empathy, product-market fit, delivery metrics (conversion, engagement, bounce rates), strategic roadmap ownership, and cross-functional leadership. Use third-person, gender-neutral language only.`;
+  }
+  
+  if (
+    pos.includes("sales") ||
+    pos.includes("marketing") ||
+    pos.includes("growth") ||
+    pos.includes("seo") ||
+    pos.includes("revenue") ||
+    pos.includes("business development") ||
+    pos.includes("finance") ||
+    pos.includes("account")
+  ) {
+    return `Act as a demanding Chief Revenue Officer or VP of Growth. Focus strictly on commercial outcomes, business metrics (sales pipeline growth, revenue generated, client retention, marketing campaign ROI), and customer acquisition strategies. Use third-person, gender-neutral language only.`;
+  }
+
+  if (
+    pos.includes("writer") ||
+    pos.includes("content") ||
+    pos.includes("creative") ||
+    pos.includes("copywriter") ||
+    pos.includes("art") ||
+    pos.includes("video")
+  ) {
+    return `Act as an elite Creative Director. Focus on content strategy, storytelling strength, campaign effectiveness, brand alignment, and the narrative depth of past portfolios. Use third-person, gender-neutral language only.`;
+  }
+  
+  return `Act as a highly rigorous Head of Talent Acquisition or Recruitment Director. Focus strictly on core job alignment, clear ownership evidence, career progression, outcome-oriented metrics, and general business impact. Use third-person, gender-neutral language only.`;
+}
+
+export function getPersonaLabel(position: string): string {
+  const pos = (position || "").toLowerCase();
+
+  if (
+    pos.includes("engineer") ||
+    pos.includes("developer") ||
+    pos.includes("architect") ||
+    pos.includes("programmer") ||
+    pos.includes("devops") ||
+    pos.includes("sysadmin") ||
+    pos.includes("qa") ||
+    pos.includes("tester") ||
+    pos.includes("data scientist") ||
+    (pos.includes("analyst") && (pos.includes("data") || pos.includes("system"))) ||
+    pos.includes("tech")
+  ) return "FAANG Engineering Manager";
+
+  if (
+    pos.includes("product") ||
+    pos.includes("project") ||
+    pos.includes("scrum") ||
+    pos.includes("agile") ||
+    pos.includes("designer") ||
+    pos.includes("ux") ||
+    pos.includes("ui")
+  ) return "Product Leader / Design Director";
+
+  if (
+    pos.includes("sales") ||
+    pos.includes("marketing") ||
+    pos.includes("growth") ||
+    pos.includes("seo") ||
+    pos.includes("revenue") ||
+    pos.includes("business development") ||
+    pos.includes("finance") ||
+    pos.includes("account")
+  ) return "Chief Revenue Officer";
+
+  if (
+    pos.includes("writer") ||
+    pos.includes("content") ||
+    pos.includes("creative") ||
+    pos.includes("copywriter") ||
+    pos.includes("art") ||
+    pos.includes("video")
+  ) return "Creative Director";
+
+  return "Head of Talent Acquisition";
+}
+
 export const ANALYSIS_PROMPT = (
   companyName: string,
   position: string,
@@ -18,10 +126,14 @@ export const ANALYSIS_PROMPT = (
   mode: "analyze" | "customize" = "analyze",
   userName?: string,
   intel?: CompanyIntel,
-) => `
+) => {
+  const persona = getDynamicPersona(position);
+  const isLatex = (context || "").includes("\\documentclass") || (context || "").includes("\\begin{document}");
+
+  return `
 You are a dual-mode AI Career Expert.
 
-1. **PERSPECTIVE**: Act as a skeptical FAANG Engineering Manager. Be brutally honest, data-driven, and penalize YOE gaps heavily. Use third-person, gender-neutral language only.
+1. **PERSPECTIVE**: ${persona}
 
 ---
 
@@ -76,20 +188,22 @@ Provide a quantitative and qualitative breakdown. Compare Required vs. Actual fo
 2. Domain knowledge — have they worked in a similar industry or problem space?
 3. Ownership evidence — did they lead, or just contribute?
 
-### Learning Roadmap
-Identify the top 3 high-leverage technical actions to bridge immediate gaps. Then, add a mandatory subsection #### Strategic Bridge tailored to the candidate's seniority tier (Entry 0-2y, Mid 3-5y, Senior 6y+):
+### Strategic Bridge
+Tailor this section to the candidate's seniority tier (Entry 0-2y, Mid 3-5y, Senior 6y+):
 1. **Entry**: Focus on "Execution Proof" (Daily Git activity, public projects, DSA consistency). Advice on standing out in high-volume pools.
 2. **Mid**: Focus on "Domain Deep-Dive" (Performance tuning, advanced testing, mastering adjacent stack components). Advice on peer networking.
 3. **Senior**: Focus on "Architecture & Impact" (Design docs, system scalability, leadership impact). Advice on peer-to-peer outreach to Engineering Managers or VPs.
-Finally, include a specific "Call to Action" offering to generate a tier-appropriate outreach email.
+Include a specific "Call to Action" offering to generate a tier-appropriate outreach email.
 
----
-FORBIDDEN IN PHASE 1: Do NOT include Salary, Red Flags, Culture Fit, or Interview Questions here. These belong ONLY in Phase 2.
+### Learning Roadmap
+Identify the top 3 high-leverage technical actions to bridge the immediate skill gaps. Present them as a numbered list with bold titles and concise descriptions.
+
+FORBIDDEN IN PHASE 1: Do NOT include Salary, Red Flags, Culture Fit, or Interview Questions here. Do NOT write any curly braces or raw JSON strings. These belong ONLY in Phase 2.
 LANGUAGE RULE: Use ONLY gender-neutral, third-person language (they/them, the candidate).
 ---
 
 ### PHASE 2: THE DATA PAYLOAD (JSON)
-Output the following JSON block EXACTLY as shown.
+Output the following JSON block EXACTLY as shown. The JSON block MUST be the absolute end of your response. NEVER output any text or notes after the ===JSON_END=== tag.
 
 ===JSON_START===
 {
@@ -112,7 +226,7 @@ Output the following JSON block EXACTLY as shown.
 OUTPUT MODE: CUSTOMIZE RESUME
 Your task is twofold:
 1. Design a high-level customization strategy to align this candidate's background with ${companyName}'s needs for the ${position} role.
-2. Surgically rewrite the candidate's LaTeX resume to maximize their fit for this specific role.
+2. Surgically rewrite the candidate's resume to maximize their fit for this specific role.
 
 You MUST produce the output in this exact structure, utilizing the custom boundary tags:
 
@@ -129,20 +243,34 @@ You MUST produce the output in this exact structure, utilizing the custom bounda
 ===STRATEGY_END===
 
 ===LATEX_START===
-[Output ONLY a COMPLETE, ready-to-compile LaTeX document. Start with \\documentclass.
+${
+  isLatex
+    ? `[Output ONLY a COMPLETE, ready-to-compile LaTeX document. Start with \\documentclass.
 Rules:
 - Rewrite work experience bullet points using Google's X-Y-Z formula: "Accomplished [X] as measured by [Y], by doing [Z]."
 - ABSOLUTE TRUTH: NEVER fabricate tools, metrics, or years of experience. If the candidate doesn't have a skill, do NOT add it.
-- THE SEMANTIC PIVOT: If the JD requires a tool the candidate lacks, identify the most advanced adjacent tool they DO have and highlight the underlying principles (e.g., if they need AWS but have Azure, emphasize 'Cloud Architecture' and 'Serverless Orchestration' patterns used in Azure).
+- THE SEMANTIC PIVOT: If the JD requires a tool the candidate lacks, identify the most advanced adjacent tool they DO have and highlight the underlying principles.
 - ZERO PRONOUNS: Standard resume practice. Avoid ALL pronouns (he, she, they). Use active verbs only (e.g., "Led team" instead of "They led team").
 - Inject JD keywords naturally ONLY if they apply to the candidate's existing background.
 - Reprioritize the Skills section so JD-critical technologies (that the user actually has) appear first.
 - Do NOT truncate — output the entire document.
-- Do NOT include any commentary or analysis outside the tags.]
+- Do NOT include any commentary or analysis outside the tags.]`
+    : `[Output ONLY the COMPLETE, customized resume in clean, professional plain-text (Markdown formatting) with headers, bullet points, and clean spacings. Do NOT include any LaTeX tags, code, packages, or document classes.
+Rules:
+- Rewrite experience bullet points using Google's X-Y-Z formula: "Accomplished [X] as measured by [Y], by doing [Z]."
+- ABSOLUTE TRUTH: NEVER fabricate tools, metrics, or years of experience. If the candidate doesn't have a skill, do NOT add it.
+- THE SEMANTIC PIVOT: If the JD requires a tool the candidate lacks, identify the most advanced adjacent tool they DO have and highlight the underlying principles.
+- ZERO PRONOUNS: Standard resume practice. Avoid ALL pronouns (he, she, they). Use active verbs only (e.g., "Led team" instead of "They led team").
+- Inject JD keywords naturally ONLY if they apply to the candidate's existing background.
+- Reprioritize the Skills section so JD-critical skills appear first.
+- Do NOT truncate — output the entire resume content.
+- Do NOT include any commentary or analysis outside the tags.]`
+}
 ===LATEX_END===
 `
 }
 `;
+};
 
 export const JUDGE_CORRECTION_PROMPT = (score: number, critique: string) => `
 Your previous analysis was rejected by the quality evaluator.
@@ -181,6 +309,7 @@ export interface AgenticAnalysisResult {
   intel?: CompanyIntel;
   strategy?: StrategyData;
   audit?: AuditData;
+  personaLabel?: string;
 }
 
 export async function runAnalysisAgent(
@@ -191,7 +320,7 @@ export async function runAnalysisAgent(
   location?: string,
   jobType?: string,
   mode?: "analyze" | "customize",
-  bypassJudge: boolean = true,
+  bypassJudge: boolean = false,
   userName?: string,
   intel?: CompanyIntel,
 ): Promise<AgenticAnalysisResult> {
@@ -220,7 +349,10 @@ export async function runAnalysisAgent(
               2. DO NOT use bizarre characters or symbols.
               3. Adhere strictly to the JSON schema provided in the tools.
               4. If the match verdict is REJECT, DO NOT generate any "Call to Action" or "Outreach Email" draft sections in the report or strategy. Focus only on the gap analysis.
-              5. Maintain a professional, data-driven tone.`,
+              5. Maintain a professional, data-driven tone.
+              6. NEVER merge the JSON data payload with the prose markdown report.
+              7. Enforce strict boundaries: the JSON block MUST exist only within ===JSON_START=== and ===JSON_END=== tags.
+              8. Do NOT write any raw curly braces, key-value data models, or code tags containing JSON objects within the ### Strategic Alignment, ### Match Score Breakdown, or ### Learning Roadmap markdown sections. Keep the prose report strictly human-readable.`,
             },
           ],
         },
@@ -265,7 +397,6 @@ export async function runAnalysisAgent(
           const handler = toolHandlers[call.name as keyof typeof toolHandlers];
           if (handler) {
             finalToolCalls.push(call.name);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const output = await (handler as any)(call.args);
             functionResponses.push({
               functionResponse: {
@@ -277,7 +408,6 @@ export async function runAnalysisAgent(
         }
 
         if (functionResponses.length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const nextResult = await withRetry(() => chat.sendMessage(functionResponses as any));
           response = nextResult.response;
           if (response.usageMetadata) {
@@ -341,10 +471,14 @@ export async function runAnalysisAgent(
     const startIndex = text.indexOf(jsonStartMarker);
     const endIndex = text.indexOf(jsonEndMarker);
 
-    if (startIndex !== -1 && endIndex !== -1) {
+    if (startIndex !== -1) {
+      markdown = text.substring(0, startIndex).trim();
+
+      const endMarkerIndex = endIndex !== -1 ? endIndex : text.length;
       let jsonStr = text
-        .substring(startIndex + jsonStartMarker.length, endIndex)
+        .substring(startIndex + jsonStartMarker.length, endMarkerIndex)
         .trim();
+
       if (jsonStr.includes("```json")) {
         jsonStr = jsonStr
           .replace(/```json\s?/, "")
@@ -360,7 +494,7 @@ export async function runAnalysisAgent(
         data = JSON.parse(jsonStr);
       } catch {
         const jsonMatch = text.match(
-          /===JSON_START===\s*(\{[\s\S]*\})\s*===JSON_END===/,
+          /===JSON_START===\s*(\{[\s\S]*\})\s*(?:===JSON_END===|$)/,
         );
         if (jsonMatch) {
           try {
@@ -368,22 +502,30 @@ export async function runAnalysisAgent(
           } catch {}
         }
       }
-      markdown = text
-        .replace(text.substring(startIndex, endIndex + jsonEndMarker.length), "")
+      markdown = markdown
         .replace(/#+ PHASE \d:.*?\n/gi, "")
         .trim();
     } else {
-      const jsonMatch = text.match(
-        /===JSON_START===\s*(\{[\s\S]*\})\s*===JSON_END===/,
-      );
+      let jsonMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (!jsonMatch) {
+        const firstBrace = text.indexOf("{");
+        const lastBrace = text.lastIndexOf("}");
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          jsonMatch = [
+            text.substring(firstBrace, lastBrace + 1),
+            text.substring(firstBrace, lastBrace + 1),
+          ] as unknown as RegExpMatchArray;
+        }
+      }
+
       if (jsonMatch) {
         try {
-          data = JSON.parse(jsonMatch[0]);
-          markdown = text
-            .replace(jsonMatch[0], "")
-            .replace(/#+ PHASE \d:.*?\n/gi, "")
-            .trim();
+          data = JSON.parse(jsonMatch[1] || jsonMatch[0]);
         } catch {}
+        markdown = text
+          .replace(jsonMatch[0], "")
+          .replace(/#+ PHASE \d:.*?\n/gi, "")
+          .trim();
       }
     }
   }
@@ -396,6 +538,7 @@ export async function runAnalysisAgent(
       toolUsed: finalToolCalls.join(", ") || "none",
       usage: totalUsage,
       estimated_cost: totalCost,
+      personaLabel: getPersonaLabel(position),
     };
   }
 
@@ -481,6 +624,7 @@ export async function runAnalysisAgent(
     toolUsed: finalToolCalls.join(", ") || "none",
     usage: totalUsage,
     estimated_cost: totalCost,
+    personaLabel: getPersonaLabel(position),
   };
 }
 
