@@ -193,7 +193,6 @@ Tailor this section to the candidate's seniority tier (Entry 0-2y, Mid 3-5y, Sen
 1. **Entry**: Focus on "Execution Proof" (Daily Git activity, public projects, DSA consistency). Advice on standing out in high-volume pools.
 2. **Mid**: Focus on "Domain Deep-Dive" (Performance tuning, advanced testing, mastering adjacent stack components). Advice on peer networking.
 3. **Senior**: Focus on "Architecture & Impact" (Design docs, system scalability, leadership impact). Advice on peer-to-peer outreach to Engineering Managers or VPs.
-Include a specific "Call to Action" offering to generate a tier-appropriate outreach email.
 
 ### Learning Roadmap
 Identify the top 3 high-leverage technical actions to bridge the immediate skill gaps. Present them as a numbered list with bold titles and concise descriptions.
@@ -348,11 +347,10 @@ export async function runAnalysisAgent(
               1. DO NOT use emojis.
               2. DO NOT use bizarre characters or symbols.
               3. Adhere strictly to the JSON schema provided in the tools.
-              4. If the match verdict is REJECT, DO NOT generate any "Call to Action" or "Outreach Email" draft sections in the report or strategy. Focus only on the gap analysis.
-              5. Maintain a professional, data-driven tone.
-              6. NEVER merge the JSON data payload with the prose markdown report.
-              7. Enforce strict boundaries: the JSON block MUST exist only within ===JSON_START=== and ===JSON_END=== tags.
-              8. Do NOT write any raw curly braces, key-value data models, or code tags containing JSON objects within the ### Strategic Alignment, ### Match Score Breakdown, or ### Learning Roadmap markdown sections. Keep the prose report strictly human-readable.`,
+              4. Maintain a professional, data-driven tone.
+              5. NEVER merge the JSON data payload with the prose markdown report.
+              6. Enforce strict boundaries: the JSON block MUST exist only within ===JSON_START=== and ===JSON_END=== tags.
+              7. Do NOT write any raw curly braces, key-value data models, or code tags containing JSON objects within the ### Strategic Alignment, ### Match Score Breakdown, or ### Learning Roadmap markdown sections. Keep the prose report strictly human-readable.`,
             },
           ],
         },
