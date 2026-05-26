@@ -7,7 +7,7 @@ import { AnalysisReportProps } from "@/types";
 import { ReportToolbar } from "./report/report-toolbar";
 import { ErrorView } from "./report/error-view";
 import { MatchHeader } from "./report/match-header";
-import { CompanyIntelligence, EmailDraftSection, InterviewQuestions, RedFlags, SalaryInsight, ScoreMetrics, SkillsView, StrategyCard, AuditBadge } from "./report/insights-cards";
+import { CompanyIntelligence, InterviewQuestions, RedFlags, SalaryInsight, ScoreMetrics, SkillsView, StrategyCard, AuditBadge } from "./report/insights-cards";
 import { UpskillingBridgeSection } from "./report/upskilling-bridge";
 
 import { MarkdownViewer } from "./report/markdown-viewer";
@@ -165,20 +165,12 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                             verdict={verdict}
                                         />
 
-                                        {verdict === "REJECT" ? (
+                                        {verdict === "REJECT" && (
                                             <div id="upskilling-bridge-section">
                                                 <UpskillingBridgeSection
                                                     missingSkills={insights?.missing_skills || []}
                                                     hasLatexSource={hasLatexSource}
                                                     onSwitchMode={onSwitchMode}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div id="outreach-email-section">
-                                                <EmailDraftSection
-                                                    analysisId={analysisId}
-                                                    verdict={verdict}
-                                                    initialEmail={insights?.outreach_email}
                                                 />
                                             </div>
                                         )}
