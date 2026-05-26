@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
-import { ActiveWorkspaceProps } from "./workspace-types";
+import { ActiveWorkspaceProps } from "@/types";
 import { ResumeSetup } from "./workspace/resume-setup";
 import { JobDetails } from "./workspace/job-details";
 
@@ -93,8 +93,8 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                                         : isOverQuota
                                             ? "Daily Quota Reached"
                                             : mainTab === "customize"
-                                                ? position ? `Customize for ${position}` : "Customize Resume"
-                                                : position ? `Analyze for ${position}` : "Analyze Resume"
+                                                ? "Customize Resume"
+                                                : "Analyze Resume"
                                     }
                                     {!isOverQuota && <ArrowRight className="w-4 h-4 group-hover/submit:translate-x-2 transition-transform duration-700" />}
                                 </div>

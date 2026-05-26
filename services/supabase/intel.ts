@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { CompanyIntel } from "../types";
+import { CompanyIntel } from "@/types";
 
 export async function getCompanyIntel(
   supabase: SupabaseClient,

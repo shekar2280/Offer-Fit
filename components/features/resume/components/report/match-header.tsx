@@ -17,7 +17,7 @@ import {
     Sliders
 } from "lucide-react";
 import Image from "next/image";
-import { AnalysisInsights } from "../types";
+import { AnalysisInsights } from "@/types";
 
 interface MatchHeaderProps {
     score: number;
@@ -45,6 +45,10 @@ export function MatchHeader({
     mode = "analysis"
 }: MatchHeaderProps) {
     const [currentStep, setCurrentStep] = useState(0);
+    const [renderProgress, setRenderProgress] = useState(0);
+    const [disableTransition, setDisableTransition] = useState(false);
+    const [showFinalScore, setShowFinalScore] = useState(false);
+    const prevIsAnalyzing = React.useRef(isAnalyzing);
 
     const steps = mode === "customize"
         ? [
@@ -68,14 +72,77 @@ export function MatchHeader({
         if (!isAnalyzing) return;
         setCurrentStep(0);
         const interval = setInterval(() => {
-            setCurrentStep((prev) => (prev < steps.length - 1 ? prev + 1 : 0));
+            setCurrentStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
         }, 2500);
         return () => clearInterval(interval);
     }, [isAnalyzing, steps.length, mode]);
 
-    const progress = isAnalyzing 
-        ? ((currentStep + 1) / steps.length) * 100 
-        : (mode === "customize" ? 100 : score);
+    // Track steps and smoothly animate progress clockwise while analyzing
+    useEffect(() => {
+        if (isAnalyzing) {
+            setDisableTransition(false);
+            setRenderProgress((currentStep / steps.length) * 100);
+        }
+    }, [isAnalyzing, currentStep, steps.length]);
+
+    // Handle analysis completion transitions
+    useEffect(() => {
+        if (isAnalyzing) {
+            setShowFinalScore(false);
+            prevIsAnalyzing.current = true;
+            return;
+        }
+
+        // Live transition or completed report mount
+        if (prevIsAnalyzing.current) {
+            // 1. Smoothly animate clockwise to 100% first
+            setDisableTransition(false);
+            setRenderProgress(100);
+            setShowFinalScore(false);
+
+            // 2. After the clockwise fill completes (800ms), instantly clear to 0% with no anti-clockwise swing
+            const resetTimeout = setTimeout(() => {
+                setDisableTransition(true);
+                setRenderProgress(0);
+
+                // 3. Next frame: re-enable transition and draw the actual score clockwise
+                const animateTimeout = setTimeout(() => {
+                    setDisableTransition(false);
+                    setRenderProgress(mode === "customize" ? 100 : score);
+
+                    // Delay showing final score elements to perfectly match the 1000ms drawing sweep
+                    const scoreTimeout = setTimeout(() => {
+                        setShowFinalScore(true);
+                    }, 800);
+
+                    return () => clearTimeout(scoreTimeout);
+                }, 50);
+
+                return () => clearTimeout(animateTimeout);
+            }, 800);
+
+            prevIsAnalyzing.current = false;
+            return () => clearTimeout(resetTimeout);
+        } else {
+            // Completed report initial mount or history load
+            // Clockwise single smooth drawing sweep from 0% to target score
+            setDisableTransition(false);
+            setRenderProgress(0);
+            setShowFinalScore(false);
+
+            const animateTimeout = setTimeout(() => {
+                setRenderProgress(mode === "customize" ? 100 : score);
+
+                const scoreTimeout = setTimeout(() => {
+                    setShowFinalScore(true);
+                }, 800);
+
+                return () => clearTimeout(scoreTimeout);
+            }, 100);
+
+            return () => clearTimeout(animateTimeout);
+        }
+    }, [isAnalyzing, score, mode]);
         
     const activeStep = steps[currentStep];
     const ActiveIcon = activeStep?.icon || Cpu;
@@ -103,18 +170,20 @@ export function MatchHeader({
                                 cx="50" 
                                 cy="50" 
                                 r="45" 
-                                className={`fill-none stroke-[3.5] transition-all duration-1000 ${
+                                className={`fill-none stroke-[3.5] ${
+                                    disableTransition ? '' : 'transition-all duration-1000'
+                                } ${
                                     isAnalyzing ? 'stroke-primary' : (mode === "customize" ? 'stroke-primary' : strokeColorClass)
                                 }`} 
                                 strokeDasharray={282.74} 
-                                strokeDashoffset={282.74 - (progress / 100) * 282.74}
+                                strokeDashoffset={282.74 - (renderProgress / 100) * 282.74}
                                 strokeLinecap="round" 
                                 filter="url(#glow-ring-header)"
                             />
                         </svg>
 
                         <div className="flex flex-col items-center justify-center z-10">
-                            {isAnalyzing ? (
+                            {isAnalyzing || !showFinalScore ? (
                                 <>
                                     <div className="relative w-10 h-10 flex items-center justify-center mb-1">
                                         <AnimatePresence mode="wait">
@@ -126,7 +195,11 @@ export function MatchHeader({
                                                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                                                 className="text-primary drop-shadow-[0_0_8px_rgba(242,170,76,0.6)] flex items-center justify-center"
                                             >
-                                                <ActiveIcon className="w-8 h-8 stroke-[1.5]" />
+                                                {isAnalyzing ? (
+                                                    <ActiveIcon className="w-8 h-8 stroke-[1.5]" />
+                                                ) : (
+                                                    <CheckCircle2 className="w-8 h-8 stroke-[1.5]" />
+                                                )}
                                             </motion.div>
                                         </AnimatePresence>
                                     </div>
@@ -139,7 +212,7 @@ export function MatchHeader({
                                             transition={{ duration: 0.25 }}
                                             className="text-[9px] font-mono uppercase tracking-[0.3em] text-primary animate-pulse text-center"
                                         >
-                                            {activeStep?.label}
+                                            {isAnalyzing ? activeStep?.label : "Done!"}
                                         </motion.span>
                                     </AnimatePresence>
                                 </>
@@ -255,7 +328,7 @@ export function MatchHeader({
                         <span className="text-[9px] font-mono uppercase tracking-[0.4em] text-white/20">
                             {mode === "customize" ? "Custom Status" : "Final Verdict"}
                         </span>
-                        {isAnalyzing ? (
+                        {isAnalyzing || !showFinalScore ? (
                             <div className="h-10 w-24 bg-white/5 animate-pulse rounded-xl" />
                         ) : (
                             <div className={`relative flex items-center gap-2 px-5 py-2.5 rounded-2xl border backdrop-blur-2xl transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_20px_rgba(242,170,76,0.15)] shadow-xl ${mode === "customize" ? 'bg-primary/20 border-primary/30' : bgColorClass}`}>
@@ -278,7 +351,7 @@ export function MatchHeader({
                         )}
                     </div>
 
-                    {!isAnalyzing && insights?.total_tokens !== undefined && (
+                    {!isAnalyzing && showFinalScore && insights?.total_tokens !== undefined && (
                         <div className="flex items-center gap-4 pt-2">
                             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 group/stat hover:border-primary/30 transition-colors">
                                 <Activity className="w-3 h-3 text-white/40 group-hover/stat:text-primary transition-colors" />

@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
 import remarkGfm from 'remark-gfm';
 import { useQueryClient } from "@tanstack/react-query";
-import { AnalysisResult, CompanyIntel, SalaryInsight as SalaryInsightType, StrategyData, AuditData, InterviewData, Hallucination } from '@/lib/types';
+import { AnalysisResult, CompanyIntel, SalaryInsight as SalaryInsightType, StrategyData, AuditData, InterviewData, Hallucination } from '@/types';
 
 const SectionHeader = ({ icon: Icon, title, subtitle, color = "primary" }: { icon: React.ElementType, title: string, subtitle?: string, color?: string }) => (
     <div className="flex items-center gap-4 mb-8">

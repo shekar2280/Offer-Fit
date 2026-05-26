@@ -1,5 +1,5 @@
 import { SchemaType, FunctionDeclaration } from "@google/generative-ai";
-import { logSystemEvent } from "../supabase/logger";
+import { logSystemEvent } from "@/services/supabase/logger";
 
 export const toolDefinitions: FunctionDeclaration[] = [
   {

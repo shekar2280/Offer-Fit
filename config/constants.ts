@@ -21,6 +21,6 @@ export const LOADING_MESSAGES = [
 ];
 
 export const USAGE_LIMITS = {
-  DAILY_QUOTA: 20,
+  DAILY_QUOTA: 30,
   DAILY_REFRESH_MS: 86400000,
 } as const;

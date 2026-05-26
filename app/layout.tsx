@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
-import { AnalysisProvider } from "@/lib/context/analysis-context";
+import { AnalysisProvider } from "@/components/providers/analysis-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
-import { WorkspaceUIProvider } from "@/lib/context/workspace-ui-context";
+import { WorkspaceUIProvider } from "@/components/providers/workspace-ui-provider";
 import { TransitionShell } from "@/components/layout/transition-shell";
 
 const inter = Inter({ subsets: ["latin"] });

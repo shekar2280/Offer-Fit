@@ -3,7 +3,7 @@
 import { 
     GoogleLogo, MicrosoftLogo, AmazonLogo, MetaLogo, NetflixLogo, 
     AppleLogo, UberLogo, AirbnbLogo, TeslaLogo, StripeLogo, SpotifyLogo 
-} from "@/components/icons/brand";
+} from "@/components/shared/brand-icon";
 
 export function Marquee() {
     const brands = [

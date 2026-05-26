@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { GEMINI_MODELS } from "../../constants";
-import { getCompanyIntel, upsertCompanyIntel } from "../../supabase/intel";
+import { GEMINI_MODELS } from "@/config/constants";
+import { getCompanyIntel, upsertCompanyIntel } from "@/services/supabase/intel";
 import { performSearch } from "../tools";
-import { CompanyIntel } from "../../types";
+import { CompanyIntel } from "@/types";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 

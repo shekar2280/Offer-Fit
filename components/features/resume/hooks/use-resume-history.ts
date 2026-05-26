@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/services/supabase/client";
 
 import { useQueryClient, useQuery, keepPreviousData } from "@tanstack/react-query";
 import { User } from "@supabase/supabase-js";
-import { AnalysisResult } from "@/lib/types";
+import { AnalysisResult } from "@/types";
 
 export function useResumeHistory(selectedId: string | null | undefined, user: User | null, mode: string) {
   const queryClient = useQueryClient();

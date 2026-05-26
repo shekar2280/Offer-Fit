@@ -1,10 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GEMINI_MODELS } from "../../constants";
+import { GEMINI_MODELS } from "@/config/constants";
 import { calculateAICost, withRetry } from "../utils";
 import { toolDefinitions, toolHandlers } from "../tools";
 import { evaluateAnalysis } from "../evaluator";
-import { logSystemEvent } from "../../supabase/logger";
-import { CompanyIntel, StrategyData, AuditData } from "../../types";
+import { logSystemEvent } from "@/services/supabase/logger";
+import { CompanyIntel, StrategyData, AuditData } from "@/types";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 

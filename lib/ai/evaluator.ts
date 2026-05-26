@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AUDIT_PROMPT, JUDGE_PROMPT } from "./prompts/evaluation-prompts";
-import { GEMINI_MODELS } from "../constants";
+import { AUDIT_PROMPT, JUDGE_PROMPT } from "./evaluation-prompts";
+import { GEMINI_MODELS } from "@/config/constants";
 
 import { calculateAICost, withRetry } from "./utils";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/services/supabase/client";
 import { FileText, Trash2, ArrowRight, Clock, Sparkles, Briefcase } from "lucide-react";
 import Link from "next/link";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
