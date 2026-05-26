@@ -15,7 +15,7 @@ export default function HistoryPage() {
 async function HistoryContent() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect("/login");
+    if (!user) redirect("/auth/login");
 
     const username = user.email?.split('@')[0] || "User";
 
