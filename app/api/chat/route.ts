@@ -228,6 +228,7 @@ export async function POST(req: Request) {
           intel: finalIntel,
           strategy,
           audit,
+          personaLabel,
         } = result;
 
         sse.send({
@@ -335,7 +336,7 @@ export async function POST(req: Request) {
         sse.send({
           type: "result",
           analysis: markdown,
-          metadata,
+          metadata: { ...metadata, personaLabel: personaLabel || null },
           toolUsed,
         });
 

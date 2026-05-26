@@ -464,9 +464,15 @@ export function ResumeFeature({
         } catch { toast.error("Failed to save to profile."); }
     };
 
-    const username = user?.email?.split('@')[0] || "User";
+    const displayName: string =
+        user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
+        user?.email?.split('@')[0] ||
+        "you";
 
-    const showReport = !!(selectedId || analysisState.analysis || isAnalyzing || isHistoryLoading || serverError || (mode === "customize" && jobData.description && latexText)) && !isEditingForm;
+    const username = displayName;
+
+    const showReport = (!!(selectedId || analysisState.analysis || isAnalyzing || isHistoryLoading || serverError || (mode === "customize" && jobData.description && latexText)) && !isEditingForm);
 
     return (
         <div className="flex flex-col min-h-screen w-full bg-background relative">
@@ -500,6 +506,8 @@ export function ResumeFeature({
                                 serverError={serverError}
                                 isEditingForm={isEditingForm}
                                 onToggleForm={() => setIsEditingForm(!isEditingForm)}
+                                userName={displayName}
+                                hasLatexSource={!!latexText}
                             />
                         </div>
                         <div className={!showReport ? "block" : "hidden"}>

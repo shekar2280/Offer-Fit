@@ -59,7 +59,6 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                             extractedText={extractedText}
                             handleFile={handleFile}
                             isUploading={isUploading}
-                            saveBaselineLatex={saveBaselineLatex}
                             selectedId={selectedId}
                         />
 
@@ -89,7 +88,14 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                             >
                                 <div className={`absolute inset-0 bg-gradient-to-r ${isOverQuota ? "from-red-500 to-red-600" : "from-primary to-primary/80"} transition-all duration-700`} />
                                 <div className={`absolute inset-0 flex items-center justify-center gap-3 ${isOverQuota ? "text-white" : "text-black"} z-10 transition-colors duration-500`}>
-                                    {isAnalyzing ? "Processing..." : (isOverQuota ? "Daily Quota Reached" : (mainTab === "customize" ? "Customize Resume" : "Analyze Resume"))}
+                                    {isAnalyzing
+                                        ? "Processing..."
+                                        : isOverQuota
+                                            ? "Daily Quota Reached"
+                                            : mainTab === "customize"
+                                                ? position ? `Customize for ${position}` : "Customize Resume"
+                                                : position ? `Analyze for ${position}` : "Analyze Resume"
+                                    }
                                     {!isOverQuota && <ArrowRight className="w-4 h-4 group-hover/submit:translate-x-2 transition-transform duration-700" />}
                                 </div>
                             </button>

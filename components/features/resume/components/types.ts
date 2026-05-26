@@ -21,4 +21,6 @@ export interface AnalysisReportProps {
   serverError?: string | null;
   isEditingForm?: boolean;
   onToggleForm?: () => void;
+  userName?: string;
+  hasLatexSource?: boolean;
 }
