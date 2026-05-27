@@ -244,16 +244,28 @@ You MUST produce the output in this exact structure, utilizing the custom bounda
 ===LATEX_START===
 ${
   isLatex
-    ? `[Output ONLY a COMPLETE, ready-to-compile LaTeX document. Start with \\documentclass.
-Rules:
-- Rewrite work experience bullet points using Google's X-Y-Z formula: "Accomplished [X] as measured by [Y], by doing [Z]."
+    ? `[CRITICAL — TEMPLATE PRESERVATION MODE]
+The candidate has provided their EXACT LaTeX source code. This is their personal Overleaf template with custom formatting, colors, fonts, and packages that took them significant time to create.
+
+PRESERVATION RULES (NON-NEGOTIABLE):
+- PRESERVE 100% of the preamble: every \\documentclass, \\usepackage, \\definecolor, \\newcommand, \\newlength, \\geometry, \\pagestyle declaration MUST remain byte-for-byte identical.
+- PRESERVE ALL section headers, divider rules (\\hrule, \\rule), spacing commands (\\vspace, \\hspace), and layout macros.
+- PRESERVE the document structure: every section (Summary, Experience, Education, Skills, Projects, Achievements, etc.) MUST appear in the original order. DO NOT remove, merge, or reorder any section.
+- PRESERVE all icon commands (\\faGithub, \\faLinkedin, \\faEnvelope, etc.), contact info formatting, and header layout exactly as-is.
+- PRESERVE all font declarations, column layouts, and table/tabular environments.
+
+ONLY THESE CHANGES ARE PERMITTED:
+1. Bullet point text inside \\item commands — rewrite using Google's X-Y-Z formula: "Accomplished [X] as measured by [Y], by doing [Z]."
+2. The professional summary/objective paragraph text only.
+3. The skills list values only (reorder JD-critical skills to appear first, but ONLY skills the candidate already has).
+
+ADDITIONAL RULES:
 - ABSOLUTE TRUTH: NEVER fabricate tools, metrics, or years of experience. If the candidate doesn't have a skill, do NOT add it.
-- THE SEMANTIC PIVOT: If the JD requires a tool the candidate lacks, identify the most advanced adjacent tool they DO have and highlight the underlying principles.
-- ZERO PRONOUNS: Standard resume practice. Avoid ALL pronouns (he, she, they). Use active verbs only (e.g., "Led team" instead of "They led team").
-- Inject JD keywords naturally ONLY if they apply to the candidate's existing background.
-- Reprioritize the Skills section so JD-critical technologies (that the user actually has) appear first.
-- Do NOT truncate — output the entire document.
-- Do NOT include any commentary or analysis outside the tags.]`
+- THE SEMANTIC PIVOT: If the JD requires a tool the candidate lacks, highlight the most advanced adjacent tool they DO have.
+- ZERO PRONOUNS: Avoid ALL pronouns (he, she, they). Use active verbs only (e.g., "Led team" not "They led team").
+- Inject JD keywords naturally ONLY where they truthfully apply to existing experience.
+- Do NOT truncate — output the ENTIRE document from \\documentclass to \\end{document}.
+- Do NOT include any commentary, analysis, or explanatory text outside the ===LATEX_START=== / ===LATEX_END=== tags.`
     : `[Output ONLY the COMPLETE, customized resume in clean, professional plain-text (Markdown formatting) with headers, bullet points, and clean spacings. Do NOT include any LaTeX tags, code, packages, or document classes.
 Rules:
 - Rewrite experience bullet points using Google's X-Y-Z formula: "Accomplished [X] as measured by [Y], by doing [Z]."
