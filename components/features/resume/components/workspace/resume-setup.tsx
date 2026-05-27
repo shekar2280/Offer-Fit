@@ -18,23 +18,37 @@ export function ResumeSetup({
     saveBaselineLatex,
 }: ResumeSetupProps) {
     const [isReplacingAnalysis, setIsReplacingAnalysis] = useState(false);
-    const [isReplacingCustomize, setIsReplacingCustomize] = useState(false);
     const [isPastingLatex, setIsPastingLatex] = useState(false);
+    const [isReplacingCustomize, setIsReplacingCustomize] = useState(false);
+    const [hasDismissed, setHasDismissed] = useState(false);
     const [showTip, setShowTip] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [savedPulse, setSavedPulse] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const isLatex = detectLatex(latexText || "");
-    const charCount = (latexText || "").length;
+    const charCount = latexText?.length || 0;
 
     const handlePaste = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setLatexText(e.target.value);
+        if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 600)}px`;
+        }
+    };
+
+    const handleCloseEditor = () => {
+        setIsPastingLatex(false);
+        setHasDismissed(true);
     };
 
     const handleClear = () => {
         setLatexText("");
-        setTimeout(() => textareaRef.current?.focus(), 50);
+        setIsPastingLatex(false);
+        setHasDismissed(true);
+        if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+        }
     };
 
     const handleSave = async () => {
@@ -54,19 +68,20 @@ export function ResumeSetup({
     if (mainTab === "customize") {
         return (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className={`relative flex items-center justify-between w-full px-8 py-6 rounded-3xl border transition-all duration-700 ${hasCustomizeSource ? "bg-primary/[0.03] border-primary/20 shadow-[0_0_40px_rgba(242,170,76,0.05)]" : "bg-white/[0.01] border-white/10"}`}>
+                <div className={`relative flex items-center justify-between w-full px-8 py-6 rounded-3xl border transition-all duration-700 ${hasCustomizeSource ? "bg-primary/[0.03] border-primary/20 shadow-[0_0_40px_rgba(242,170,76,0.05)]" : "bg-primary/[0.02] border-primary/30 shadow-[0_0_30px_rgba(242,170,76,0.03)]"}`}>
+
                     <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-700 ${isLatex ? "bg-primary text-black shadow-[0_0_20px_rgba(242,170,76,0.4)]" : hasCustomizeSource ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 border border-white/10 text-white/20"}`}>
-                            {isLatex ? <Code2 className={`w-5 h-5 opacity-100`} /> : <Check className={`w-5 h-5 ${hasCustomizeSource ? "opacity-100" : "opacity-20"}`} />}
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-700 ${hasCustomizeSource ? "bg-primary text-black shadow-[0_0_20px_rgba(242,170,76,0.4)]" : "bg-primary/10 border border-primary/20 text-primary shadow-[0_0_15px_rgba(242,170,76,0.15)]"}`}>
+                            {isUploading ? <Upload className="w-5 h-5 animate-bounce" /> : isLatex ? <Code2 className="w-5 h-5 opacity-100" /> : hasCustomizeSource ? <Check className="w-5 h-5 opacity-100" /> : <Upload className="w-5 h-5 opacity-100" />}
                         </div>
                         <div className="flex flex-col">
-                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isLatex ? "text-primary" : hasCustomizeSource ? "text-emerald-400" : "text-white/40"}`}>
-                                {isUploading ? "Reading Document..." : isLatex ? "LaTeX Source Loaded" : hasCustomizeSource ? "Plain Text Ready" : "Provide Resume Source"}
+                            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${hasCustomizeSource ? "text-primary" : "text-white"}`}>
+                                {isUploading ? "Reading Document..." : isLatex ? "LaTeX Source Loaded" : hasCustomizeSource ? "Plain Text Ready" : "Upload Resume Source"}
                             </span>
-                            <span className="text-[9px] text-white/20 font-medium uppercase tracking-widest mt-1">
+                            <span className={`text-[9px] font-medium uppercase tracking-widest mt-1 ${hasCustomizeSource ? "text-white/20" : "text-primary/60"}`}>
                                 {isLatex
                                     ? `${charCount.toLocaleString()} chars · Template will be preserved`
-                                    : hasCustomizeSource ? "Ready for customization" : "Provide LaTeX source or a Word document"}
+                                    : hasCustomizeSource ? "Output will be plain text. Provide LaTeX for formatted code" : "Select LaTeX or a Word document to get started"}
                             </span>
                         </div>
                     </div>
@@ -76,7 +91,10 @@ export function ResumeSetup({
                             isReplacingCustomize ? (
                                 <div className="flex items-center gap-3">
                                     <button
-                                        onClick={() => setIsPastingLatex(true)}
+                                        onClick={() => {
+                                            setIsPastingLatex(true);
+                                            setHasDismissed(false);
+                                        }}
                                         className="px-4 py-2 rounded-xl bg-primary text-black text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all cursor-pointer"
                                     >
                                         Paste LaTeX
@@ -109,7 +127,6 @@ export function ResumeSetup({
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">
-
                                     <button
                                         onClick={() => setIsReplacingCustomize(true)}
                                         className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all"
@@ -121,7 +138,10 @@ export function ResumeSetup({
                         ) : (
                             <div className="flex items-center gap-3">
                                 <button
-                                    onClick={() => setIsPastingLatex(true)}
+                                    onClick={() => {
+                                        setIsPastingLatex(true);
+                                        setHasDismissed(false);
+                                    }}
                                     className="px-4 py-2 rounded-xl bg-primary text-black text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all cursor-pointer"
                                 >
                                     Paste LaTeX
@@ -146,7 +166,7 @@ export function ResumeSetup({
                 </div>
 
                 {/* The expanded LaTeX textarea */}
-                {(!hasCustomizeSource || isPastingLatex) && (
+                {(isPastingLatex || (!latexText && !hasDismissed)) && (
                     <div className="relative rounded-3xl border border-primary/20 overflow-hidden transition-all duration-500 mt-4 animate-in fade-in slide-in-from-top-2">
                         {/* Header for the textarea */}
                         <div className="px-6 py-4 bg-primary/[0.02] border-b border-primary/10 flex items-center justify-between">
@@ -162,14 +182,12 @@ export function ResumeSetup({
                                 >
                                     <Info className="w-3.5 h-3.5" />
                                 </button>
-                                {hasCustomizeSource && (
-                                    <button
-                                        onClick={() => setIsPastingLatex(false)}
-                                        className="p-1.5 rounded-lg bg-white/[0.03] border border-white/10 text-white/30 hover:text-white hover:bg-white/10 transition-all"
-                                    >
-                                        <X className="w-3.5 h-3.5" />
-                                    </button>
-                                )}
+                                <button
+                                    onClick={handleCloseEditor}
+                                    className="p-1.5 rounded-lg bg-white/[0.03] border border-white/10 text-white/30 hover:text-white hover:bg-white/10 transition-all"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
                             </div>
                         </div>
 
@@ -204,7 +222,7 @@ export function ResumeSetup({
                             placeholder="\documentclass..."
                             style={{ minHeight: latexText ? "340px" : "120px" }}
                         />
-                        
+
                         {!latexText && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none z-10 pt-10">
                                 <ClipboardPaste className="w-8 h-8 text-white/10" />
@@ -235,13 +253,13 @@ export function ResumeSetup({
                                         <button
                                             onClick={handleSave}
                                             disabled={isSaving}
-                                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${savedPulse ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 hover:bg-white/10 text-white/80"} disabled:opacity-50`}
+                                            className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 border ${savedPulse ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/20" : "bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"} disabled:opacity-50`}
                                         >
                                             {savedPulse ? <Check className="w-3 h-3" /> : null}
                                             {isSaving ? "Saving..." : savedPulse ? "Saved" : "Save to Profile"}
                                         </button>
                                     )}
-                                    <button onClick={handleClear} className="text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all">Clear</button>
+                                    <button onClick={handleClear} className="px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all">Clear</button>
                                     <span className="text-[9px] text-white/20 font-mono">{charCount.toLocaleString()} chars</span>
                                 </div>
                             </div>
@@ -254,17 +272,18 @@ export function ResumeSetup({
 
     return (
         <div className="space-y-6">
-            <div className={`relative flex items-center justify-between w-full px-8 py-6 rounded-3xl border transition-all duration-700 ${extractedText ? "bg-primary/[0.03] border-primary/20 shadow-[0_0_40px_rgba(242,170,76,0.05)]" : "bg-white/[0.01] border-white/10"}`}>
+            <div className={`relative flex items-center justify-between w-full px-8 py-6 rounded-3xl border transition-all duration-700 ${extractedText ? "bg-primary/[0.03] border-primary/20 shadow-[0_0_40px_rgba(242,170,76,0.05)]" : "bg-primary/[0.02] border-primary/30 shadow-[0_0_30px_rgba(242,170,76,0.03)]"}`}>
+
                 <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-700 ${extractedText ? "bg-primary text-black shadow-[0_0_20px_rgba(242,170,76,0.4)]" : "bg-white/5 border border-white/10 text-white/20"}`}>
-                        {isUploading ? <Upload className="w-5 h-5 animate-bounce" /> : <Check className={`w-5 h-5 ${extractedText ? "opacity-100" : "opacity-20"}`} />}
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-700 ${extractedText ? "bg-primary text-black shadow-[0_0_20px_rgba(242,170,76,0.4)]" : "bg-primary/10 border border-primary/20 text-primary shadow-[0_0_15px_rgba(242,170,76,0.15)]"}`}>
+                        {isUploading ? <Upload className="w-5 h-5 animate-bounce" /> : extractedText ? <Check className="w-5 h-5 opacity-100" /> : <Upload className="w-5 h-5" />}
                     </div>
                     <div className="flex flex-col">
-                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${extractedText ? "text-primary" : "text-white/40"}`}>
+                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${extractedText ? "text-primary" : "text-white"}`}>
                             {isUploading ? "Reading Resume..." : extractedText ? "Resume Loaded" : "Upload Resume"}
                         </span>
-                        <span className="text-[9px] text-white/20 font-medium uppercase tracking-widest mt-1">
-                            {extractedText ? "Your resume is ready for analysis" : "Select a PDF or Word document (.docx) to get started"}
+                        <span className={`text-[9px] font-medium uppercase tracking-widest mt-1 ${extractedText ? "text-white/20" : "text-primary/60"}`}>
+                            {extractedText ? "Your resume is ready for analysis" : "Select a PDF or Word document to get started"}
                         </span>
                     </div>
                 </div>
