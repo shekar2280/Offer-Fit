@@ -55,7 +55,7 @@ async function fetchSingleAnalysis(id: string) {
     const supabase = createClient();
     const { data } = await supabase
         .from("analyses")
-        .select("*")
+        .select("*, intel:company_intel(*)")
         .eq("id", id)
         .single();
     return data;
