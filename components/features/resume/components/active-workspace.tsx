@@ -32,7 +32,7 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
         isOverQuota = false,
     } = props;
 
-    const isSubmitDisabled = isAnalyzing || isUploading || isOverQuota || (mainTab === "customize" ? !latexText : !extractedText) || !jobDescription || !companyName || !position;
+    const isSubmitDisabled = isAnalyzing || isUploading || isOverQuota || (mainTab === "customize" ? !(latexText || extractedText) : !extractedText) || !jobDescription || !companyName || !position;
 
     return (
         <div className="w-full flex flex-col relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -60,6 +60,7 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                             handleFile={handleFile}
                             isUploading={isUploading}
                             selectedId={selectedId}
+                            saveBaselineLatex={saveBaselineLatex}
                         />
 
                         <JobDetails

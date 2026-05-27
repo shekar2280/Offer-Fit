@@ -141,19 +141,7 @@ export function ResumeFeature({
         }
     }, [selectedId, globalState.id, globalState.jd, globalState.companyName, setServerError]);
 
-    useEffect(() => {
-        const canAutoStart =
-            mode === "customize" &&
-            !isHistoryLoading &&
-            !isAnalyzing &&
-            !analysisState.analysis &&
-            jobData.description &&
-            latexText;
 
-        if (canAutoStart) {
-            analyzeResume(latexText || extractedText || "");
-        }
-    }, [mode, isHistoryLoading, isAnalyzing, analysisState.analysis, jobData.description, latexText, extractedText]);
 
     useEffect(() => {
         const el = scrollContainerRef.current;
@@ -245,7 +233,8 @@ export function ResumeFeature({
 
     const username = displayName;
 
-    const showReport = (!!(selectedId || analysisState.analysis || isAnalyzing || isHistoryLoading || serverError || (mode === "customize" && jobData.description && latexText)) && !isEditingForm);
+    const hasReportData = mode === "analysis" ? !!analysisState.analysis : analysisState.hasCustomization;
+    const showReport = (!!((selectedId && hasReportData) || isAnalyzing || isHistoryLoading || serverError) && !isEditingForm);
 
     return (
         <div className="flex flex-col min-h-screen w-full bg-background relative">
@@ -281,6 +270,7 @@ export function ResumeFeature({
                                 onToggleForm={() => setIsEditingForm(!isEditingForm)}
                                 userName={displayName}
                                 hasLatexSource={!!latexText}
+                                originalLatex={latexText}
                             />
                         </div>
                         <div className={!showReport ? "block" : "hidden"}>
