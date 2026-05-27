@@ -7,6 +7,7 @@ import { User } from "@supabase/supabase-js";
 import { clearDraft } from "./use-draft-persistence";
 import { LOADING_MESSAGES } from "@/config/constants";
 import { AnalysisResult } from "@/types";
+import { stringifyJdText } from "@/lib/utils";
 
 interface UseResumeActionsProps {
     mode: "analysis" | "customize";
@@ -26,6 +27,8 @@ interface UseResumeActionsProps {
     setJobLocation: (val: string) => void;
     setJobType: (val: string) => void;
     scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+    isAnalyzing: boolean;
+    setIsAnalyzing: (val: boolean) => void;
 }
 
 export function useResumeActions({
@@ -45,12 +48,13 @@ export function useResumeActions({
     setJobData,
     setJobLocation,
     setJobType,
-    scrollContainerRef
+    scrollContainerRef,
+    isAnalyzing,
+    setIsAnalyzing,
 }: UseResumeActionsProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [loadingStep, setLoadingStep] = useState(0);
     const [serverError, setServerError] = useState<string | null>(null);
@@ -159,7 +163,7 @@ export function useResumeActions({
                     .from("analyses")
                     .insert({
                         user_id: user.id,
-                        jd_text: jobData.description,
+                        jd_text: stringifyJdText(jobData.description, jobLocation, jobType),
                         company_name: jobData.company,
                         position: jobData.role,
                         status: 'started'
