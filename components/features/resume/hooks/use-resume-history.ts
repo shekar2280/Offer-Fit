@@ -4,8 +4,9 @@ import { createClient } from "@/services/supabase/client";
 import { useQueryClient, useQuery, keepPreviousData } from "@tanstack/react-query";
 import { User } from "@supabase/supabase-js";
 import { AnalysisResult } from "@/types";
+import { parseJdText } from "@/lib/utils";
 
-export function useResumeHistory(selectedId: string | null | undefined, user: User | null, mode: string) {
+export function useResumeHistory(selectedId: string | null | undefined, user: User | null, mode: string, isAnalyzing?: boolean) {
   const queryClient = useQueryClient();
   const [jobOverrides, setJobOverrides] = useState<{ company?: string; role?: string; description?: string }>({});
 
@@ -28,8 +29,10 @@ export function useResumeHistory(selectedId: string | null | undefined, user: Us
   });
 
   useEffect(() => {
-    setJobOverrides({});
-  }, [selectedId]);
+    if (!isAnalyzing) {
+      setJobOverrides({});
+    }
+  }, [selectedId, isAnalyzing]);
 
   const atsScore = savedData?.ats_score ?? 0;
   const derivedVerdict = atsScore >= 70 ? "APPLY" : atsScore >= 50 ? "STRETCH" : "REJECT";
@@ -39,10 +42,12 @@ export function useResumeHistory(selectedId: string | null | undefined, user: Us
 
   const displayAnalysis = mode === "customize" ? cachedCustomize : cachedAnalysis;
 
+  const { cleanJd, location, jobType } = parseJdText(savedData?.jd_text || "");
+
   const jobData = {
     company: jobOverrides.company || savedData?.company_name || "",
     role: jobOverrides.role || savedData?.position || "",
-    description: jobOverrides.description || savedData?.jd_text || "",
+    description: jobOverrides.description || cleanJd || "",
   };
 
   const setJobData = useCallback((update: Partial<typeof jobData> | ((prev: typeof jobData) => Partial<typeof jobData>)) => {
@@ -51,14 +56,14 @@ export function useResumeHistory(selectedId: string | null | undefined, user: Us
         const currentJobData = {
           company: prev.company ?? savedData?.company_name ?? "",
           role: prev.role ?? savedData?.position ?? "",
-          description: prev.description ?? savedData?.jd_text ?? "",
+          description: prev.description ?? cleanJd ?? "",
         };
         return update(currentJobData);
       });
     } else {
       setJobOverrides(update);
     }
-  }, [savedData]);
+  }, [savedData, cleanJd]);
 
   const insights = savedData ? {
     match_score: savedData.match_score || atsScore,
@@ -161,5 +166,7 @@ export function useResumeHistory(selectedId: string | null | undefined, user: Us
     setJobData,
     analysisState,
     setAnalysisState,
+    location,
+    jobType,
   };
 }
