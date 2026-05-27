@@ -53,7 +53,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isAuthPage && !request.nextUrl.pathname.startsWith('/auth/confirm')) {
     const url = request.nextUrl.clone();
-    url.pathname = "/analyze";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
