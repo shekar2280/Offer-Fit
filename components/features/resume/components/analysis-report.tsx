@@ -9,9 +9,9 @@ import { ErrorView } from "./report/error-view";
 import { MatchHeader } from "./report/match-header";
 import { CompanyIntelligence, InterviewQuestions, RedFlags, SalaryInsight, ScoreMetrics, SkillsView, StrategyCard, AuditBadge } from "./report/insights-cards";
 import { UpskillingBridgeSection } from "./report/upskilling-bridge";
-
 import { MarkdownViewer } from "./report/markdown-viewer";
 import { LoadingScanning } from "./report/loading-scanning";
+import { LatexDiffViewer } from "./report/latex-diff-viewer";
 
 export function AnalysisReport(props: AnalysisReportProps) {
     const {
@@ -31,6 +31,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
         onToggleForm = () => { },
         userName,
         hasLatexSource = false,
+        originalLatex = null,
     } = props;
 
     const score = insights?.match_score || 0;
@@ -204,47 +205,54 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                         </div>
                                     )}
 
-                                    {analysis && (
-                                        <div className="space-y-12">
-                                            <StrategyCard strategy={insights?.strategy} verdict={verdict} />
+                                    {analysis && (() => {
+                                        const cleanedAnalysis = analysis.split("###")[0].trim();
+                                        const isLatex = cleanedAnalysis.includes("\\documentclass") || cleanedAnalysis.includes("\\begin{document}");
+                                        const hasOriginal = isLatex && !!originalLatex;
 
-                                            <div className="space-y-6">
-                                                <div className="flex items-center justify-between">
+                                        return (
+                                            <div className="space-y-10">
+                                                <StrategyCard strategy={insights?.strategy} verdict={verdict} />
+
+                                                <div className="space-y-5">
+                                                    {/* Section header */}
                                                     <div className="flex items-center gap-3">
                                                         <div className="h-px w-8 bg-primary/30" />
-                                                        {(() => {
-                                                            const isLatex = (analysis || "").includes("\\documentclass") || (analysis || "").includes("\\begin{document}");
-                                                            return (
-                                                                <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">
-                                                                    {isLatex ? "Tailored LaTeX Source" : "Tailored Plain-Text Resume"}
-                                                                </span>
-                                                            );
-                                                        })()}
+                                                        <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-primary font-bold">
+                                                            {isLatex ? (hasOriginal ? "Changes · Tailored LaTeX" : "Tailored LaTeX Source") : "Tailored Plain-Text Resume"}
+                                                        </span>
                                                     </div>
-                                                    {(() => {
-                                                        const isLatex = (analysis || "").includes("\\documentclass") || (analysis || "").includes("\\begin{document}");
-                                                        return (
-                                                            <button
-                                                                onClick={() => copyText(analysis.split("###")[0].trim(), isLatex ? "LaTeX Code" : "Resume")}
-                                                                className="px-6 py-2 rounded-xl bg-primary text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/10 flex items-center gap-2"
-                                                            >
-                                                                <Copy className="w-3 h-3" />
-                                                                Copy {isLatex ? "Code" : "Resume"}
-                                                            </button>
-                                                        );
-                                                    })()}
-                                                </div>
 
-                                                <AuditBadge audit={insights?.audit_report} />
+                                                    <AuditBadge audit={insights?.audit_report} />
 
-                                                <div className="bg-slate-950/50 border border-white/5 rounded-3xl p-8 overflow-hidden relative">
-                                                    <pre className="text-[13px] font-mono text-white/70 leading-relaxed overflow-x-auto relative z-10">
-                                                        {analysis.split("###")[0].trim()}
-                                                    </pre>
+                                                    {hasOriginal ? (
+                                                        <LatexDiffViewer
+                                                            original={originalLatex!}
+                                                            updated={cleanedAnalysis}
+                                                            onCopyUpdated={() => copyText(cleanedAnalysis, "LaTeX Code")}
+                                                        />
+                                                    ) : (
+                                                        <div className="space-y-4">
+                                                            <div className="flex justify-end">
+                                                                <button
+                                                                    onClick={() => copyText(cleanedAnalysis, isLatex ? "LaTeX Code" : "Resume")}
+                                                                    className="px-6 py-2 rounded-xl bg-primary text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/10 flex items-center gap-2"
+                                                                >
+                                                                    <Copy className="w-3 h-3" />
+                                                                    Copy {isLatex ? "Code" : "Resume"}
+                                                                </button>
+                                                            </div>
+                                                            <div className="bg-slate-950/50 border border-white/5 rounded-3xl p-8 overflow-hidden relative">
+                                                                <pre className="text-[13px] font-mono text-white/70 leading-relaxed overflow-x-auto relative z-10">
+                                                                    {cleanedAnalysis}
+                                                                </pre>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
                                 </div>
                             )}
                         </div>
