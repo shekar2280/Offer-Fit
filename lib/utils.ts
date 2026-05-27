@@ -22,3 +22,37 @@ export function sanitizeMd(text: string): string {
         .replace(/\n{3,}/g, "\n\n")
         .trim();
 }
+
+interface ParsedJd {
+    cleanJd: string;
+    location: string;
+    jobType: string;
+}
+
+export function parseJdText(jdText: string): ParsedJd {
+    if (!jdText) return { cleanJd: "", location: "", jobType: "" };
+    
+    const metadataRegex = /^<!--METADATA:\s*({.*?})\s*-->\n*/;
+    const match = jdText.match(metadataRegex);
+    
+    if (match) {
+        try {
+            const metadata = JSON.parse(match[1]);
+            return {
+                cleanJd: jdText.replace(metadataRegex, ""),
+                location: metadata.location || "",
+                jobType: metadata.jobType || "",
+            };
+        } catch (e) {
+            console.error("Failed to parse metadata", e);
+        }
+    }
+    
+    return { cleanJd: jdText, location: "", jobType: "" };
+}
+
+export function stringifyJdText(jdText: string, location: string, jobType: string): string {
+    if (!location && !jobType) return jdText;
+    const metadata = { location, jobType };
+    return `<!--METADATA: ${JSON.stringify(metadata)}-->\n${jdText}`;
+}
