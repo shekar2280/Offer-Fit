@@ -109,6 +109,7 @@ export interface AnalysisReportProps {
   onToggleForm?: () => void;
   userName?: string;
   hasLatexSource?: boolean;
+  originalLatex?: string | null;
 }
 
 export interface ActiveWorkspaceProps {
@@ -140,4 +141,34 @@ export interface ActiveWorkspaceProps {
     onSwitchMode: (mode: "analysis" | "customize") => void;
     companyInputRef?: React.RefObject<HTMLInputElement | null>;
     isOverQuota?: boolean;
+}
+
+export interface DiffLine {
+  type: "unchanged" | "added" | "removed";
+  content: string;
+  oldLineNo?: number;
+  newLineNo?: number;
+}
+
+export interface Hunk {
+  lines: DiffLine[];
+  oldStart: number;
+  newStart: number;
+}
+
+export interface LatexDiffViewerProps {
+  original: string;
+  updated: string;
+  onCopyUpdated: () => void;
+}
+
+export interface ResumeSetupProps {
+    mainTab: "analysis" | "customize";
+    latexText: string;
+    setLatexText: (val: string) => void;
+    extractedText: string | null;
+    handleFile: (file: File, uploadMode?: "analysis" | "customize") => void;
+    isUploading: boolean;
+    selectedId: string | null;
+    saveBaselineLatex?: () => Promise<void>;
 }
