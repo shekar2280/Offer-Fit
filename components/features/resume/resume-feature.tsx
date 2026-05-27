@@ -43,6 +43,7 @@ export function ResumeFeature({
     const [jobLocation, setJobLocation] = useState(initialData?.location || "");
     const [jobType, setJobType] = useState(initialData?.jobType || "");
     const [isEditingForm, setIsEditingForm] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const { data: user } = useQuery<User | null>({
         queryKey: ["user"],
@@ -80,11 +81,20 @@ export function ResumeFeature({
     const {
         isHistoryLoading,
         jobData, setJobData,
-        analysisState, setAnalysisState
-    } = useResumeHistory(selectedId, user ?? null, mode);
+        analysisState, setAnalysisState,
+        location: historyLocation,
+        jobType: historyJobType
+    } = useResumeHistory(selectedId, user ?? null, mode, isAnalyzing);
 
     useEffect(() => {
-        if (initialData) {
+        if (selectedId && !isHistoryLoading) {
+            if (historyLocation !== undefined) setJobLocation(historyLocation || "");
+            if (historyJobType !== undefined) setJobType(historyJobType || "");
+        }
+    }, [selectedId, isHistoryLoading, historyLocation, historyJobType]);
+
+    useEffect(() => {
+        if (initialData && !selectedId) {
             setJobData((prev) => ({
                 company: initialData.companyName || prev.company,
                 role: initialData.position || prev.role,
@@ -93,7 +103,7 @@ export function ResumeFeature({
             if (initialData.location) setJobLocation(initialData.location);
             if (initialData.jobType) setJobType(initialData.jobType);
         }
-    }, [initialData, setJobData]);
+    }, [initialData, selectedId, setJobData]);
 
     const { state: globalState } = useAnalysis();
 
@@ -102,7 +112,6 @@ export function ResumeFeature({
     const companyInputRef = useRef<HTMLInputElement>(null);
 
     const {
-        isAnalyzing,
         isUploading,
         loadingStep,
         serverError,
@@ -128,7 +137,9 @@ export function ResumeFeature({
         setJobData,
         setJobLocation,
         setJobType,
-        scrollContainerRef
+        scrollContainerRef,
+        isAnalyzing,
+        setIsAnalyzing
     });
 
     useEffect(() => {
@@ -244,7 +255,7 @@ export function ResumeFeature({
                 usage={usage}
             />
             <main ref={scrollContainerRef} className="relative z-10 flex items-start justify-center p-0 md:px-4 md:pt-2 md:pb-0 overflow-y-auto min-h-[calc(100vh-68px)]">
-                {isHistoryLoading && !jobData.company ? (
+                {isHistoryLoading && !jobData.company && !isAnalyzing ? (
                     <div className="max-w-[1400px] mx-auto w-full p-4 md:px-0">
                         {mode === "customize" ? <CustomizeReportSkeleton /> : <AnalysisReportSkeleton />}
                     </div>
