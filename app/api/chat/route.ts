@@ -7,7 +7,8 @@ import {
   AgenticAnalysisResult
 } from "@/lib/ai/agent";
 import { logSystemEvent } from "@/services/supabase/logger";
-import { USAGE_LIMITS } from "@/config/constants";
+import { PLAN_QUOTAS, PlanType, getMidnightISTResetMs } from "@/config/constants";
+
 import { AnalysisResult } from "@/types";
 import { checkRateLimit, getCache, setCache } from "@/services/redis";
 import { createHash } from "crypto";
@@ -98,10 +99,20 @@ export async function POST(req: Request) {
         }
 
         if (user) {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("plan_type")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          const plan: PlanType = (profileData?.plan_type as PlanType) || "free";
+          const userQuota = PLAN_QUOTAS[plan];
+          const resetMs = getMidnightISTResetMs();
+          const resetHours = Math.ceil(resetMs / 1000 / 60 / 60);
+
           const dailyLimitCheck = await checkRateLimit(
             `rate:daily:${user.id}`,
-            USAGE_LIMITS.DAILY_QUOTA,
-            USAGE_LIMITS.DAILY_REFRESH_MS
+            userQuota,
           );
           if (!dailyLimitCheck.success) {
             await logSystemEvent({
@@ -109,13 +120,11 @@ export async function POST(req: Request) {
               source: "QUOTA_EXHAUSTED",
               message: "Daily quota reached for user",
               userId: user.id,
-              details: { limit: USAGE_LIMITS.DAILY_QUOTA }
+              details: { limit: userQuota, plan }
             });
             sse.send({
               type: "error",
-              error: `Daily quota reached (${USAGE_LIMITS.DAILY_QUOTA}/day). Your limits refresh in ${Math.round(
-                dailyLimitCheck.resetMs / 1000 / 60 / 60
-              )} hours.`,
+              error: `Daily quota reached (${userQuota}/day on ${plan} plan). Resets at midnight IST — in ~${resetHours}h.`,
             });
             sse.close();
             return;

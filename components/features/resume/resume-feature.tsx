@@ -11,7 +11,8 @@ import { Navbar } from "@/components/layout/navbar";
 import { useResumeProfile } from "./hooks/use-resume-profile";
 import { useResumeHistory } from "./hooks/use-resume-history";
 import { useResumeActions } from "./hooks/use-resume-actions";
-import { LOADING_MESSAGES, USAGE_LIMITS } from "@/config/constants";
+import { LOADING_MESSAGES, PLAN_QUOTAS, PlanType, isPastMidnightIST } from "@/config/constants";
+
 import { useAnalysis } from "@/components/providers/analysis-provider";
 import { useWorkspaceUI } from "@/components/providers/workspace-ui-provider";
 import { AnalysisReportSkeleton, CustomizeReportSkeleton } from "@/components/ui/skeletons";
@@ -61,12 +62,11 @@ export function ResumeFeature({
         queryFn: async () => {
             if (!user) return null;
             const supabase = createClient();
-            const { data } = await supabase
-                .from("user_usage")
-                .select("daily_count, last_request_at")
-                .eq("user_id", user.id)
-                .single();
-            return data;
+            const [{ data: usageData }, { data: profileData }] = await Promise.all([
+                supabase.from("user_usage").select("daily_count, last_request_at").eq("user_id", user.id).single(),
+                supabase.from("profiles").select("plan_type").eq("id", user.id).maybeSingle(),
+            ]);
+            return { ...usageData, plan_type: (profileData?.plan_type as PlanType) || "free" };
         },
         enabled: !!user,
         staleTime: 1000 * 30,
@@ -197,13 +197,10 @@ export function ResumeFeature({
 
     const isOverQuota = (() => {
         if (!usage) return false;
-        const now = new Date();
-        const lastRequest = usage.last_request_at ? new Date(usage.last_request_at) : new Date(0);
-        const msSinceLast = now.getTime() - lastRequest.getTime();
-
-        const dailyCount = msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS ? 0 : usage.daily_count;
-
-        return dailyCount >= USAGE_LIMITS.DAILY_QUOTA;
+        const isNewDay = usage.last_request_at ? isPastMidnightIST(usage.last_request_at) : false;
+        const dailyCount = isNewDay ? 0 : usage.daily_count;
+        const plan: PlanType = usage.plan_type || "free";
+        return dailyCount >= PLAN_QUOTAS[plan];
     })();
 
     const isSubmitReady = !isAnalyzing && !isUploading && !isOverQuota &&
@@ -252,7 +249,7 @@ export function ResumeFeature({
             <Navbar
                 username={username}
                 showMenuButton={false}
-                usage={usage}
+                usage={usage ? { daily_count: usage.daily_count ?? 0, last_request_at: usage.last_request_at ?? null } : null}
             />
             <main ref={scrollContainerRef} className="relative z-10 flex items-start justify-center p-0 md:px-4 md:pt-2 md:pb-0 overflow-y-auto min-h-[calc(100vh-68px)]">
                 {isHistoryLoading && !jobData.company && !isAnalyzing ? (

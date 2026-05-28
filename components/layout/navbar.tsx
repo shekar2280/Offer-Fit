@@ -6,7 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import logoIcon from "@/assets/icon.png";
 import { useAnalysis } from "@/components/providers/analysis-provider";
-import { USAGE_LIMITS } from "@/config/constants";
+import { PLAN_QUOTAS, PlanType, isPastMidnightIST } from "@/config/constants";
+
 import { createClient } from "@/services/supabase/client";
 
 interface NavbarProps {
@@ -24,10 +25,12 @@ export function Navbar({
 }: NavbarProps) {
     const { resetSession } = useAnalysis();
     const [mounted, setMounted] = useState(false);
-    
+
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    const [planType, setPlanType] = useState<PlanType>("free");
 
     const [clientUsage, setClientUsage] = useState<{ daily_count: number; last_request_at: string | null } | null>(() => {
         if (typeof window !== "undefined") {
@@ -44,45 +47,46 @@ export function Navbar({
     });
 
     useEffect(() => {
-        if (usage) {
-            setClientUsage(usage);
-            localStorage.setItem("resume_ai_usage", JSON.stringify(usage));
-            return;
-        }
-
         const fetchUsage = async () => {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data: usageData, error } = await supabase
-                    .from("user_usage")
-                    .select("daily_count, last_request_at")
-                    .eq("user_id", user.id)
-                    .maybeSingle();
-                
-                if (usageData) {
-                    setClientUsage(usageData);
-                    localStorage.setItem("resume_ai_usage", JSON.stringify(usageData));
-                } else if (!error) {
-                    const freshUsage = { daily_count: 0, last_request_at: null };
-                    setClientUsage(freshUsage);
-                    localStorage.setItem("resume_ai_usage", JSON.stringify(freshUsage));
-                }
+            if (!user) return;
+
+            const [{ data: usageData, error }, { data: profileData }] = await Promise.all([
+                supabase.from("user_usage").select("daily_count, last_request_at").eq("user_id", user.id).maybeSingle(),
+                supabase.from("profiles").select("plan_type").eq("id", user.id).maybeSingle(),
+            ]);
+
+            if (profileData?.plan_type) setPlanType(profileData.plan_type as PlanType);
+
+            if (usage) {
+                setClientUsage(usage);
+                localStorage.setItem("resume_ai_usage", JSON.stringify(usage));
+            } else if (usageData) {
+                setClientUsage(usageData);
+                localStorage.setItem("resume_ai_usage", JSON.stringify(usageData));
+            } else if (!error) {
+                const freshUsage = { daily_count: 0, last_request_at: null };
+                setClientUsage(freshUsage);
+                localStorage.setItem("resume_ai_usage", JSON.stringify(freshUsage));
             }
         };
 
         fetchUsage();
     }, [usage]);
 
+
     const getDailyCount = () => {
         if (!clientUsage) return null;
-        const msSinceLast = clientUsage.last_request_at ? Date.now() - new Date(clientUsage.last_request_at).getTime() : 0;
-        return msSinceLast > USAGE_LIMITS.DAILY_REFRESH_MS ? 0 : clientUsage.daily_count;
+        if (clientUsage.last_request_at && isPastMidnightIST(clientUsage.last_request_at)) return 0;
+        return clientUsage.daily_count;
     };
 
+    const userQuota = PLAN_QUOTAS[planType];
     const dailyCount = getDailyCount();
-    const remainingCredits = dailyCount !== null ? Math.max(0, USAGE_LIMITS.DAILY_QUOTA - dailyCount) : null;
+    const remainingCredits = dailyCount !== null ? Math.max(0, userQuota - dailyCount) : null;
     const isOutOfCredits = mounted && remainingCredits === 0;
+
 
     return (
         <header className="w-full h-[68px] shrink-0 sticky top-0 z-50 bg-black/60 backdrop-blur-2xl border-b border-white/[0.06]">
@@ -108,19 +112,19 @@ export function Navbar({
                             className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden transition-shadow duration-300 group-hover:shadow-[0_0_16px_4px_rgba(242,170,76,0.3)]"
                             style={{ background: "linear-gradient(135deg, #101820, #1e2a3a)", border: "1px solid rgba(242,170,76,0.2)" }}
                         >
-                            <Image src={logoIcon} alt="Resume AI" width={20} height={20} className="object-contain" />
+                            <Image src={logoIcon} alt="Offer Fit" width={20} height={20} className="object-contain" />
                         </div>
                         <div className="flex items-baseline gap-1 font-black text-xl tracking-tighter">
-                            <span className="text-white">Resume</span>
-                            <span className="font-serif italic font-light" style={{ color: "#F2AA4C" }}>AI</span>
+                            <span className="text-white">Offer</span>
+                            <span className="font-serif font-light" style={{ color: "#F2AA4C" }}>Fit</span>
                         </div>
                     </Link>
                 </div>
 
                 <div className="flex items-center gap-2.5 flex-none">
                     <div className={`flex items-center gap-1.5 shadow-[inset_0_0_12px_rgba(255,255,255,0.02)] rounded-full px-3.5 py-1.5 transition-all duration-500 ${isOutOfCredits
-                            ? "bg-rose-950/40 border border-rose-500/30 shadow-[0_0_20px_rgba(239,68,68,0.1)] hover:bg-rose-950/60 hover:border-rose-500/50"
-                            : "bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] hover:border-white/[0.15]"
+                        ? "bg-rose-950/40 border border-rose-500/30 shadow-[0_0_20px_rgba(239,68,68,0.1)] hover:bg-rose-950/60 hover:border-rose-500/50"
+                        : "bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] hover:border-white/[0.15]"
                         }`}>
                         <Sparkles className={`w-3.5 h-3.5 ${isOutOfCredits ? "text-rose-400 animate-pulse" : "text-[#F2AA4C]"}`} />
                         <span className="text-xs font-bold tracking-wide">
@@ -133,7 +137,7 @@ export function Navbar({
                                     <span className="text-white/80">
                                         <span className="text-white font-extrabold">{remainingCredits}</span>
                                         <span className="text-white/30 mx-1">/</span>
-                                        <span className="text-white/40">{USAGE_LIMITS.DAILY_QUOTA} Credits</span>
+                                        <span className="text-white/40">{userQuota} Credits</span>
                                     </span>
                                 )
                             ) : (
