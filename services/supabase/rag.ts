@@ -16,7 +16,7 @@ export async function generateChunks(text: string): Promise<string[]> {
     "cgpa",
     "nationality",
     "gender",
-    "dob",
+
   ];
   const processedChunks: string[] = [];
 
