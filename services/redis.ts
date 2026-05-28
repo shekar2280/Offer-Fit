@@ -1,5 +1,7 @@
+import { getMidnightISTResetMs } from "@/config/constants";
+
 const memoryCache = new Map<string, { value: unknown; expiresAt: number }>();
-const rateLimitMemory = new Map<string, number[]>();
+const rateLimitMemory = new Map<string, { count: number; windowStart: number }>();
 
 export async function getCache(key: string): Promise<unknown> {
   const cached = memoryCache.get(key);
@@ -22,29 +24,20 @@ export async function setCache(key: string, value: unknown, ttlSeconds: number =
 export async function checkRateLimit(
   key: string,
   limit: number,
-  windowMs: number
 ): Promise<{ success: boolean; remaining: number; resetMs: number }> {
   const now = Date.now();
-  const timestamps = rateLimitMemory.get(key) || [];
-  
-  const validTimestamps = timestamps.filter((t) => now - t < windowMs);
-  
-  if (validTimestamps.length >= limit) {
-    const oldestTimestamp = validTimestamps[0];
-    const resetMs = Math.max(0, windowMs - (now - oldestTimestamp));
-    return {
-      success: false,
-      remaining: 0,
-      resetMs,
-    };
+  const resetMs = getMidnightISTResetMs();
+  const windowStart = now + resetMs - 86400000;
+
+  const entry = rateLimitMemory.get(key);
+  const isNewWindow = !entry || entry.windowStart < windowStart;
+  const count = isNewWindow ? 0 : entry.count;
+
+  if (count >= limit) {
+    return { success: false, remaining: 0, resetMs };
   }
 
-  validTimestamps.push(now);
-  rateLimitMemory.set(key, validTimestamps);
+  rateLimitMemory.set(key, { count: count + 1, windowStart: isNewWindow ? now : entry!.windowStart });
 
-  return {
-    success: true,
-    remaining: limit - validTimestamps.length,
-    resetMs: windowMs,
-  };
+  return { success: true, remaining: limit - (count + 1), resetMs };
 }

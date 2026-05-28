@@ -20,7 +20,40 @@ export const LOADING_MESSAGES = [
   "Applying reliability audit...",
 ];
 
+export const PLAN_QUOTAS = {
+  free: 20,
+  premium: 50,
+} as const;
+
+export type PlanType = keyof typeof PLAN_QUOTAS;
+
+export function getMidnightISTResetMs(): number {
+  const now = new Date();
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const nowIST = new Date(now.getTime() + IST_OFFSET_MS);
+  const midnightIST = new Date(
+    Date.UTC(
+      nowIST.getUTCFullYear(),
+      nowIST.getUTCMonth(),
+      nowIST.getUTCDate() + 1,
+      0, 0, 0, 0
+    ) - IST_OFFSET_MS
+  );
+  return midnightIST.getTime() - now.getTime();
+}
+
+export function isPastMidnightIST(lastRequestAt: string | Date): boolean {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const last = new Date(lastRequestAt);
+  const now = new Date();
+  const toISTDay = (d: Date) => {
+    const ist = new Date(d.getTime() + IST_OFFSET_MS);
+    return `${ist.getUTCFullYear()}-${ist.getUTCMonth()}-${ist.getUTCDate()}`;
+  };
+  return toISTDay(last) !== toISTDay(now);
+}
+
 export const USAGE_LIMITS = {
-  DAILY_QUOTA: 30,
+  DAILY_QUOTA: 20,
   DAILY_REFRESH_MS: 86400000,
 } as const;
