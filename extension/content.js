@@ -28,8 +28,7 @@ function scrapeProfileData() {
       data.full_name = input.value;
     } else if (id === 'email' || label.includes('email address')) {
       data.email = input.value;
-    } else if (id === 'phone_number' || label.includes('phone number') || placeholder.includes('+91')) {
-      data.phone_number = input.value;
+
     } else if (id === 'portfolio_url' || label.includes('portfolio') || placeholder.includes('https://')) {
       data.portfolio_url = input.value;
     }
@@ -78,3 +77,13 @@ function fill(input, value) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
   input.dispatchEvent(new Event('change', { bubbles: true }));
 }
+
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+  if (event.data && event.data.type === "FROM_RESUME_ANALYZER") {
+    if (event.data.action === "SYNC_PROFILE") {
+      chrome.storage.local.set({ profile: event.data.data });
+    }
+  }
+});
+
