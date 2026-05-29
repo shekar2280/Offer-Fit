@@ -28,7 +28,7 @@ export function PersonalInfoSection({ formData, setFormData }: PersonalInfoSecti
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="group bg-zinc-950/40 border border-white/[0.06] focus-within:border-primary/40 focus-within:shadow-[0_0_20px_rgba(242,170,76,0.05)] rounded-2xl px-5 py-3.5 transition-all">
+                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all">
                     <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-primary transition-colors mb-1" htmlFor="full_name">
                         Full Name
                     </label>
@@ -44,7 +44,7 @@ export function PersonalInfoSection({ formData, setFormData }: PersonalInfoSecti
                     </div>
                 </div>
 
-                <div className="group bg-zinc-950/40 border border-white/[0.06] focus-within:border-primary/40 focus-within:shadow-[0_0_20px_rgba(242,170,76,0.05)] rounded-2xl px-5 py-3.5 transition-all">
+                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all">
                     <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-primary transition-colors mb-1" htmlFor="email">
                         Email Address
                     </label>
@@ -62,7 +62,7 @@ export function PersonalInfoSection({ formData, setFormData }: PersonalInfoSecti
 
 
 
-                <div className="group bg-zinc-950/40 border border-white/[0.06] focus-within:border-primary/40 focus-within:shadow-[0_0_20px_rgba(242,170,76,0.05)] rounded-2xl px-5 py-3.5 transition-all md:col-span-2">
+                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all md:col-span-2">
                     <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-primary transition-colors mb-1" htmlFor="city_country">
                         Location (City / Country)
                     </label>
