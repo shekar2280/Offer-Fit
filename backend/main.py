@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
@@ -13,12 +13,19 @@ from app.ai.agents.strategy import run_strategy_agent
 from app.ai.agents.audit import run_resume_audit, run_analysis_judge
 from google import genai
 
-app = FastAPI(title="Resume Analyzer AI API")
+async def verify_api_key(request: Request, x_api_key: Optional[str] = Header(None)):
+    if request.url.path == "/health":
+        return
+    expected_key = os.getenv("BACKEND_API_KEY")
+    if expected_key and x_api_key != expected_key:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+app = FastAPI(title="Offer Fit AI API", dependencies=[Depends(verify_api_key)])
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

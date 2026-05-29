@@ -9,6 +9,13 @@ import { useAnalysis } from "@/components/providers/analysis-provider";
 import { PLAN_QUOTAS, PlanType, isPastMidnightIST } from "@/config/constants";
 
 import { createClient } from "@/services/supabase/client";
+import { Space_Grotesk } from "next/font/google";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["700"],
+  display: "swap",
+});
 
 interface NavbarProps {
     username: string;
@@ -114,10 +121,9 @@ export function Navbar({
                         >
                             <Image src={logoIcon} alt="Offer Fit" width={20} height={20} className="object-contain" />
                         </div>
-                        <div className="flex items-baseline gap-1 font-black text-xl tracking-tighter">
-                            <span className="text-white">Offer</span>
-                            <span className="font-serif font-light" style={{ color: "#F2AA4C" }}>Fit</span>
-                        </div>
+                        <span className={`${spaceGrotesk.className} text-lg font-bold tracking-[0.08em] text-white select-none`}>
+                            OFFER<span className="text-[#f2aa4c] font-light">FIT</span>
+                        </span>
                     </Link>
                 </div>
 

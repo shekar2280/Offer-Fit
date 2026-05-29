@@ -3,11 +3,14 @@ export async function evaluateAnalysis(
   jd: string,
   analysis: string,
 ) {
-  const backendUrl = process.env.PYTHON_BACKEND_URL || "http://127.0.0.1:8000";
+  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
   try {
     const res = await fetch(`${backendUrl}/judge`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {})
+      },
       body: JSON.stringify({ resume, jd, analysis })
     });
     if (!res.ok) throw new Error("Backend QA Judge failed");
@@ -32,11 +35,14 @@ export async function evaluateResumeAudit(
   originalResume: string,
   tailoredResume: string,
 ) {
-  const backendUrl = process.env.PYTHON_BACKEND_URL || "http://127.0.0.1:8000";
+  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
   try {
     const res = await fetch(`${backendUrl}/audit`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {})
+      },
       body: JSON.stringify({ original_resume: originalResume, tailored_resume: tailoredResume })
     });
     if (!res.ok) throw new Error("Backend audit failed");
