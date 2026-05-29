@@ -43,18 +43,28 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isAuthPage = request.nextUrl.pathname.startsWith('/auth');
+  const path = request.nextUrl.pathname;
   
-  if (!user && !isAuthPage && request.nextUrl.pathname !== '/') {
+  const isProtectedPath = 
+    path === "/" || 
+    path.startsWith("/protected") || 
+    path.startsWith("/analyze") || 
+    path.startsWith("/customize") || 
+    path.startsWith("/history") || 
+    path.startsWith("/profile");
+
+  if (!user && isProtectedPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthPage && !request.nextUrl.pathname.startsWith('/auth/confirm')) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
+  if (user && path.startsWith("/auth/")) {
+    if (!path.startsWith("/auth/confirm") && !path.startsWith("/auth/callback")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

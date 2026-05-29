@@ -16,12 +16,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Missing context" }, { status: 400 });
     }
 
-    const backendUrl = process.env.PYTHON_BACKEND_URL || "http://127.0.0.1:8000";
+    const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
 
     try {
         const response = await fetch(`${backendUrl}/insights`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {})
+            },
             body: JSON.stringify({ resumeText, jobDescription }),
         });
 

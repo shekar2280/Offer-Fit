@@ -28,12 +28,13 @@ export async function runAnalysisAgent(
   userName?: string,
   intel?: CompanyIntel,
 ): Promise<AgenticAnalysisResult> {
-  const backendUrl = process.env.PYTHON_BACKEND_URL || "http://127.0.0.1:8000";
+  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
   
   const response = await fetch(`${backendUrl}/analyze`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {})
     },
     body: JSON.stringify({
       company_name: companyName,

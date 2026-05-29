@@ -4,10 +4,13 @@ export async function runStrategyAgent(
   resumeText: string,
   jd: string
 ) {
-  const backendUrl = process.env.PYTHON_BACKEND_URL || "http://127.0.0.1:8000";
+  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
   const res = await fetch(`${backendUrl}/strategy`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      ...(process.env.BACKEND_API_KEY ? { "x-api-key": process.env.BACKEND_API_KEY } : {})
+    },
     body: JSON.stringify({
       company_name: companyName,
       position,
