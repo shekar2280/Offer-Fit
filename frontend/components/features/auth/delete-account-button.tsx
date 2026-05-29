@@ -1,0 +1,84 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Trash2, AlertTriangle, X } from "lucide-react";
+import { createClient } from "@/services/supabase/client";
+
+export function DeleteAccountButton() {
+  const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("delete_user_account");
+    if (error) {
+      alert("Failed to delete account: " + error.message);
+      setLoading(false);
+      setIsOpen(false);
+      return;
+    }
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-medium transition-all bg-red-500/5 border border-red-500/10 text-red-500/70 hover:bg-red-500/10 hover:text-red-500 active:scale-95"
+      >
+        <Trash2 className="w-4 h-4" />
+        Delete Account
+      </button>
+
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-zinc-950 border border-red-500/20 rounded-[2.5rem] p-8 max-w-md w-full space-y-6 shadow-2xl relative animate-in zoom-in-95 duration-300">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute top-6 right-6 text-white/40 hover:text-white transition-colors"
+              disabled={loading}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="p-3.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.15)]">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              
+              <h3 className="text-lg font-bold text-white tracking-wide">
+                Delete Account?
+              </h3>
+              
+              <p className="text-xs text-white/50 leading-relaxed font-light">
+                This action is permanent and cannot be undone. All your profile information, vector index chunks, personalized LaTeX resumes, and job analysis history will be deleted immediately.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={handleDelete}
+                disabled={loading}
+                className="w-full py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 active:scale-95"
+              >
+                {loading ? "Deleting Account..." : "Yes, Delete Account"}
+              </button>
+              
+              <button
+                onClick={() => setIsOpen(false)}
+                disabled={loading}
+                className="w-full py-4 bg-white/5 hover:bg-white/10 text-white/80 rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-95"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

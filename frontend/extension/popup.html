@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 320px;
+      padding: 20px;
+      background: #0a0a0a;
+      color: white;
+      font-family: 'Inter', system-ui, sans-serif;
+      margin: 0;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    #view-profile {
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    #view-profile::-webkit-scrollbar {
+      width: 4px;
+    }
+    #view-profile::-webkit-scrollbar-thumb {
+      background: rgba(242, 170, 76, 0.3);
+      border-radius: 2px;
+    }
+    .copy-card {
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+    .copy-card:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-color: rgba(242, 170, 76, 0.3) !important;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .logo {
+      width: 24px;
+      height: 24px;
+      background: #F2AA4C;
+      border-radius: 6px;
+    }
+    h1 {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 0;
+      color: #F2AA4C;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px;
+      border-radius: 12px;
+    }
+    .label {
+      font-size: 8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 4px;
+    }
+    .value {
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #F2AA4C;
+      border: none;
+      border-radius: 8px;
+      color: black;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 10px;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(242, 170, 76, 0.3);
+    }
+    #status {
+      font-size: 10px;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="icon.png" class="logo" alt="Logo">
+    <h1>Intelligence</h1>
+  </div>
+
+  <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+    <div id="tab-sync" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #F2AA4C; cursor: pointer;">Sync</div>
+    <div id="tab-profile" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); cursor: pointer;">Profile</div>
+  </div>
+
+  <div id="view-sync">
+    <div id="job-info" class="container" style="display: none;">
+      <div class="card">
+        <div class="label">Company</div>
+        <div id="company" class="value">Detecting...</div>
+      </div>
+      <div class="card">
+        <div class="label">Position</div>
+        <div id="role" class="value">Detecting...</div>
+      </div>
+      <div class="card">
+        <div class="label">Location</div>
+        <div id="location" class="value">Detecting...</div>
+      </div>
+      <div class="card">
+        <div class="label">Role Type</div>
+        <div id="jobType" class="value">Detecting...</div>
+      </div>
+      <button id="sync-btn">Analyze This Job</button>
+    </div>
+
+    <div id="no-job" style="text-align: center; padding: 20px 0;">
+      <p style="font-size: 12px; color: rgba(255,255,255,0.5)">Open a job post to begin.</p>
+    </div>
+  </div>
+
+  <div id="view-profile" style="display: none;" class="container">
+    <div style="font-size: 9px; font-weight: 800; tracking: 1.5px; text-transform: uppercase; color: rgba(255, 255, 255, 0.4); margin-bottom: 4px;">Click to Copy Details</div>
+    
+    <div id="copy-helper-list" class="container" style="gap: 8px;">
+      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
+        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
+          <div class="label">Full Name</div>
+          <div id="c-name" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+        </div>
+        <button class="copy-btn" data-target="c-name" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+      </div>
+
+      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
+        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
+          <div class="label">Email Address</div>
+          <div id="c-email" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+        </div>
+        <button class="copy-btn" data-target="c-email" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+      </div>
+
+
+
+      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
+        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
+          <div class="label">Location</div>
+          <div id="c-location" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+        </div>
+        <button class="copy-btn" data-target="c-location" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+      </div>
+
+      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
+        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
+          <div class="label">Headline</div>
+          <div id="c-headline" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+        </div>
+        <button class="copy-btn" data-target="c-headline" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+      </div>
+
+      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
+        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
+          <div class="label">Primary Skills</div>
+          <div id="c-skills" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+        </div>
+        <button class="copy-btn" data-target="c-skills" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+      </div>
+
+      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
+        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
+          <div class="label">University</div>
+          <div id="c-university" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+        </div>
+        <button class="copy-btn" data-target="c-university" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+      </div>
+
+      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
+        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
+          <div class="label">Field of Study</div>
+          <div id="c-study" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+        </div>
+        <button class="copy-btn" data-target="c-study" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+      </div>
+
+      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
+        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
+          <div class="label">Graduation Year</div>
+          <div id="c-grad-year" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+        </div>
+        <button class="copy-btn" data-target="c-grad-year" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+      </div>
+
+      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
+        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
+          <div class="label">LinkedIn URL</div>
+          <div id="c-linkedin" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+        </div>
+        <button class="copy-btn" data-target="c-linkedin" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+      </div>
+
+      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
+        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
+          <div class="label">Website/Github</div>
+          <div id="c-website" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+        </div>
+        <button class="copy-btn" data-target="c-website" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+      </div>
+    </div>
+    
+    <button id="sync-web-profile" style="background: rgba(242, 170, 76, 0.1); border: 1px solid #F2AA4C; color: #F2AA4C; margin-top: 15px; margin-bottom: 5px;">Force Sync from Web Profile</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
