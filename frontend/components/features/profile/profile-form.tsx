@@ -10,6 +10,8 @@ import { LegalSection } from "./components/legal-section";
 import { LogoutButton } from "../auth/logout-button";
 import { DeleteAccountButton } from "../auth/delete-account-button";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import Image from "next/image";
+import logoImg from "../../../app/icon.png";
 
 export interface ProfileData {
     full_name?: string;
@@ -77,7 +79,7 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
         formData.nationality,
         formData.hire_pitch
     ];
-    
+
     const filledCount = fieldsToTrack.filter(v => v !== undefined && v !== null && v !== "").length;
     const readinessScore = Math.round((filledCount / fieldsToTrack.length) * 100);
 
@@ -152,9 +154,15 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
                 <div className="space-y-8">
                     <div className="flex items-center gap-3.5 pb-2">
                         <div className="relative group">
-                            <div className="absolute -inset-1 bg-gradient-to-tr from-primary to-orange-600 rounded-full blur-md opacity-40 group-hover:opacity-75 transition-opacity" />
-                            <div className="relative w-12 h-12 rounded-full bg-zinc-900 border border-white/[0.08] flex items-center justify-center">
-                                <User className="w-5 h-5 text-primary" />
+
+                            <div className="relative w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center overflow-hidden p-2.5 transition-shadow duration-300 hover:shadow-[0_0_16px_rgba(242,170,76,0.2)]">
+                                <Image 
+                                    src={logoImg} 
+                                    alt="OfferFit Logo" 
+                                    width={32} 
+                                    height={32} 
+                                    className="object-contain w-full h-full"
+                                />
                             </div>
                         </div>
                         <div className="overflow-hidden">
@@ -162,7 +170,7 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
                                 {formData.full_name || "Profile Hub"}
                             </h3>
                             <p className="text-[10px] font-black uppercase tracking-[0.15em] text-primary/80 truncate">
-                                {formData.headline || "Hiring profile"}
+                                {formData.headline || "User profile"}
                             </p>
                         </div>
                     </div>
@@ -178,14 +186,14 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
                             </span>
                         </div>
                         <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                            <div 
+                            <div
                                 className="h-full bg-gradient-to-r from-primary via-orange-500 to-amber-400 rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(242,170,76,0.3)]"
                                 style={{ width: `${readinessScore}%` }}
                             />
                         </div>
                         <p className="text-[10px] text-white/40 leading-relaxed font-light">
-                            {readinessScore > 75 
-                                ? "Profile optimized! Seamless one-click autofilling is active." 
+                            {readinessScore > 75
+                                ? "Profile optimized! Seamless one-click autofilling is active."
                                 : "Fill out more fields to unlock flawless browser extension autofill."}
                         </p>
                     </div>
@@ -197,11 +205,10 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
                                 <button
                                     key={s.id}
                                     onClick={() => setSection(s.id)}
-                                    className={`w-full flex items-center justify-between pl-4 pr-5 py-3.5 rounded-xl text-xs font-semibold transition-all group relative overflow-hidden ${
-                                        isActive 
-                                            ? "text-primary bg-primary/10 border border-primary/20" 
-                                            : "text-white/40 hover:text-white border border-transparent hover:bg-white/[0.02]"
-                                    }`}
+                                    className={`w-full flex items-center justify-between pl-4 pr-5 py-3.5 rounded-xl text-xs font-semibold transition-all group relative overflow-hidden ${isActive
+                                        ? "text-primary bg-primary/10 border border-primary/20"
+                                        : "text-white/40 hover:text-white border border-transparent hover:bg-white/[0.02]"
+                                        }`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <s.icon className={`w-4 h-4 transition-transform duration-300 ${isActive ? "scale-110 text-primary" : "group-hover:scale-110"}`} />
@@ -213,12 +220,13 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
                                 </button>
                             );
                         })}
+
+                        <DeleteAccountButton />
                     </nav>
                 </div>
 
                 <div className="pt-6 border-t border-white/[0.04] flex flex-col gap-3">
                     <LogoutButton />
-                    <DeleteAccountButton />
                 </div>
             </aside>
 
@@ -235,15 +243,11 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
                             {section === "legal" && <LegalSection formData={formData} setFormData={setFormData} />}
                         </div>
 
-                        <div className="mt-12 pt-6 border-t border-white/[0.04] flex items-center justify-between relative z-10">
-                            <div className="text-[10px] text-white/30 tracking-wider font-semibold uppercase flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                Extension Sync Active
-                            </div>
-                            <button 
-                                onClick={handleSave} 
-                                disabled={loading} 
-                                className="group relative px-8 py-3.5 bg-primary text-black rounded-xl font-bold text-[10px] uppercase tracking-[0.15em] hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(242,170,76,0.2)] disabled:opacity-50 disabled:hover:scale-100"
+                        <div className="mt-12 pt-6 border-t border-white/[0.04] flex justify-end relative z-10">
+                            <button
+                                onClick={handleSave}
+                                disabled={loading}
+                                className="group relative px-8 py-3.5 bg-primary text-black rounded-xl font-extrabold text-[10px] uppercase tracking-[0.15em] hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(242,170,76,0.2)] disabled:opacity-50 disabled:hover:scale-100"
                             >
                                 {loading ? "Syncing..." : "Sync Profile changes"}
                             </button>
