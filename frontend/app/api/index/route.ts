@@ -1,0 +1,33 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/services/supabase/server";
+import { embedAndStore } from "@/services/supabase/rag";
+import { logSystemEvent } from "@/services/supabase/logger";
+
+export async function POST(req: NextRequest) {
+  try {
+    const { text } = await req.json();
+
+    if (!text) {
+      return NextResponse.json({ error: "Missing required text" }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    await embedAndStore(supabase, user.id, text);
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    await logSystemEvent({
+      level: "ERROR",
+      source: "API_INDEX",
+      message: "RAG indexing failed",
+      details: { error: (error as Error).message }
+    });
+    return NextResponse.json({ error: "Failed to index context" }, { status: 500 });
+  }
+}
