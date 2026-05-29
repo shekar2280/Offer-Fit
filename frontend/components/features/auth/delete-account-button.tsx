@@ -28,10 +28,10 @@ export function DeleteAccountButton() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-medium transition-all bg-red-500/5 border border-red-500/10 text-red-500/70 hover:bg-red-500/10 hover:text-red-500 active:scale-95"
+        className="w-full flex items-center gap-3 pl-4 pr-5 py-3.5 rounded-xl text-xs font-semibold tracking-wide text-red-500 bg-red-500/5 hover:bg-red-500/10 transition-all group relative"
       >
-        <Trash2 className="w-4 h-4" />
-        Delete Account
+        <Trash2 className="w-4 h-4 transition-transform duration-300 group-hover:scale-110 text-red-500" />
+        <span>Delete Account</span>
       </button>
 
       {isOpen && (
