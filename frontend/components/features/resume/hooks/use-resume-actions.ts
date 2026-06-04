@@ -179,7 +179,7 @@ export function useResumeActions({
                 if (newAnalysis) {
                     targetId = newAnalysis.id;
                     setAnalysisState((prev: any) => ({ ...prev, currentAnalysisId: newAnalysis.id }));
-                    router.replace(`/analyze?id=${newAnalysis.id}`, { scroll: false });
+                    router.replace(`${effectiveMode === "customize" ? "/customize" : "/analyze"}?id=${newAnalysis.id}`, { scroll: false });
                 }
             }
 

@@ -26,7 +26,7 @@ export function useAnalysisSession() {
 
     if (company || role || jd) {
       setAnalysisData({
-        id: id || state.id,
+        id: id || null,
         companyName: company || "",
         position: role || "",
         jd: jd || "",
