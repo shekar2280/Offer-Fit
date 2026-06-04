@@ -1,0 +1,87 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{xcolor}
+
+\definecolor{primary}{HTML}{0f172a}
+\definecolor{secondary}{HTML}{475569}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    filecolor=primary,      
+    urlcolor=primary,
+    pdftitle={(([ name ]))} Resume,
+    pdfpagemode=FullScreen,
+}
+
+% Section formatting
+\titleformat{\section}{\large\bfseries\color{primary}}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{10pt}{5pt}
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+    {\Huge \textbf{\color{primary} (([ name ]))} } \\
+    \vspace{4pt}
+    \small \color{secondary}
+    ((* for contact in contact_list *))
+        (([ contact ]))
+        ((* if not loop.last *)) \ | \ ((* endif *))
+    ((* endfor *))
+\end{center}
+
+((* if summary *))
+\section{Professional Summary}
+(([ summary ]))
+((* endif *))
+
+((* if skills *))
+\section{Technical Skills}
+\begin{itemize}[leftmargin=0.5em, label={}, noitemsep, topsep=2pt]
+    ((* for skill_cat in skills *))
+    \item \textbf{(([ skill_cat.category ])):} ((* for skill in skill_cat.skills *))(([ skill ]))((* if not loop.last *)), ((* endif *))((* endfor *))
+    ((* endfor *))
+\end{itemize}
+((* endif *))
+
+((* if experience *))
+\section{Experience}
+((* for exp in experience *))
+\textbf{(([ exp.role ]))} \hfill (([ exp.date_range ])) \\
+\textit{(([ exp.company ])) ((* if exp.location *)) -- (([ exp.location ]))((* endif *))}
+\begin{itemize}[noitemsep,topsep=2pt,leftmargin=1.5em]
+    ((* for bullet in exp.highlights *))
+    \item (([ bullet ]))
+    ((* endfor *))
+\end{itemize}
+\vspace{5pt}
+((* endfor *))
+((* endif *))
+
+((* if projects *))
+\section{Projects}
+((* for proj in projects *))
+\textbf{(([ proj.name ]))} \hfill \textit{((* for tech in proj.technologies *))(([ tech ]))((* if not loop.last *)), ((* endif *))((* endfor *))}
+\begin{itemize}[noitemsep,topsep=2pt,leftmargin=1.5em]
+    ((* for bullet in proj.highlights *))
+    \item (([ bullet ]))
+    ((* endfor *))
+\end{itemize}
+\vspace{5pt}
+((* endfor *))
+((* endif *))
+
+((* if education *))
+\section{Education}
+((* for edu in education *))
+\textbf{(([ edu.degree ]))} \hfill (([ edu.date_range ])) \\
+\textit{(([ edu.institution ])) ((* if edu.location *)) -- (([ edu.location ]))((* endif *))} ((* if edu.details *)) | (([ edu.details ]))((* endif *)) \\
+((* endfor *))
+((* endif *))
+
+\end{document}
