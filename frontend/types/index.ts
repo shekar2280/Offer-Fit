@@ -110,6 +110,7 @@ export interface AnalysisReportProps {
   userName?: string;
   hasLatexSource?: boolean;
   originalLatex?: string | null;
+  hasAnalysis?: boolean;
 }
 
 export interface ActiveWorkspaceProps {

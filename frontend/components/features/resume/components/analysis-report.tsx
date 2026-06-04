@@ -32,6 +32,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
         userName,
         hasLatexSource = false,
         originalLatex = null,
+        hasAnalysis = false,
     } = props;
 
     const score = insights?.match_score || 0;
@@ -93,6 +94,7 @@ export function AnalysisReport(props: AnalysisReportProps) {
                 missingSkills={insights?.missing_skills}
                 redFlags={insights?.red_flags}
                 hasLatexSource={hasLatexSource}
+                hasAnalysis={hasAnalysis}
             />
 
             <div id="analysis-report-content" className="bg-black/60 border border-primary/40 ring-1 ring-primary/20 rounded-[2.5rem] p-6 md:p-8 backdrop-blur-3xl relative shadow-[0_0_100px_-20px_rgba(242,170,76,0.15)] overflow-hidden mb-6">

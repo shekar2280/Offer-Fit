@@ -279,6 +279,7 @@ export function ResumeFeature({
                                 userName={displayName}
                                 hasLatexSource={!!latexText}
                                 originalLatex={latexText}
+                                hasAnalysis={!!analysisState.cachedAnalysis}
                             />
                         </div>
                         <div className={!showReport ? "block" : "hidden"}>
