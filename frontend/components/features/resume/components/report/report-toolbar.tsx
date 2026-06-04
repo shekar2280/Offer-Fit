@@ -15,6 +15,7 @@ interface ReportToolbarProps {
     missingSkills?: string[];
     redFlags?: string[];
     hasLatexSource?: boolean;
+    hasAnalysis?: boolean;
 }
 
 export function ReportToolbar({
@@ -28,7 +29,8 @@ export function ReportToolbar({
     verdict,
     missingSkills = [],
     redFlags = [],
-    hasLatexSource = false
+    hasLatexSource = false,
+    hasAnalysis = false
 }: ReportToolbarProps) {
     const [showDisclosure, setShowDisclosure] = useState(false);
 
@@ -95,7 +97,7 @@ export function ReportToolbar({
                                           )
                                       )
                                   )
-                                : "View Analysis Report"
+                                : (hasAnalysis ? "View Analysis Report" : "Analyze Resume")
                             }
                         </span>
                     </button>

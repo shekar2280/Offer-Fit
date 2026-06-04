@@ -221,7 +221,7 @@ export function HistoryView() {
                                     </div>
 
                                     <div className="relative z-10 flex flex-col gap-3 mt-auto">
-                                        {hasAnalysis && (
+                                        {hasAnalysis ? (
                                             <Link
                                                 href={`/analyze?id=${item.id}`}
                                                 className="flex items-center justify-between px-5 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group/btn"
@@ -229,6 +229,17 @@ export function HistoryView() {
                                                 <div className="flex items-center gap-3">
                                                     <FileText className="w-4 h-4 text-white/50 group-hover/btn:text-white transition-colors" />
                                                     <span className="text-[11px] font-bold uppercase tracking-widest text-white/70 group-hover/btn:text-white transition-colors">View Analysis</span>
+                                                </div>
+                                                <ArrowRight className="w-4 h-4 text-white/30 group-hover/btn:text-white group-hover/btn:translate-x-1 transition-all" />
+                                            </Link>
+                                        ) : hasCustomization && (
+                                            <Link
+                                                href={`/analyze?id=${item.id}`}
+                                                className="flex items-center justify-between px-5 py-4 rounded-2xl bg-transparent border border-dashed border-white/20 hover:bg-white/5 hover:border-white/40 transition-all group/btn"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <FileText className="w-4 h-4 text-white/40 group-hover/btn:text-white transition-colors" />
+                                                    <span className="text-[11px] font-bold uppercase tracking-widest text-white/50 group-hover/btn:text-white transition-colors">Analyze Resume</span>
                                                 </div>
                                                 <ArrowRight className="w-4 h-4 text-white/30 group-hover/btn:text-white group-hover/btn:translate-x-1 transition-all" />
                                             </Link>
