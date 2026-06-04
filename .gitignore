@@ -45,3 +45,4 @@ rules.md
 resources/
 scratch/
 supabase_setup.sql
+backend/scripts/seed_bullets.py

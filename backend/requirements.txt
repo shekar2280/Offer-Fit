@@ -4,3 +4,7 @@ google-genai
 python-dotenv
 pydantic
 httpx
+jinja2>=3.1.2
+supabase>=2.0.0
+
+
