@@ -17,8 +17,9 @@ export interface InterviewData {
 }
 
 export interface StrategyData {
-  strategy_pillars: string[];
-  key_keywords_to_inject?: string[];
+  missing_skills: string[];
+  weak_points: string[];
+  execution_plan: string[];
 }
 
 export interface Hallucination {
