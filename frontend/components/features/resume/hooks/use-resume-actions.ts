@@ -159,6 +159,20 @@ export function useResumeActions({
             let targetId = analysisState.currentAnalysisId || selectedId;
 
             if (!targetId && user && jobData.company && jobData.role) {
+                let extractedPillars = null;
+                try {
+                    const pillarsRes = await fetch("/api/extract-pillars", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ jd: jobData.description }),
+                    });
+                    if (pillarsRes.ok) {
+                        const pillarsData = await pillarsRes.json();
+                        extractedPillars = pillarsData.pillars;
+                    }
+                } catch (e) {
+                }
+
                 const { data: newAnalysis, error } = await supabase
                     .from("analyses")
                     .insert({
@@ -166,6 +180,7 @@ export function useResumeActions({
                         jd_text: stringifyJdText(jobData.description, jobLocation, jobType),
                         company_name: jobData.company,
                         position: jobData.role,
+                        jd_pillars: extractedPillars,
                         status: 'started'
                     })
                     .select()

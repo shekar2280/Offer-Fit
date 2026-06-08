@@ -219,9 +219,9 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
 }
 
 export function StrategyCard({ strategy, verdict }: { strategy?: StrategyData, verdict?: string }) {
-    if (!strategy || !strategy.strategy_pillars) return null;
+    if (!strategy || !strategy.execution_plan) return null;
 
-    const filteredPillars = strategy.strategy_pillars.filter((pillar: string) => {
+    const filteredPillars = strategy.execution_plan.filter((pillar: string) => {
         if (verdict === "REJECT" && (pillar.toLowerCase().includes("call to action") || pillar.toLowerCase().includes("outreach email"))) {
             return false;
         }
@@ -247,18 +247,6 @@ export function StrategyCard({ strategy, verdict }: { strategy?: StrategyData, v
                     </div>
                 ))}
             </div>
-            {strategy.key_keywords_to_inject && strategy.key_keywords_to_inject.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-white/10">
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-3">Injected Value Anchors</h5>
-                    <div className="flex flex-wrap gap-2">
-                        {strategy.key_keywords_to_inject.map((kw: string, i: number) => (
-                            <span key={i} className="px-3 py-1 bg-primary/10 border border-primary/20 rounded-full text-[11px] font-bold text-primary/90">
-                                {kw}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            )}
         </DossierCard>
     );
 }
