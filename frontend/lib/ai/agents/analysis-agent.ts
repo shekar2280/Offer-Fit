@@ -27,6 +27,7 @@ export async function runAnalysisAgent(
   bypassJudge: boolean = false,
   userName?: string,
   intel?: CompanyIntel,
+  executionPlan?: any
 ): Promise<AgenticAnalysisResult> {
   const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
   
@@ -46,6 +47,7 @@ export async function runAnalysisAgent(
       mode: mode || "analyze",
       user_name: userName,
       intel,
+      execution_plan: executionPlan,
       bypass_judge: bypassJudge
     })
   });

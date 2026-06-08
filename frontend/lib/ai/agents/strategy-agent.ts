@@ -2,7 +2,8 @@ export async function runStrategyAgent(
   companyName: string,
   position: string,
   resumeText: string,
-  jd: string
+  jd: string,
+  jdPillars?: any
 ) {
   const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
   const res = await fetch(`${backendUrl}/strategy`, {
@@ -15,7 +16,8 @@ export async function runStrategyAgent(
       company_name: companyName,
       position,
       resume_text: resumeText,
-      jd
+      jd,
+      jd_pillars: jdPillars
     })
   });
 

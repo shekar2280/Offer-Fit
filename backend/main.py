@@ -11,6 +11,7 @@ from app.ai.agents.analysis import run_analysis_agent
 from app.ai.agents.research import run_research_agent
 from app.ai.agents.strategy import run_strategy_agent
 from app.ai.agents.audit import run_resume_audit, run_analysis_judge
+from app.ai.agents.pillars import run_extract_pillars
 from google import genai
 
 async def verify_api_key(request: Request, x_api_key: Optional[str] = Header(None)):
@@ -40,6 +41,7 @@ class AnalyzeRequest(BaseModel):
     mode: str = "analyze"
     user_name: Optional[str] = None
     intel: Optional[Dict[str, Any]] = None
+    execution_plan: Optional[Dict[str, Any]] = None
     bypass_judge: bool = False
 
 class ResearchRequest(BaseModel):
@@ -53,6 +55,7 @@ class StrategyRequest(BaseModel):
     position: str
     resume_text: str
     jd: str
+    jd_pillars: Optional[Dict[str, Any]] = None
 
 class AuditRequest(BaseModel):
     original_resume: str
@@ -66,6 +69,9 @@ class JudgeRequest(BaseModel):
 class InsightsRequest(BaseModel):
     resumeText: str
     jobDescription: str
+
+class PillarsRequest(BaseModel):
+    jd: str
 
 @app.get("/health")
 async def health_check():
@@ -83,7 +89,8 @@ async def analyze(req: AnalyzeRequest):
             job_type=req.job_type,
             mode=req.mode,
             user_name=req.user_name,
-            intel=req.intel
+            intel=req.intel,
+            execution_plan=req.execution_plan
         )
         return result
     except Exception as e:
@@ -109,7 +116,8 @@ async def strategy(req: StrategyRequest):
             company_name=req.company_name,
             position=req.position,
             resume_text=req.resume_text,
-            jd=req.jd
+            jd=req.jd,
+            jd_pillars=req.jd_pillars
         )
         return result
     except Exception as e:
@@ -134,6 +142,14 @@ async def judge(req: JudgeRequest):
             jd=req.jd,
             analysis=req.analysis
         )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/extract-pillars")
+async def extract_pillars(req: PillarsRequest):
+    try:
+        result = await run_extract_pillars(jd=req.jd)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
