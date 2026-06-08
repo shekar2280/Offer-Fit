@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { runResearchAgent } from "./agents/research-agent";
 import { runAnalysisAgent } from "./agents/analysis-agent";
+import { runStrategyAgent } from "./agents/strategy-agent";
 import { evaluateResumeAudit } from "./evaluator";
 
 export async function runMultiStepCustomization(
@@ -11,10 +12,15 @@ export async function runMultiStepCustomization(
   jd: string,
   location?: string,
   jobType?: string,
-  userName?: string
+  userName?: string,
+  jdPillars?: any
 ) {
   const intel = await runResearchAgent(supabase, companyName, position, location);
+  // Agent 2: The Strategist
+  const strategyResult = await runStrategyAgent(companyName, position, context, jd, jdPillars);
+  const executionPlan = strategyResult.data;
 
+  // Agent 3: The Writer
   const draftResults = await runAnalysisAgent(
     companyName,
     position,
@@ -23,11 +29,13 @@ export async function runMultiStepCustomization(
     location,
     jobType,
     "customize",
-    true,
+    true, // bypassJudge (we do it in step 4 below)
     userName,
-    intel
+    intel,
+    executionPlan
   );
 
+  // Agent 4: The Judge
   const audit = await evaluateResumeAudit(draftResults.markdown, jd);
 
   const intelData = {
@@ -36,23 +44,15 @@ export async function runMultiStepCustomization(
     culture_traits: intel.culture_traits
   };
 
-  const totalPromptTokens = (intel.usage?.promptTokenCount || 0) + (draftResults.usage?.promptTokenCount || 0) + (audit.usage?.promptTokenCount || 0);
-  const totalCandidatesTokens = (intel.usage?.candidatesTokenCount || 0) + (draftResults.usage?.candidatesTokenCount || 0) + (audit.usage?.candidatesTokenCount || 0);
-  const totalTokenCount = (intel.usage?.totalTokenCount || 0) + (draftResults.usage?.totalTokenCount || 0) + (audit.usage?.totalTokenCount || 0);
-  const totalCost = (intel.estimated_cost || 0) + (draftResults.estimated_cost || 0) + (audit.estimated_cost || 0);
+  const totalPromptTokens = (intel.usage?.promptTokenCount || 0) + (strategyResult.usage?.promptTokenCount || 0) + (draftResults.usage?.promptTokenCount || 0) + (audit.usage?.promptTokenCount || 0);
+  const totalCandidatesTokens = (intel.usage?.candidatesTokenCount || 0) + (strategyResult.usage?.candidatesTokenCount || 0) + (draftResults.usage?.candidatesTokenCount || 0) + (audit.usage?.candidatesTokenCount || 0);
+  const totalTokenCount = (intel.usage?.totalTokenCount || 0) + (strategyResult.usage?.totalTokenCount || 0) + (draftResults.usage?.totalTokenCount || 0) + (audit.usage?.totalTokenCount || 0);
+  const totalCost = (intel.estimated_cost || 0) + (strategyResult.estimated_cost || 0) + (draftResults.estimated_cost || 0) + (audit.estimated_cost || 0);
 
   return {
     ...draftResults,
     data: { ...(draftResults.data as Record<string, unknown>), ...intelData },
-    strategy: draftResults.strategy || {
-      strategy_pillars: [
-        "Surgically align technical skills with the Job Description.",
-        "Quantify impact using metrics to demonstrate scale.",
-        "Optimize keywords for ATS systems."
-      ],
-      key_keywords_to_inject: [],
-      culture_vibe: "Professional"
-    },
+    strategy: executionPlan,
     intel,
     audit,
     usage: {

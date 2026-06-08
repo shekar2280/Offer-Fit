@@ -131,7 +131,6 @@ export async function POST(req: Request) {
           }
 
           supabase.rpc("increment_user_usage", { p_user_id: user.id }).then(() => {
-            console.log(`[QUOTA CHARGED] User ${user.id} charged 1 credit. Mode: ${mode}, Cache Miss.`);
             logSystemEvent({
               level: "INFO",
               source: "QUOTA_CHARGED",
@@ -172,6 +171,14 @@ export async function POST(req: Request) {
             message: "Tailoring experience sections...",
           });
 
+          let fetchedPillars = null;
+          if (analysisId) {
+            const { data } = await supabase.from("analyses").select("jd_pillars").eq("id", analysisId).single();
+            if (data?.jd_pillars) {
+                fetchedPillars = data.jd_pillars;
+            }
+          }
+
           result = await runMultiStepCustomization(
             supabase,
             companyName,
@@ -180,7 +187,8 @@ export async function POST(req: Request) {
             jd,
             location,
             jobType,
-            userName
+            userName,
+            fetchedPillars
           );
         } else {
           sse.send({

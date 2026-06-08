@@ -18,6 +18,7 @@ export async function runResearchAgent(
 ): Promise<ResearchIntelWithUsage> {
   const cachedIntel = await getCompanyIntel(supabase, companyName);
   if (cachedIntel) {
+    console.log(`[RESEARCH AGENT] CACHE HIT for company: ${companyName}. Skipping backend /research calls (Tavily/Gemini).`);
     const techStack = (cachedIntel.tech_stack as Record<string, any>) || {};
     return {
       ...cachedIntel,
@@ -29,6 +30,7 @@ export async function runResearchAgent(
     };
   }
 
+  console.log(`[RESEARCH AGENT] CACHE MISS for company: ${companyName}. Initiating backend /research calls...`);
   const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
   const res = await fetch(`${backendUrl}/research`, {
     method: "POST",
