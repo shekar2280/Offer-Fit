@@ -17,20 +17,25 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { data: result, error } = await supabase.functions.invoke("backend-proxy", {
-            body: {
-                path: "/extract-pillars",
-                method: "POST",
-                payload: {
-                    jd: body.jd
-                }
-            }
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+        
+        const response = await fetch(`${backendUrl}/extract-pillars`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": process.env.BACKEND_API_KEY || "",
+            },
+            body: JSON.stringify({
+                jd: body.jd
+            }),
         });
 
-        if (error) {
-            return NextResponse.json({ error: error.message || "Failed to extract pillars" }, { status: 500 });
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Backend error: ${response.status} ${errText}`);
         }
 
+        const result = await response.json();
         return NextResponse.json(result);
     } catch (error: any) {
         return NextResponse.json({ error: error.message || "Failed to extract pillars" }, { status: 500 });

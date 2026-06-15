@@ -11,8 +11,9 @@ DEFAULT_MODELS = [m.value["model"] for m in ModelPricing]
 
 class StrategistExecutionPlan(BaseModel):
     missing_skills: List[str] = Field(description="Skills required by the JD Pillars that are completely missing from the Master Resume.")
+    missing_skills_to_avoid: List[str] = Field(description="CRITICAL: Re-list the missing_skills here. You are STRICTLY FORBIDDEN from asking the Writer to add these to the resume. They MUST NOT be hallucinated.")
     weak_points: List[str] = Field(description="Experience areas in the Master Resume that are weak compared to the JD Core Impact areas.")
-    execution_plan: List[str] = Field(description="Strict, actionable instructions for the Writer agent (e.g., 'Delete the irrelevant e-commerce project', 'Rewrite the third bullet of role X to emphasize metric Y').")
+    execution_plan: List[str] = Field(description="Strict, actionable instructions for the Writer agent. MUST NOT instruct the Writer to add any of the missing_skills_to_avoid.")
 
 def build_strategy_prompt(
     company_name: str,
@@ -43,9 +44,10 @@ CANDIDATE MASTER RESUME:
 TASK:
 1. Perform a Semantic Gap Analysis: Identify missing skills and weak experience areas.
 2. Formulate an Execution Plan: Write 3-5 strict, actionable instructions for Agent 3 (The Writer).
-   - Tell the Writer exactly which projects/roles to emphasize.
-   - Tell the Writer exactly which irrelevant projects to drastically cut or remove to hit a 1-page limit (unless the candidate has 10+ years of experience, then allow a concise 2-page limit).
-   - Tell the Writer which specific bullets to rewrite to better align with the Core Impact Areas.
+   - Tell the Writer exactly which existing projects/roles to emphasize based on the JD.
+   - 🛑 ZERO HALLUCINATION POLICY: If the JD requires a skill (like Angular, AWS, etc.) that the candidate DOES NOT HAVE in their Master Resume, you MUST NOT tell the Writer to add it. You cannot invent personal projects, and you cannot inject fake skills into existing projects. Instead, tell the Writer to emphasize the candidate's existing equivalent skills (e.g., "Candidate lacks Angular, so heavily emphasize their deep expertise in React/Next.js as a substitute").
+   - 🛑 PROJECT PRUNING POLICY: You must keep the resume exactly ONE FULL PAGE. Do NOT over-cut. If you condense a project, ensure you tell the Writer to expand on other highly relevant projects so the page remains 100% full. Never cut real-world professional or freelance work; prioritize cutting weak personal side projects only if space is strictly needed.
+   - Tell the Writer which specific existing bullets to rewrite to better align with the Core Impact Areas, WITHOUT faking tools.
 
 Output structured JSON matching the provided schema.
 """

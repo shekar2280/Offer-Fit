@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from typing import List
 from fastapi import HTTPException
 from app.core.utils import calculate_cost, extract_usage_metadata
-
+from app.core.constants import ModelPricing
 class JDPillarsSchema(BaseModel):
     techStack: List[str] = Field(description="List of primary technologies, frameworks, languages, and tools required.")
     seniority: str = Field(description="The inferred seniority level (e.g., 'Junior', 'Mid-level', 'Senior', 'Staff', 'Lead').")
@@ -32,19 +32,35 @@ Extract the following information:
 
 Output structured JSON matching the provided schema.
 """
-    model_name = "gemini-3.1-flash-lite"
+    fallback_models = [m.value["model"] for m in ModelPricing]
     
-    try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction="You are a JSON-only data extraction bot. Output only valid JSON.",
-                response_mime_type="application/json",
-                response_schema=JDPillarsSchema,
+    response = None
+    successful_model = None
+    
+    for model_name in fallback_models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction="You are a JSON-only data extraction bot. Output only valid JSON.",
+                    response_mime_type="application/json",
+                    response_schema=JDPillarsSchema,
+                )
             )
-        )
+            successful_model = model_name
+            break
+        except Exception as e:
+            continue
+            
+    if not response:
+        return {
+            "pillars": {"techStack": [], "seniority": "Unknown", "coreImpact": [], "mandatoryRequirements": []},
+            "usage": {"promptTokenCount": 0, "candidatesTokenCount": 0, "totalTokenCount": 0},
+            "estimated_cost": 0.0
+        }
         
+    try:
         text = response.text.strip()
         if text.startswith("```json"):
             text = text[7:]
@@ -55,7 +71,7 @@ Output structured JSON matching the provided schema.
         text = text.strip()
 
         usage = extract_usage_metadata(response)
-        cost = calculate_cost(usage.get("promptTokenCount", 0), usage.get("candidatesTokenCount", 0), model_name)
+        cost = calculate_cost(usage.get("promptTokenCount", 0), usage.get("candidatesTokenCount", 0), successful_model)
         
         try:
             data = json.loads(text)
