@@ -13,14 +13,24 @@ export async function runMultiStepCustomization(
   location?: string,
   jobType?: string,
   userName?: string,
-  jdPillars?: any
+  jdPillars?: any,
 ) {
-  const intel = await runResearchAgent(supabase, companyName, position, location);
-  // Agent 2: The Strategist
-  const strategyResult = await runStrategyAgent(companyName, position, context, jd, jdPillars);
+  const intel = await runResearchAgent(
+    supabase,
+    companyName,
+    position,
+    location,
+  );
+
+  const strategyResult = await runStrategyAgent(
+    companyName,
+    position,
+    context,
+    jd,
+    jdPillars,
+  );
   const executionPlan = strategyResult.data;
 
-  // Agent 3: The Writer
   const draftResults = await runAnalysisAgent(
     companyName,
     position,
@@ -29,25 +39,40 @@ export async function runMultiStepCustomization(
     location,
     jobType,
     "customize",
-    true, // bypassJudge (we do it in step 4 below)
+    true,
     userName,
     intel,
-    executionPlan
+    executionPlan,
   );
 
-  // Agent 4: The Judge
   const audit = await evaluateResumeAudit(draftResults.markdown, jd);
 
   const intelData = {
     salary_insight: intel.salary_insight,
     company_cheat_sheet: intel.company_cheat_sheet,
-    culture_traits: intel.culture_traits
+    culture_traits: intel.culture_traits,
   };
 
-  const totalPromptTokens = (intel.usage?.promptTokenCount || 0) + (strategyResult.usage?.promptTokenCount || 0) + (draftResults.usage?.promptTokenCount || 0) + (audit.usage?.promptTokenCount || 0);
-  const totalCandidatesTokens = (intel.usage?.candidatesTokenCount || 0) + (strategyResult.usage?.candidatesTokenCount || 0) + (draftResults.usage?.candidatesTokenCount || 0) + (audit.usage?.candidatesTokenCount || 0);
-  const totalTokenCount = (intel.usage?.totalTokenCount || 0) + (strategyResult.usage?.totalTokenCount || 0) + (draftResults.usage?.totalTokenCount || 0) + (audit.usage?.totalTokenCount || 0);
-  const totalCost = (intel.estimated_cost || 0) + (strategyResult.estimated_cost || 0) + (draftResults.estimated_cost || 0) + (audit.estimated_cost || 0);
+  const totalPromptTokens =
+    (intel.usage?.promptTokenCount || 0) +
+    (strategyResult.usage?.promptTokenCount || 0) +
+    (draftResults.usage?.promptTokenCount || 0) +
+    (audit.usage?.promptTokenCount || 0);
+  const totalCandidatesTokens =
+    (intel.usage?.candidatesTokenCount || 0) +
+    (strategyResult.usage?.candidatesTokenCount || 0) +
+    (draftResults.usage?.candidatesTokenCount || 0) +
+    (audit.usage?.candidatesTokenCount || 0);
+  const totalTokenCount =
+    (intel.usage?.totalTokenCount || 0) +
+    (strategyResult.usage?.totalTokenCount || 0) +
+    (draftResults.usage?.totalTokenCount || 0) +
+    (audit.usage?.totalTokenCount || 0);
+  const totalCost =
+    (intel.estimated_cost || 0) +
+    (strategyResult.estimated_cost || 0) +
+    (draftResults.estimated_cost || 0) +
+    (audit.estimated_cost || 0);
 
   return {
     ...draftResults,
@@ -58,9 +83,8 @@ export async function runMultiStepCustomization(
     usage: {
       promptTokenCount: totalPromptTokens,
       candidatesTokenCount: totalCandidatesTokens,
-      totalTokenCount: totalTokenCount
+      totalTokenCount: totalTokenCount,
     },
-    estimated_cost: totalCost
+    estimated_cost: totalCost,
   };
 }
-

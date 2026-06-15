@@ -283,7 +283,13 @@ CRITICAL INSTRUCTIONS:
 3. For all experiences and projects, enhance the impact of the bullet points using the XYZ formula (Accomplished [X] as measured by [Y], by doing [Z]).
 4. STRICT SKILLS INTEGRITY: You are STRICTLY FORBIDDEN from adding any technical skills, tools, programming languages, or software to the resume that are not explicitly present in the candidate's original resume. Do NOT hallucinate. Focus on re-ordering and emphasizing existing skills based on the JD.
 5. Do NOT hallucinate experiences that the candidate does not have. Only reframe and emphasize their existing experience.
-6. STRICT TEMPLATE PRESERVATION: You MUST preserve the EXACT LaTeX preamble, document class, custom commands (`\\newcommand`), environments (like `\\begin{{onecolentry}}`, `\\begin{{highlights}}`), colors, and structural formatting of the original resume. DO NOT replace them with generic `\\begin{{itemize}}` or `article` classes. ONLY rewrite the inner text content within those existing environments.
+6. STRICT TEMPLATE PRESERVATION: You MUST preserve the EXACT LaTeX layout of the original resume. This means:
+   - DO NOT remove or alter ANY `\vspace` commands.
+   - DO NOT remove or alter ANY `\href` links (e.g., GitHub URLs).
+   - DO NOT remove the empty blank lines between sections or items.
+   - DO NOT change how the Skills section is formatted (keep the exact spacing and newlines).
+   - ONLY change the actual English text inside the bullet points, the professional summary, and the skill lists. Leave all surrounding LaTeX syntax and spacing exactly as it was.
+7. 🛑 MATHEMATICAL LENGTH HEURISTIC: To ensure the LaTeX compiles to exactly one full page, the final output MUST contain exactly 12 project bullet points in total. Distribute these 12 bullets across the projects based on the Execution Plan (e.g., 4 projects with 3 bullets each, or 3 projects with 4 bullets each), but the grand total of project bullet points MUST equal exactly 12.
 """
     return prompt
 
@@ -319,9 +325,16 @@ async def run_analysis_agent(
                             break
             
             if supabase_url and supabase_key:
+                target_skills = []
+                if execution_plan and "missing_skills" in execution_plan:
+                    target_skills = execution_plan["missing_skills"]
+
+                search_text = ", ".join(target_skills) if target_skills else jd
+                embedding_payload_text = f"Role: {position}. Target Skills: {search_text}"
+
                 embed_resp = client.models.embed_content(
                     model="gemini-embedding-2",
-                    contents=f"Role: {position}. Job Description: {jd}",
+                    contents=embedding_payload_text,
                     config=types.EmbedContentConfig(
                         output_dimensionality=768
                     )
@@ -336,12 +349,12 @@ async def run_analysis_agent(
                 }
                 payload = {
                     "query_embedding": query_vector,
-                    "match_threshold": 0.3,
+                    "match_threshold": 0.65,
                     "match_count": 5
                 }
                 async with httpx.AsyncClient() as http_client:
                     res = await http_client.post(
-                        f"{supabase_url}/rest/v1/rpc/match_bullets",
+                        f"{supabase_url}/rest/v1/rpc/match_synthetic_bullets",
                         json=payload,
                         headers=headers,
                         timeout=10.0
