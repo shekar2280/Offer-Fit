@@ -350,15 +350,15 @@ export function MarkdownViewer({ content, mode, isAnalyzing, onCopy, verdict }: 
             <div className="w-full space-y-10 py-4">
 
                 {(parsed.strategicAlignment || parsed.matchScoreBreakdown.length > 0 || parsed.strategicBridge || parsed.learningRoadmap.length > 0) && (
-                    <div className="rounded-[2rem] border border-zinc-800 bg-white/[0.01] overflow-hidden">
+                    <div className="w-full">
 
-                        <div className="px-8 pt-6 pb-4 flex items-center gap-3">
-                            <Target className="w-3.5 h-3.5 text-primary" />
+                        <div className="pt-6 pb-4 flex items-center gap-3">
+                            <div className="w-8 h-[1px] bg-primary/40" />
                             <span className="text-[12px] font-black uppercase tracking-[0.45em] text-primary">Candidate Overview</span>
                         </div>
 
                         {parsed.strategicAlignment && (
-                            <div className="px-8 pt-5 pb-2">
+                            <div className="pt-5 pb-2">
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className="w-1.5 h-1.5 rounded-full bg-primary/80 shrink-0" />
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.35em] text-white/60">Strategic Alignment</h3>
@@ -370,7 +370,7 @@ export function MarkdownViewer({ content, mode, isAnalyzing, onCopy, verdict }: 
                         )}
 
                         {parsed.matchScoreBreakdown.length > 0 && (
-                            <div className="px-8 pt-6 pb-3">
+                            <div className="pt-6 pb-3">
                                 <div className="flex items-center gap-2 mb-4">
                                     <span className="w-1.5 h-1.5 rounded-full bg-primary/80 shrink-0" />
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.35em] text-white/60">Match Score Breakdown</h3>
@@ -381,7 +381,7 @@ export function MarkdownViewer({ content, mode, isAnalyzing, onCopy, verdict }: 
                                         return (
                                             <div key={idx} className="bg-white/[0.02] border border-zinc-800 hover:border-zinc-700 rounded-2xl p-5 space-y-3 transition-colors duration-200 flex flex-col">
                                                 <div className="flex items-start justify-between gap-2 flex-wrap">
-                                                    <h4 className="text-[14px] font-bold text-white/90 leading-snug tracking-tight min-w-0 flex-1">{sanitizeMd(item.title) || `Evaluation Dimension`}</h4>
+                                                    <h4 className="text-[14px] font-bold text-primary leading-snug tracking-tight min-w-0 flex-1">{sanitizeMd(item.title) || `Evaluation Dimension`}</h4>
                                                     {rating && (
                                                         <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest ${rating.toLowerCase() === "high"
                                                             ? "bg-emerald-500/10 text-emerald-400/80"
@@ -393,7 +393,7 @@ export function MarkdownViewer({ content, mode, isAnalyzing, onCopy, verdict }: 
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-[13px] text-white/45 leading-relaxed font-light flex-1">{sanitizeMd(cleanDesc)}</p>
+                                                <p className="text-[13px] text-white/80 leading-relaxed font-light flex-1">{sanitizeMd(cleanDesc)}</p>
                                             </div>
                                         );
                                     })}
@@ -402,7 +402,7 @@ export function MarkdownViewer({ content, mode, isAnalyzing, onCopy, verdict }: 
                         )}
 
                         {parsed.strategicBridge && (
-                            <div className="px-8 pt-6 pb-3">
+                            <div className="pt-6 pb-3">
                                 <div className="flex items-center gap-2 mb-2">
                                     <span className="w-1.5 h-1.5 rounded-full bg-primary/80 shrink-0" />
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.35em] text-white/60">{sanitizeMd(parsed.strategicBridge.title)}</h3>
@@ -414,7 +414,7 @@ export function MarkdownViewer({ content, mode, isAnalyzing, onCopy, verdict }: 
                         )}
 
                         {parsed.learningRoadmap.length > 0 && (
-                            <div className="px-8 pt-6 pb-8">
+                            <div className="pt-6 pb-8">
                                 <div className="flex items-center gap-2 mb-5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-primary/80 shrink-0" />
                                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Actionable Upskilling Milestones</span>
@@ -423,21 +423,21 @@ export function MarkdownViewer({ content, mode, isAnalyzing, onCopy, verdict }: 
                                     {parsed.learningRoadmap.map((step, idx) => {
                                         const IconComp = getStepIcon(step.title);
                                         return (
-                                            <div key={idx} className="flex items-start gap-4 group/milestone">
+                                            <div key={idx} className="flex items-start gap-3 py-3 border-b border-white/5 last:border-0 group/milestone">
 
-                                                <div className="flex-shrink-0 w-7 h-7 rounded-full border border-zinc-700 bg-zinc-900 flex items-center justify-center text-white/40 text-[10px] font-black mt-3.5 group-hover/milestone:border-primary/60 group-hover/milestone:text-primary transition-all">
+                                                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-[10px] font-bold mt-0.5">
                                                     {idx + 1}
                                                 </div>
 
-                                                <div className="flex-1 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 hover:border-zinc-700 transition-colors">
+                                                <div className="flex-1 space-y-1">
                                                     <div className="flex items-start justify-between gap-4">
-                                                        <div className="flex items-center gap-2.5 min-w-0">
-                                                            <IconComp className="w-4 h-4 text-primary/70 shrink-0 group-hover/milestone:text-primary transition-colors" />
-                                                            <h4 className="text-[14px] font-bold text-white/90 leading-snug tracking-tight">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <IconComp className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                            <h4 className="text-[14px] font-bold text-primary leading-snug tracking-tight">
                                                                 {sanitizeMd(step.title) || `Focus Area`}
                                                             </h4>
                                                         </div>
-                                                        <div className="flex-shrink-0 flex flex-col items-end gap-1.5 min-w-[70px]">
+                                                        <div className="flex-shrink-0 flex items-center gap-2 mt-0.5">
                                                             <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Priority</span>
                                                             <div className="w-16 h-[3px] bg-white/5 rounded-full overflow-hidden">
                                                                 <div
@@ -447,7 +447,7 @@ export function MarkdownViewer({ content, mode, isAnalyzing, onCopy, verdict }: 
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <p className="mt-3 text-[12.5px] text-white/50 leading-relaxed font-light">
+                                                    <p className="text-[13px] text-white/80 leading-relaxed font-light">
                                                         {sanitizeMd(step.desc)}
                                                     </p>
                                                 </div>

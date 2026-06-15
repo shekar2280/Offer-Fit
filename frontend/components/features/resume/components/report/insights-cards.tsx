@@ -307,21 +307,34 @@ export function SkillsView({ matched, missing }: { matched: string[], missing: s
                         <span className={`text-[11px] font-black uppercase tracking-[0.4em] ${sec.color === 'emerald-500' ? 'text-emerald-500' : 'text-primary'}`}>{sec.label}</span>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                        {sec.items.map((skill, j) => (
-                            <div key={j} className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/20 transition-all">
-                                {sec.status === 'check' ? (
-                                    <div className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                    </div>
-                                ) : (
-                                    <div className="w-3.5 h-3.5 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
-                                        <div className="w-px h-1.5 bg-primary rotate-45" />
-                                        <div className="w-px h-1.5 bg-primary -rotate-45 absolute" />
-                                    </div>
-                                )}
-                                <span className="text-[11px] font-bold text-white/60 uppercase tracking-widest">{skill}</span>
-                            </div>
-                        ))}
+                        {sec.items.map((skill, j) => {
+                            const isEmerald = sec.color === 'emerald-500';
+                            const containerClass = isEmerald 
+                                ? "bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10 hover:border-emerald-500/40"
+                                : "bg-primary/5 border-primary/20 hover:bg-primary/10 hover:border-primary/40";
+                            const textClass = isEmerald
+                                ? "text-emerald-500/80 group-hover:text-emerald-400"
+                                : "text-primary/80 group-hover:text-primary";
+                            const dotShadow = isEmerald
+                                ? "shadow-[0_0_8px_rgba(16,185,129,0.3)]"
+                                : "shadow-[0_0_8px_rgba(242,170,76,0.3)]";
+
+                            return (
+                                <div key={j} className={`group flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all duration-300 ${containerClass}`}>
+                                    {sec.status === 'check' ? (
+                                        <div className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <div className={`w-1.5 h-1.5 rounded-full bg-emerald-500 transition-all ${dotShadow}`} />
+                                        </div>
+                                    ) : (
+                                        <div className="w-3.5 h-3.5 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center relative group-hover:scale-110 transition-transform">
+                                            <div className="w-px h-1.5 bg-primary rotate-45" />
+                                            <div className="w-px h-1.5 bg-primary -rotate-45 absolute" />
+                                        </div>
+                                    )}
+                                    <span className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${textClass}`}>{skill}</span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             ))}
