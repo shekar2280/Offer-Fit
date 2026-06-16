@@ -173,7 +173,8 @@ def build_analysis_prompt(
     mode: str = "analyze",
     user_name: Optional[str] = None,
     intel: Optional[Dict[str, Any]] = None,
-    execution_plan: Optional[Dict[str, Any]] = None
+    execution_plan: Optional[Dict[str, Any]] = None,
+    jd_pillars: Optional[Dict[str, Any]] = None
 ) -> str:
     persona = get_dynamic_persona(position)
     is_latex = "\\documentclass" in (context or "") or "\\begin{document}" in (context or "")
@@ -187,6 +188,18 @@ COMPANY TECHNICAL & CULTURAL INTELLIGENCE:
 - Recent News: {intel.get('engineering_blog_summary', '')}
 """
     
+    jd_section = f"JOB DESCRIPTION:\n{jd}"
+    if jd_pillars:
+        tech_list = jd_pillars.get('techStack', []) or []
+        impact_list = jd_pillars.get('coreImpact', []) or []
+        req_list = jd_pillars.get('mandatoryRequirements', []) or []
+        jd_section = f"""JOB DESCRIPTION CORE REQUIREMENTS (PILLARS):
+- Tech Stack: {', '.join(tech_list) if isinstance(tech_list, list) else tech_list}
+- Seniority: {jd_pillars.get('seniority', 'Unknown')}
+- Core Impact Area / Responsibilities: {', '.join(impact_list) if isinstance(impact_list, list) else impact_list}
+- Mandatory Requirements: {', '.join(req_list) if isinstance(req_list, list) else req_list}
+"""
+
     prompt = f"""
 You are a dual-mode AI Career Expert.
 
@@ -205,8 +218,7 @@ ROLE CONTEXT:
 CANDIDATE RESUME:
 {context}
 
-JOB DESCRIPTION:
-{jd}
+{jd_section}
 """
     if mode == "analyze":
         prompt += """
@@ -302,7 +314,8 @@ async def run_analysis_agent(
     mode: str = "analyze",
     user_name: Optional[str] = None,
     intel: Optional[Dict[str, Any]] = None,
-    execution_plan: Optional[Dict[str, Any]] = None
+    execution_plan: Optional[Dict[str, Any]] = None,
+    jd_pillars: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     client = genai.Client(api_key=api_key) if api_key else genai.Client()
@@ -374,7 +387,7 @@ async def run_analysis_agent(
             print(f"[RAG_ERROR] Vector similarity retrieval failed: {e}")
 
     prompt = build_analysis_prompt(
-        company_name, position, context, jd, location, job_type, mode, user_name, intel, execution_plan
+        company_name, position, context, jd, location, job_type, mode, user_name, intel, execution_plan, jd_pillars
     )
     
     if mode == "customize" and style_guide_text:

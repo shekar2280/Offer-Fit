@@ -123,7 +123,7 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
             displayValuesCulture = JSON.parse(displayValuesCulture);
         } catch (e) {
         }
-    }    const isSingleDescription = !Array.isArray(displayValuesCulture) && hasIntel && displayValuesCulture;
+    } const isSingleDescription = !Array.isArray(displayValuesCulture) && hasIntel && displayValuesCulture;
     let traitsToDisplay: string[] = [];
     if (Array.isArray(displayValuesCulture)) {
         traitsToDisplay = displayValuesCulture;
@@ -135,9 +135,7 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
 
     return (
         <DossierCard>
-            {/* Symmetrical Unified Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-white/5 mb-8">
-                {/* Left side: Logo + Name */}
                 <div className="flex items-center gap-5">
                     {intel?.logo_url && (
                         <div className="relative w-12 h-12 rounded-2xl bg-white/10 border border-white/20 overflow-hidden shrink-0">
@@ -182,10 +180,8 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
 
             </div>
 
-            {/* Symmetrical Body */}
             {hasIntel ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    {/* Left Column: Overview & Culture Traits */}
                     <div className="space-y-8">
                         {bullets.length > 0 && (
                             <div className="space-y-3">
@@ -218,7 +214,6 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
                         </div>
                     </div>
 
-                    {/* Right Column: Tech Stack & Engineering Focus */}
                     <div className="space-y-8">
                         {!!intel.tech_stack && Object.keys(intel.tech_stack || {}).length > 0 && (
                             <div className="space-y-3">
@@ -252,7 +247,6 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    {/* Left Column: Culture Traits fallback */}
                     <div className="space-y-3">
                         <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">Culture & Values</h5>
                         <div className="flex flex-wrap gap-2.5">
@@ -265,7 +259,6 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
                         </div>
                     </div>
 
-                    {/* Right Column: Overview fallback */}
                     {bullets.length > 0 && (
                         <div className="space-y-3">
                             <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">Overview</h5>
@@ -305,8 +298,8 @@ export function StrategyCard({ strategy, verdict }: { strategy?: StrategyData, v
                     <div key={i} className="flex gap-4 items-start group/pillar">
                         <div className="mt-1.5 w-2 h-2 shrink-0 rounded-sm bg-primary/40 group-hover/pillar:bg-primary transition-colors" />
                         <div className="text-[14px] text-white/80 leading-relaxed font-medium">
-                            <ReactMarkdown components={{ 
-                                p: ({ node: _node, ...props }) => <span {...props} /> 
+                            <ReactMarkdown components={{
+                                p: ({ node: _node, ...props }) => <span {...props} />
                             }}>
                                 {pillar}
                             </ReactMarkdown>
@@ -376,7 +369,7 @@ export function SkillsView({ matched, missing }: { matched: string[], missing: s
                     <div className="flex flex-wrap gap-3">
                         {sec.items.map((skill, j) => {
                             const isEmerald = sec.color === 'emerald-500';
-                            const containerClass = isEmerald 
+                            const containerClass = isEmerald
                                 ? "bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10 hover:border-emerald-500/40"
                                 : "bg-primary/5 border-primary/20 hover:bg-primary/10 hover:border-primary/40";
                             const textClass = isEmerald

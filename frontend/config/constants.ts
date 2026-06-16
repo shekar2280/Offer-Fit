@@ -36,8 +36,11 @@ export function getMidnightISTResetMs(): number {
       nowIST.getUTCFullYear(),
       nowIST.getUTCMonth(),
       nowIST.getUTCDate() + 1,
-      0, 0, 0, 0
-    ) - IST_OFFSET_MS
+      0,
+      0,
+      0,
+      0,
+    ) - IST_OFFSET_MS,
   );
   return midnightIST.getTime() - now.getTime();
 }

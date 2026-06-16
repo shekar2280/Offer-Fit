@@ -164,20 +164,20 @@ export async function POST(req: Request) {
 
         let result: AgenticAnalysisResult;
 
+        let fetchedPillars = null;
+        if (analysisId) {
+          const { data } = await supabase.from("analyses").select("jd_pillars").eq("id", analysisId).single();
+          if (data?.jd_pillars) {
+              fetchedPillars = data.jd_pillars;
+          }
+        }
+
         if (mode === "customize") {
           sse.send({
             type: "progress",
             step: 3,
             message: "Tailoring experience sections...",
           });
-
-          let fetchedPillars = null;
-          if (analysisId) {
-            const { data } = await supabase.from("analyses").select("jd_pillars").eq("id", analysisId).single();
-            if (data?.jd_pillars) {
-                fetchedPillars = data.jd_pillars;
-            }
-          }
 
           result = await runMultiStepCustomization(
             supabase,
@@ -220,7 +220,9 @@ export async function POST(req: Request) {
             "analyze",
             bypassJudge,
             userName,
-            researchResult
+            researchResult,
+            undefined,
+            fetchedPillars
           );
 
           const intelData = {
