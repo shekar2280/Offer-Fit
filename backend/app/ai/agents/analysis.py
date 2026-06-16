@@ -263,8 +263,7 @@ Output the following JSON block EXACTLY as shown. The JSON block MUST be the abs
   "interview_questions": {
     "preparation_focus": "<One high-level strategy for this specific role>",
     "questions": [{ "q": "<question>", "intent": "<why they ask this>" }]
-  },
-  "culture_fit_score": <integer 0-100>
+  }
 }
 ===JSON_END===
 """

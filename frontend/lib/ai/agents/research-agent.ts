@@ -57,7 +57,9 @@ export async function runResearchAgent(
     tech_stack: data.tech_stack,
     values_culture: data.values_culture,
     engineering_blog_summary: data.engineering_blog_summary,
-    is_startup: data.is_startup
+    is_startup: data.is_startup,
+    domain: data.domain,
+    logo_url: data.logo_url
   };
 
   const savedIntel = await upsertCompanyIntel(supabase, dbPayload);

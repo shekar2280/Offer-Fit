@@ -1,5 +1,5 @@
 import React from 'react';
-import { Copy, Check, Brain, Briefcase, Zap, Shield } from 'lucide-react';
+import { Copy, Check, Brain, Briefcase, Zap, Shield, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import Image from 'next/image';
 import remarkGfm from 'remark-gfm';
@@ -123,46 +123,36 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
             displayValuesCulture = JSON.parse(displayValuesCulture);
         } catch (e) {
         }
+    }    const isSingleDescription = !Array.isArray(displayValuesCulture) && hasIntel && displayValuesCulture;
+    let traitsToDisplay: string[] = [];
+    if (Array.isArray(displayValuesCulture)) {
+        traitsToDisplay = displayValuesCulture;
+    } else if (hasIntel && displayValuesCulture) {
+        traitsToDisplay = [displayValuesCulture];
+    } else {
+        traitsToDisplay = parsedTraits;
     }
 
     return (
         <DossierCard>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                <div className="lg:col-span-4 space-y-8">
-                    <div className="space-y-6">
-                        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-primary/10 border border-primary/20">
-                            <Brain className="w-4 h-4 text-primary" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Culture Alignment</span>
-                        </div>
-                        <div className="flex items-baseline gap-3">
-                            <span className="text-6xl font-black text-white tracking-tighter">{score || '--'}</span>
-                            <span className="text-sm font-black text-primary uppercase tracking-[0.4em]">Index</span>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3 mt-2">
-                        {Array.isArray(displayValuesCulture) ? (
-                            displayValuesCulture.map((t, i) => (
-                                <div key={i} className="flex gap-3 items-start group">
-                                    <div className="mt-1.5 w-1.5 h-1.5 shrink-0 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
-                                    <span className="text-[12px] font-medium text-white/60 leading-snug group-hover:text-white/90 transition-colors">{t}</span>
-                                </div>
-                            ))
-                        ) : hasIntel && displayValuesCulture ? (
-                            <span className="text-[12px] text-white/50 italic">{displayValuesCulture}</span>
-                        ) : parsedTraits.map((t, i) => (
-                            <div key={i} className="flex gap-3 items-start group">
-                                <div className="mt-1.5 w-1.5 h-1.5 shrink-0 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
-                                <span className="text-[12px] font-medium text-white/60 leading-snug group-hover:text-white/90 transition-colors">{t}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="lg:col-span-8 space-y-8">
-                    <div className="flex items-center gap-6">
-                        {intel?.logo_url && (
-                            <div className="relative w-12 h-12 rounded-2xl bg-white/10 border border-white/20 overflow-hidden shrink-0">
+            {/* Symmetrical Unified Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-white/5 mb-8">
+                {/* Left side: Logo + Name */}
+                <div className="flex items-center gap-5">
+                    {intel?.logo_url && (
+                        <div className="relative w-12 h-12 rounded-2xl bg-white/10 border border-white/20 overflow-hidden shrink-0">
+                            {intel.domain ? (
+                                <a href={`https://${intel.domain}`} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative">
+                                    <Image
+                                        src={intel.logo_url}
+                                        alt={companyName || 'Company logo'}
+                                        fill
+                                        unoptimized
+                                        className="object-contain hover:scale-105 transition-transform"
+                                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                                    />
+                                </a>
+                            ) : (
                                 <Image
                                     src={intel.logo_url}
                                     alt={companyName || 'Company logo'}
@@ -171,49 +161,126 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
                                     className="object-contain"
                                     onError={(e) => (e.currentTarget.style.display = 'none')}
                                 />
+                            )}
+                        </div>
+                    )}
+                    <div className="space-y-1.5">
+                        {intel?.domain ? (
+                            <a href={`https://${intel.domain}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 group/link">
+                                <h4 className="text-lg font-black uppercase tracking-[0.4em] text-white leading-tight group-hover/link:text-primary transition-colors">{companyName || 'Confidential'}</h4>
+                                <ExternalLink className="w-3.5 h-3.5 text-white/30 group-hover/link:text-primary group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-all" />
+                            </a>
+                        ) : (
+                            <h4 className="text-lg font-black uppercase tracking-[0.4em] text-white leading-tight">{companyName || 'Confidential'}</h4>
+                        )}
+                        <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest leading-none">
+                            Corporate Intelligence {intel?.is_startup ? '· Startup' : ''}
+                        </p>
+                    </div>
+                </div>
+
+
+            </div>
+
+            {/* Symmetrical Body */}
+            {hasIntel ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    {/* Left Column: Overview & Culture Traits */}
+                    <div className="space-y-8">
+                        {bullets.length > 0 && (
+                            <div className="space-y-3">
+                                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">Overview</h5>
+                                <div className="space-y-3">
+                                    {bullets.map((b, i) => (
+                                        <div key={i} className="flex gap-3 items-start group/point">
+                                            <div className="mt-1.5 w-1.5 h-1.5 shrink-0 rounded-full bg-primary/40 group-hover/point:bg-primary transition-colors shadow-[0_0_6px_rgba(242,170,76,0.3)]" />
+                                            <p className="text-[13px] text-white/70 leading-relaxed group-hover/point:text-white transition-colors">{b}</p>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
-                        <div className="space-y-1">
-                            <h4 className="text-sm font-black uppercase tracking-[0.4em] text-white/80">Corporate Intelligence</h4>
-                            <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest">{companyName || 'Confidential'} {intel?.is_startup ? '(Startup)' : ''}</p>
+
+                        <div className="space-y-3">
+                            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">Culture & Values</h5>
+                            {isSingleDescription ? (
+                                <p className="text-[13px] text-white/50 leading-relaxed italic">{displayValuesCulture}</p>
+                            ) : (
+                                <div className="flex flex-wrap gap-2.5">
+                                    {traitsToDisplay.map((t, i) => (
+                                        <div key={i} className="flex gap-2.5 items-center px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-primary/30 transition-colors">
+                                            <div className="w-1.5 h-1.5 shrink-0 rounded-full bg-primary/30 group-hover:bg-primary transition-colors" />
+                                            <span className="text-[12px] font-medium text-white/60 leading-snug group-hover:text-white transition-colors">{t}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {hasIntel ? (
-                        <div className="space-y-6">
-                            {!!intel.tech_stack && Object.keys(intel.tech_stack || {}).length > 0 && (
-                                <div>
-                                    <h5 className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-3">Tech Stack</h5>
-                                    <div className="flex flex-wrap gap-2">
-                                        {Object.entries(intel.tech_stack || {}).map(([cat, items]: [string, unknown]) =>
-                                            Array.isArray(items) ? (items as string[]).map((item: string, i: number) => (
-                                                <span key={`${cat}-${i}`} className="px-3 py-1 bg-white/[0.05] border border-white/10 rounded-full text-[11px] font-medium text-white/80">
-                                                    {item}
-                                                </span>
-                                            )) : null
-                                        )}
+                    {/* Right Column: Tech Stack & Engineering Focus */}
+                    <div className="space-y-8">
+                        {!!intel.tech_stack && Object.keys(intel.tech_stack || {}).length > 0 && (
+                            <div className="space-y-3">
+                                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">Tech Stack</h5>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.entries(intel.tech_stack || {}).map(([cat, items]: [string, unknown]) =>
+                                        Array.isArray(items) ? (items as string[]).map((item: string, i: number) => (
+                                            <span key={`${cat}-${i}`} className="px-3.5 py-1.5 bg-white/[0.03] border border-white/10 hover:border-primary/45 hover:bg-primary/5 transition-all rounded-full text-[11px] font-medium text-white/80 hover:text-primary cursor-default">
+                                                {item}
+                                            </span>
+                                        )) : null
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {intel.engineering_blog_summary && (
+                            <div className="space-y-3">
+                                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">Engineering Focus</h5>
+                                <div className="relative overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/[0.03] to-transparent p-5 group/focus hover:border-primary/30 transition-all duration-300">
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl pointer-events-none opacity-50 group-hover/focus:opacity-100 transition-opacity" />
+                                    <div className="flex-1">
+                                        <p className="text-[13px] text-white/80 leading-relaxed font-light tracking-wide">
+                                            {intel.engineering_blog_summary}
+                                        </p>
                                     </div>
                                 </div>
-                            )}
-                            {intel.engineering_blog_summary && (
-                                <div>
-                                    <h5 className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-2">Engineering Focus</h5>
-                                    <p className="text-[13px] text-white/60 leading-relaxed italic border-l-2 border-primary/30 pl-4">{intel.engineering_blog_summary}</p>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            {bullets.map((b, i) => (
-                                <div key={i} className="flex gap-4 group/point">
-                                    <div className="mt-1.5 w-1 h-1 shrink-0 rounded-full bg-primary/40 group-hover/point:bg-primary transition-colors" />
-                                    <p className="text-[13px] text-white/40 leading-relaxed group-hover/point:text-white/70 transition-colors">{b}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    {/* Left Column: Culture Traits fallback */}
+                    <div className="space-y-3">
+                        <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">Culture & Values</h5>
+                        <div className="flex flex-wrap gap-2.5">
+                            {parsedTraits.map((t, i) => (
+                                <div key={i} className="flex gap-2.5 items-center px-4 py-2 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-primary/30 transition-colors">
+                                    <div className="w-1.5 h-1.5 shrink-0 rounded-full bg-primary/30 group-hover:bg-primary transition-colors" />
+                                    <span className="text-[12px] font-medium text-white/60 leading-snug group-hover:text-white transition-colors">{t}</span>
                                 </div>
                             ))}
                         </div>
+                    </div>
+
+                    {/* Right Column: Overview fallback */}
+                    {bullets.length > 0 && (
+                        <div className="space-y-3">
+                            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">Overview</h5>
+                            <div className="space-y-3">
+                                {bullets.map((b, i) => (
+                                    <div key={i} className="flex gap-3 items-start group/point">
+                                        <div className="mt-1.5 w-1.5 h-1.5 shrink-0 rounded-full bg-primary/40 group-hover/point:bg-primary transition-colors shadow-[0_0_6px_rgba(242,170,76,0.3)]" />
+                                        <p className="text-[13px] text-white/70 leading-relaxed group-hover/point:text-white transition-colors">{b}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     )}
                 </div>
-            </div>
+            )}
         </DossierCard>
     );
 }
