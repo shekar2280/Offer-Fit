@@ -80,7 +80,8 @@ Output the following JSON block EXACTLY as shown:
   "is_startup": false,
   "salary_insight": {{ "range": "8-15 LPA", "currency": "INR", "seniority": "Mid" }},
   "company_cheat_sheet": "• High-growth tech company\\n• Values innovation",
-  "culture_traits": ["Innovative", "Fast-paced"]
+  "culture_traits": ["Innovative", "Fast-paced"],
+  "domain": "company.com"
 }}
 ===JSON_END===
 """
@@ -129,7 +130,9 @@ async def run_research_agent(
         "is_startup": False,
         "salary_insight": { "range": "Competitive", "currency": "INR" if (location and "india" in location.lower()) else "USD", "seniority": "Mid" },
         "company_cheat_sheet": f"• Active player in the {position} space\n• Focuses on scale and reliability\n• Emphasizes standard engineering best practices",
-        "culture_traits": ["Collaborative", "Technical", "Goal-oriented"]
+        "culture_traits": ["Collaborative", "Technical", "Goal-oriented"],
+        "domain": None,
+        "logo_url": None
     }
     
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
@@ -168,6 +171,16 @@ async def run_research_agent(
                     
                 distilled = json.loads(json_str.strip())
                 
+                raw_domain = distilled.get("domain", "").strip().lower()
+                # Clean up domain helper
+                if raw_domain.startswith("http://"):
+                    raw_domain = raw_domain[7:]
+                elif raw_domain.startswith("https://"):
+                    raw_domain = raw_domain[8:]
+                if raw_domain.startswith("www."):
+                    raw_domain = raw_domain[4:]
+                domain = raw_domain.split("/")[0] if raw_domain else None
+
                 db_payload = {
                     "company_name": company_name,
                     "tech_stack": {
@@ -181,7 +194,9 @@ async def run_research_agent(
                     "is_startup": distilled.get("is_startup", False),
                     "salary_insight": distilled.get("salary_insight", fallback_intel["salary_insight"]),
                     "company_cheat_sheet": distilled.get("company_cheat_sheet", fallback_intel["company_cheat_sheet"]),
-                    "culture_traits": distilled.get("culture_traits", fallback_intel["culture_traits"])
+                    "culture_traits": distilled.get("culture_traits", fallback_intel["culture_traits"]),
+                    "domain": domain,
+                    "logo_url": f"https://www.google.com/s2/favicons?domain={domain}&sz=256" if domain else None
                 }
                 
                 return {
