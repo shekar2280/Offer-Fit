@@ -43,6 +43,7 @@ class AnalyzeRequest(BaseModel):
     intel: Optional[Dict[str, Any]] = None
     execution_plan: Optional[Dict[str, Any]] = None
     bypass_judge: bool = False
+    jd_pillars: Optional[Dict[str, Any]] = None
 
 class ResearchRequest(BaseModel):
     company_name: str
@@ -90,7 +91,8 @@ async def analyze(req: AnalyzeRequest):
             mode=req.mode,
             user_name=req.user_name,
             intel=req.intel,
-            execution_plan=req.execution_plan
+            execution_plan=req.execution_plan,
+            jd_pillars=req.jd_pillars
         )
         return result
     except Exception as e:

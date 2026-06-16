@@ -43,6 +43,7 @@ export async function runMultiStepCustomization(
     userName,
     intel,
     executionPlan,
+    jdPillars,
   );
 
   const audit = await evaluateResumeAudit(draftResults.markdown, jd);
