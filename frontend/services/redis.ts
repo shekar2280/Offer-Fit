@@ -41,3 +41,13 @@ export async function checkRateLimit(
 
   return { success: true, remaining: limit - (count + 1), resetMs };
 }
+
+export async function decrementRateLimit(key: string): Promise<void> {
+  const entry = rateLimitMemory.get(key);
+  if (entry && entry.count > 0) {
+    rateLimitMemory.set(key, {
+      ...entry,
+      count: entry.count - 1,
+    });
+  }
+}

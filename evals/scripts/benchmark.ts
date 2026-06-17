@@ -45,7 +45,6 @@ async function runBenchmark() {
         fs.readFileSync(path.join(datasetDir, file), "utf8")
       );
       const secret = (
-        process.env.NEXT_PUBLIC_BENCHMARK_SECRET ||
         process.env.BENCHMARK_SECRET ||
         ""
       ).trim();
