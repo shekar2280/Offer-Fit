@@ -15,12 +15,6 @@ export async function logSystemEvent({
   details?: unknown;
   userId?: string;
 }) {
-  if (level === "ERROR") {
-    console.error(`[${level}] [${source}] ${message}`, details);
-  } else if (level === "WARN") {
-    console.warn(`[${level}] [${source}] ${message}`, details);
-  }
-
   try {
     const supabase = await createClient();
     await supabase.from("system_logs").insert({

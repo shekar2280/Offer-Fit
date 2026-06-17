@@ -1,11 +1,13 @@
 import os
 import json
+import logging
 from google import genai
 from google.genai import types
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 from fastapi import HTTPException
 
+logger = logging.getLogger(__name__)
 
 class WorkExperienceItem(BaseModel):
     company: str = Field(description="Name of the company/employer")
@@ -89,7 +91,6 @@ def render_latex_resume(resume_data: dict) -> str:
     """Configures Jinja2 with custom delimiters and renders the resume template."""
     safe_data = escape_json_data(resume_data)
     
-    # Format the contact info list in Python for cleaner LaTeX rendering
     contact_list = []
     if "contact_info" in safe_data and isinstance(safe_data["contact_info"], dict):
         info = safe_data["contact_info"]
@@ -384,15 +385,13 @@ async def run_analysis_agent(
                         if data_list:
                             bullets_list = [row["bullet_point"] for row in data_list]
                             style_guide_text = "\n".join(f"- {b}" for b in bullets_list)
-                            print(f"[RAG_SUCCESS] Successfully matched {len(bullets_list)} style-guide bullets from Supabase for '{position}':")
-                            for idx, b in enumerate(bullets_list, 1):
-                                print(f"  {idx}. {b}")
+                            logger.info("RAG retrieved %d style-guide bullets for '%s'", len(bullets_list), position)
                         else:
-                            print(f"[RAG_INFO] No matching bullets found in DB (threshold: 0.3) for '{position}'.")
+                            logger.info("RAG: no matching bullets found for '%s' (threshold: 0.3)", position)
                     else:
-                        print(f"[RAG_ERROR] Supabase REST API returned {res.status_code}: {res.text}")
+                        logger.warning("RAG: Supabase REST returned %s", res.status_code)
         except Exception as e:
-            print(f"[RAG_ERROR] Vector similarity retrieval failed: {e}")
+            logger.error("RAG vector retrieval failed: %s", e)
 
     prompt = build_analysis_prompt(
         company_name, position, context, jd, location, job_type, mode, user_name, intel, execution_plan, jd_pillars
@@ -485,7 +484,7 @@ async def run_analysis_agent(
                 }
         except Exception as e:
             last_error = e
-            print(f"[AGENT_AI] Fallback attempt on {model_name} failed: {e}")
+            logger.warning("Generative model fallback failed for %s: %s", model_name, e)
             continue
             
     raise HTTPException(status_code=500, detail=f"All generative models failed. Last error: {str(last_error)}")

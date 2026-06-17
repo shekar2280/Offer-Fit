@@ -1,11 +1,14 @@
 import os
 import json
+import logging
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from app.core.constants import ModelPricing
 from app.core.utils import calculate_cost, extract_usage_metadata
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MODELS = [m.value["model"] for m in ModelPricing]
 
@@ -98,10 +101,10 @@ async def run_strategy_agent(
                 "toolUsed": model_name
             }
         except Exception as e:
-            print(f"[STRATEGY] Model fallback failed for {model_name}: {e}")
+            logger.warning("Strategy model fallback failed for %s: %s", model_name, e)
             continue
             
-    print("[STRATEGY] All models failed, returning fallback strategy.")
+    logger.error("All strategy models failed — returning fallback strategy")
     return {
         "data": {
             "missing_skills": [],

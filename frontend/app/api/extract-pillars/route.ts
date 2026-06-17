@@ -17,7 +17,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+        const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
         
         const response = await fetch(`${backendUrl}/extract-pillars`, {
             method: "POST",

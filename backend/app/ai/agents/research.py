@@ -1,6 +1,7 @@
 import httpx
 import os
 import json
+import logging
 from google import genai
 from google.genai import types
 from typing import Optional, Dict, Any, List
@@ -8,12 +9,14 @@ from app.core.constants import ModelPricing
 from app.core.utils import calculate_cost, extract_usage_metadata
 import asyncio
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_MODELS = [m.value["model"] for m in ModelPricing]
 
 async def perform_search(query: str, tavily_api_key: Optional[str] = None) -> List[Dict[str, str]]:
     api_key = tavily_api_key or os.getenv("TAVILY_API_KEY")
     if not api_key:
-        print("[RESEARCH] No TAVILY_API_KEY found, skipping live search.")
+        logger.warning("TAVILY_API_KEY not configured — skipping live search")
         return []
     
     try:
@@ -29,7 +32,7 @@ async def perform_search(query: str, tavily_api_key: Optional[str] = None) -> Li
                 timeout=15.0
             )
             if response.status_code != 200:
-                print(f"[RESEARCH] Tavily search request failed: {response.status_code}")
+                logger.warning("Tavily search request failed: status=%s", response.status_code)
                 return []
             
             data = response.json()
@@ -43,7 +46,7 @@ async def perform_search(query: str, tavily_api_key: Optional[str] = None) -> Li
                 for r in results
             ]
     except Exception as e:
-        print(f"[RESEARCH] Error during Tavily search: {e}")
+        logger.error("Tavily search error: %s", e)
         return []
 
 def build_research_distillation_prompt(
@@ -206,10 +209,10 @@ async def run_research_agent(
                     "toolUsed": model_name
                 }
         except Exception as e:
-            print(f"[RESEARCH] Model fallback failed for {model_name}: {e}")
+            logger.warning("Research model fallback failed for %s: %s", model_name, e)
             continue
             
-    print("[RESEARCH] All distillation models failed, returning fallback intelligence payload.")
+    logger.error("All research distillation models failed — returning fallback payload")
     return {
         "data": fallback_intel,
         "usage": usage_info,
