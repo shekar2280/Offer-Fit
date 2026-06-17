@@ -1,0 +1,11 @@
+{
+  "testName": "The Overlap YOE Trap",
+  "expectedVerdict": "REJECT",
+  "job": {
+    "company": "Zerodha",
+    "position": "Senior Security Architect",
+    "description": "Mandatory 10+ years of post-graduation professional experience in cybersecurity. No exceptions."
+  },
+  "resume": "CHRIS MILLER\nSecurity Expert\n\nEXPERIENCE:\nSenior Security Specialist | 2014 - Present (Current Role)\nSecurity Intern | 2010 - 2014 (While doing PhD)\nPart-time IT Tech | 2008 - 2010 (While doing Undergrad)\n\nEDUCATION:\nPhD in Cybersecurity | Graduated 2014\nBS in Computer Science | Graduated 2010",
+  "mode": "analyze"
+}

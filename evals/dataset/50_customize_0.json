@@ -1,0 +1,15 @@
+{
+  "testName": "Customize for Senior React Native Dev",
+  "mode": "customize",
+  "job": {
+    "company": "CRED",
+    "position": "Senior iOS Engineer",
+    "description": "Must have deep expertise in React Native, Expo, and offline-first mobile architectures. Experience with AsyncStorage and SQLite is highly preferred. Should be able to optimize mobile performance for iOS."
+  },
+  "resumeFile": "master_resume.tex",
+  "assertions": [
+    { "type": "contains", "value": "CRED" },
+    { "type": "contains", "value": "Senior iOS Engineer" },
+    { "type": "contains", "value": "offline-first" }
+  ]
+}

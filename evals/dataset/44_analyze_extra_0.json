@@ -1,0 +1,11 @@
+{
+  "testName": "Backend Node vs Python Role",
+  "mode": "analyze",
+  "expectedVerdict": "REJECT",
+  "job": {
+    "company": "Zepto",
+    "position": "Backend Python Developer",
+    "description": "Requires 3+ years of Python, Django, FastAPI. Node.js experience is not applicable."
+  },
+  "resume": "Backend developer with 4 years of Node.js, Express, and MongoDB. Familiar with JavaScript."
+}

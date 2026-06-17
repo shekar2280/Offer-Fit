@@ -1,0 +1,15 @@
+{
+  "testName": "Customize for Python Backend Developer",
+  "mode": "customize",
+  "job": {
+    "company": "BrowserStack",
+    "position": "Python Backend Developer",
+    "description": "Python, FastAPI, and PostgreSQL. Should understand semantic search, caching with Redis, and queue processing with Celery."
+  },
+  "resumeFile": "master_resume.tex",
+  "assertions": [
+    { "type": "contains", "value": "BrowserStack" },
+    { "type": "contains", "value": "Python" },
+    { "type": "contains", "value": "Celery" }
+  ]
+}

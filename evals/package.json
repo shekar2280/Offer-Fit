@@ -1,0 +1,12 @@
+{
+  "name": "evals",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "benchmark": "npx tsx scripts/benchmark.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "tsx": "^4.16.2"
+  }
+}

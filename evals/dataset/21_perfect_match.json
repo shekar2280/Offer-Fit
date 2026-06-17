@@ -2,9 +2,10 @@
   "testName": "Fullstack Lead vs Fullstack Role",
   "expectedVerdict": "APPLY",
   "job": {
-    "company": "FastGrowth Inc",
+    "company": "Zoho",
     "position": "Technical Lead",
     "description": "Node.js, Postgres, and React. Experience leading teams of 5+. Focus on system design."
   },
-  "resume": "Technical Lead with 8 years experience. Scaled Node.js microservices for 1M users. Led a team of 10 engineers at a Tier-1 startup using React/Postgres."
+  "resume": "Technical Lead with 8 years experience. Scaled Node.js microservices for 1M users. Led a team of 10 engineers at a Tier-1 startup using React/Postgres.",
+  "mode": "analyze"
 }

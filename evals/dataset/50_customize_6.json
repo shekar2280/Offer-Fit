@@ -1,0 +1,15 @@
+{
+  "testName": "Customize for Social Networking App",
+  "mode": "customize",
+  "job": {
+    "company": "Zoho",
+    "position": "Frontend React Native Developer",
+    "description": "You will build our new messaging feature. Must have strong Socket.io experience, optimistic updates, and presence tracking."
+  },
+  "resumeFile": "master_resume.tex",
+  "assertions": [
+    { "type": "contains", "value": "Zoho" },
+    { "type": "contains", "value": "Socket.io" },
+    { "type": "contains", "value": "optimistic updates" }
+  ]
+}

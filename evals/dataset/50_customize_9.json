@@ -1,0 +1,15 @@
+{
+  "testName": "Customize for Generalist Software Engineer",
+  "mode": "customize",
+  "job": {
+    "company": "Groww",
+    "position": "Software Development Engineer",
+    "description": "Requires strong Data Structures & Algorithms, Object-Oriented Programming, and database design. Broad full-stack experience (Node.js, React) is a plus."
+  },
+  "resumeFile": "master_resume.tex",
+  "assertions": [
+    { "type": "contains", "value": "Groww" },
+    { "type": "contains", "value": "Software Development Engineer" },
+    { "type": "contains", "value": "Algorithms" }
+  ]
+}

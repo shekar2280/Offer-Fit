@@ -1,0 +1,15 @@
+{
+  "testName": "Customize for AI/LLM Integration Engineer",
+  "mode": "customize",
+  "job": {
+    "company": "Paytm",
+    "position": "AI Application Developer",
+    "description": "Looking for an engineer to integrate LLMs into production apps. Must know RAG systems, Vector Search, pgvector, and Supabase."
+  },
+  "resumeFile": "master_resume.tex",
+  "assertions": [
+    { "type": "contains", "value": "Paytm" },
+    { "type": "contains", "value": "AI Application Developer" },
+    { "type": "contains", "value": "pgvector" }
+  ]
+}

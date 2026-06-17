@@ -1,0 +1,11 @@
+{
+  "testName": "The Seniority Faker (Buzzword Trap)",
+  "expectedVerdict": "REJECT",
+  "job": {
+    "company": "BrowserStack",
+    "position": "Principal Distributed Systems Engineer",
+    "description": "We are looking for a Principal Engineer with a minimum of 8+ years of professional experience building large-scale distributed systems. Mandatory requirements: Expert knowledge of Go, Kubernetes, and Paxos/Raft consensus algorithms. Candidates with less than 8 years of experience will not be considered."
+  },
+  "resume": "ALEX RIVERA\nLead Distributed Systems Architect\n\nSUMMARY\nVisionary Lead Engineer with extensive experience in architecting high-throughput distributed systems. Expert in Raft consensus, Go concurrency patterns, and global-scale Kubernetes orchestration. Proven track record of leading teams to build resilient infrastructure.\n\nEXPERIENCE\nLead Infrastructure Engineer | TechStream\n2022 - Present\n- Architected a distributed key-value store using the Raft algorithm.\n- Led a team of 5 engineers to migrate legacy services to a global Kubernetes cluster.\n- Optimized Go microservices reducing latency by 40%.\n\nDistributed Systems Intern | CloudNet\n2021 - 2022\n- Contributed to the development of internal orchestration tools.\n\nEDUCATION\nBachelor of Science in Computer Science | MIT\nClass of 2022\n\nSKILLS\nLanguages: Go, Rust, C++\nTechnologies: Kubernetes, Docker, Paxos, Raft, gRPC, Distributed Databases",
+  "mode": "analyze"
+}

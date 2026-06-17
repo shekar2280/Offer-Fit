@@ -1,0 +1,11 @@
+{
+  "testName": "Scale Mismatch Trap",
+  "expectedVerdict": "REJECT",
+  "job": {
+    "company": "Freshworks",
+    "position": "Site Reliability Engineer",
+    "description": "We need a Principal SRE to manage infrastructure handling 2 million requests per second across 50 global regions. Must have experience with multi-petabyte database clusters and global load balancing."
+  },
+  "resume": "JORDAN WEBER\nSenior Infrastructure Engineer\n\n- Managed all infrastructure for a high-growth startup.\n- Scaled our web app to handle 1,000 concurrent users.\n- Expert in AWS, Docker, and Kubernetes.\n- Implemented load balancing and database sharding.\n- Responsible for 99.9% uptime for our primary application.",
+  "mode": "analyze"
+}

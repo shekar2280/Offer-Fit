@@ -1,0 +1,15 @@
+{
+  "testName": "Customize for Freelance App Agency",
+  "mode": "customize",
+  "job": {
+    "company": "Freshworks",
+    "position": "Mobile App Consultant",
+    "description": "We need someone with freelance experience delivering production Expo apps, talking to stakeholders, and maintaining full-stack architecture."
+  },
+  "resumeFile": "master_resume.tex",
+  "assertions": [
+    { "type": "contains", "value": "Freshworks" },
+    { "type": "contains", "value": "freelance" },
+    { "type": "contains", "value": "stakeholders" }
+  ]
+}
