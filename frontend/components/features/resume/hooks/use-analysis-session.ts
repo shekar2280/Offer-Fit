@@ -40,28 +40,50 @@ export function useAnalysisSession() {
   }, [searchParams, pathname, router, setAnalysisData, state.id]);
 
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+
     const handleMessage = (event: MessageEvent) => {
       if (event.source !== window) return;
-      if (event.data?.type === "FROM_EXTENSION" && event.data?.action === "JOB_DATA_RESPONSE") {
+      if (
+        event.data?.type === "FROM_EXTENSION" &&
+        event.data?.action === "JOB_DATA_RESPONSE"
+      ) {
         const data = event.data.data;
         if (data && data.description) {
-          setAnalysisData({
-            ...state,
-            companyName: data.company || state.companyName,
-            position: data.role || state.position,
-            location: data.location || state.location,
-            jobType: data.jobType || state.jobType,
-            jd: data.description,
-          });
+          const update: Partial<typeof state> = {};
+          if (data.company) update.companyName = data.company;
+          if (data.role) update.position = data.role;
+          if (data.location) update.location = data.location;
+          if (data.jobType) update.jobType = data.jobType;
+          update.jd = data.description;
+
+          setAnalysisData(update);
+          window.postMessage(
+            { type: "FROM_WEB_APP", action: "ACK_JOB_DATA" },
+            "*",
+          );
+
+          if (interval) clearInterval(interval);
         }
       }
     };
-    
+
     window.addEventListener("message", handleMessage);
-    window.postMessage({ type: "FROM_WEB_APP", action: "REQUEST_JOB_DATA" }, "*");
-    
-    return () => window.removeEventListener("message", handleMessage);
-  }, [setAnalysisData, state]);
+
+    const requestData = () => {
+      window.postMessage(
+        { type: "FROM_WEB_APP", action: "REQUEST_JOB_DATA" },
+        "*",
+      );
+    };
+    requestData();
+    interval = setInterval(requestData, 1000);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      clearInterval(interval);
+    };
+  }, [setAnalysisData]);
 
   return { session: state };
 }
