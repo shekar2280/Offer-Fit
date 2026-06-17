@@ -225,15 +225,21 @@ CANDIDATE RESUME:
 OUTPUT MODE: ANALYSIS REPORT
 Evaluate the candidate not just on keyword matches, but on IMPACT, SCALE, and HARD REQUIREMENTS. 
 
-SCORING CRITERIA (MANDATORY):
-1. **Years of Experience (YOE)**: This is a HARD filter. If the JD requires 5 years and the candidate has 1, you MUST penalize the score by at least 40 points. If they are a fresher (0 years) for a mid-senior role, the verdict MUST be 'REJECT'.
-2. **Technical Depth**: Distinguish between "heard of" and "delivered with".
-3. **Scale**: A candidate who "built a feature" is weaker than one who "reduced API latency by 40% for 2M users." Look for evidence of ownership, complexity, and business outcomes.
+SCORING CRITERIA (MANDATORY — apply in order):
+1. **Years of Experience (YOE) — Hard Gate**: This is the first filter. If the JD requires N years and the candidate has fewer than (N - 2) years, you MUST penalize the score by at least 40 points and the verdict MUST be 'REJECT' or 'STRETCH'. If they are a fresher (0 years of post-graduation work) for a mid-senior role, the verdict MUST be 'REJECT'.
+2. **Tech Ecosystem vs. Exact Match (Critical Distinction)**:
+   - If the JD mandates a SPECIFIC framework (e.g., Angular, Go, Swift, Django) and the candidate ONLY has a DIFFERENT framework in the same category (e.g., only React, only Node.js, only FastAPI), treat this as a HARD MISMATCH on that axis.
+   - For Senior roles: A hard mismatch on a mandatory primary technology is a REJECT factor.
+   - For Mid roles: A hard mismatch on a mandatory primary technology caps the verdict at STRETCH.
+   - EXCEPTION: Semantically equivalent technologies (e.g., React ≈ React Native, Next.js ≈ React, PostgreSQL ≈ MySQL) are NOT mismatches. Apply engineering judgment.
+3. **Seniority & System Design (Weighted Heavier Than Buzzwords)**: For Senior+ roles, weight evidence of architectural ownership, scale (user counts, latency metrics, system complexity), and team leadership 2x higher than framework keyword matches. A candidate who built and owns a production system at scale outscores a keyword-stuffed resume.
+4. **Technical Depth**: Distinguish between "heard of" and "delivered with". Look for quantifiable outcomes (latency %, user scale, uptime SLAs).
+5. **Generalist Bonus**: A strong full-stack candidate with proven delivery across multiple JD-relevant areas should NOT be penalized for missing one niche secondary tool. Score their aggregate delivery, not individual checkbox compliance.
 
 VERDICT DEFINITIONS:
-- **APPLY (80-100)**: Candidate meets or exceeds all mandatory requirements and core tech stack.
-- **STRETCH (55-79)**: Candidate is missing 1-2 years of YOE or a secondary skill, but has the core engine to perform.
-- **REJECT (0-54)**: Candidate is fundamentally unqualified (missing core YOE, missing mandatory tech stack, or lacking relevant impact).
+- **APPLY (80-100)**: Candidate meets or exceeds ALL mandatory requirements and core tech stack. Minor gaps in secondary skills only.
+- **STRETCH (55-79)**: Candidate is missing 1-2 years of YOE OR one secondary tech gap, but has the core competency and delivery track record to succeed with reasonable ramp-up.
+- **REJECT (0-54)**: Candidate is fundamentally unqualified — missing core YOE by 3+ years, missing mandatory primary tech with no adjacent equivalent, OR lacking any evidence of relevant impact.
 
 You MUST produce the report in two distinct phases (but do NOT include "PHASE 1" or "PHASE 2" headers in your output):
 
@@ -283,7 +289,7 @@ Output the following JSON block EXACTLY as shown. The JSON block MUST be the abs
         plan_text = json.dumps(execution_plan, indent=2) if execution_plan else "No execution plan provided. Infer the best strategy."
         prompt += f"""
 OUTPUT MODE: RAW LATEX
-Your goal is to act as the Writer Agent and completely rewrite the candidate's resume content to perfectly align with the job description.
+Your goal is to act as the Writer Agent and rewrite the candidate's resume content to perfectly align with the job description — WITHOUT fabricating new experience.
 
 STRATEGIST EXECUTION PLAN:
 {plan_text}
@@ -301,6 +307,8 @@ CRITICAL INSTRUCTIONS:
    - DO NOT change how the Skills section is formatted (keep the exact spacing and newlines).
    - ONLY change the actual English text inside the bullet points, the professional summary, and the skill lists. Leave all surrounding LaTeX syntax and spacing exactly as it was.
 7. 🛑 MATHEMATICAL LENGTH HEURISTIC: To ensure the LaTeX compiles to exactly one full page, the final output MUST contain exactly 12 project bullet points in total. Distribute these 12 bullets across the projects based on the Execution Plan (e.g., 4 projects with 3 bullets each, or 3 projects with 4 bullets each), but the grand total of project bullet points MUST equal exactly 12.
+8. 🔒 STRICT KEYWORD PRESERVATION — CRITICAL: Before finalizing any bullet point, cross-reference the original resume against the JD. If a word or phrase already exists in the original resume AND is also a keyword in the JD (e.g., "stakeholders", "offline-first", "optimistic updates", "Socket.io", "Docker"), you MUST include that exact word or phrase in the rewritten bullet point. You are FORBIDDEN from paraphrasing or deleting JD-matching keywords that already exist in the original resume. Losing an existing matched keyword is a critical failure.
+9. 📌 TITLE & COMPANY INJECTION — CRITICAL: The OBJECTIVE section at the top of the resume MUST explicitly contain the exact job title "{position}" and the exact company name "{company_name}" verbatim. Replace the placeholder text in the OBJECTIVE section with: "Seeking to contribute as a {{position}} at {{company_name}}, leveraging expertise in [most relevant skills from JD]." Use exact strings, do not paraphrase.
 """
     return prompt
 
@@ -366,7 +374,7 @@ async def run_analysis_agent(
                 }
                 async with httpx.AsyncClient() as http_client:
                     res = await http_client.post(
-                        f"{supabase_url}/rest/v1/rpc/match_synthetic_bullets",
+                        f"{supabase_url}/rest/v1/rpc/match_bullets",
                         json=payload,
                         headers=headers,
                         timeout=10.0
