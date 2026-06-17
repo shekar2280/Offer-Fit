@@ -39,5 +39,29 @@ export function useAnalysisSession() {
     }
   }, [searchParams, pathname, router, setAnalysisData, state.id]);
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== window) return;
+      if (event.data?.type === "FROM_EXTENSION" && event.data?.action === "JOB_DATA_RESPONSE") {
+        const data = event.data.data;
+        if (data && data.description) {
+          setAnalysisData({
+            ...state,
+            companyName: data.company || state.companyName,
+            position: data.role || state.position,
+            location: data.location || state.location,
+            jobType: data.jobType || state.jobType,
+            jd: data.description,
+          });
+        }
+      }
+    };
+    
+    window.addEventListener("message", handleMessage);
+    window.postMessage({ type: "FROM_WEB_APP", action: "REQUEST_JOB_DATA" }, "*");
+    
+    return () => window.removeEventListener("message", handleMessage);
+  }, [setAnalysisData, state]);
+
   return { session: state };
 }

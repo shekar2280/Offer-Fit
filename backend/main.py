@@ -3,7 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
+import logging
 from dotenv import load_dotenv
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -201,7 +208,7 @@ Return exactly this shape:
         data = json.loads(text.strip())
         return data
     except Exception as e:
-        print(f"[INSIGHTS] Error generating ATS insights: {{e}}")
+        logger.error("ATS insights generation failed: %s", e)
         return { "atsScore": 0, "keywordDensity": 0, "matchedSkills": [], "missingSkills": [] }
 
 if __name__ == "__main__":

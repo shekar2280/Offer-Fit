@@ -1,10 +1,13 @@
 import os
 import json
+import logging
 from google import genai
 from google.genai import types
 from typing import Optional, Dict, Any, List
 from app.core.constants import ModelPricing
 from app.core.utils import calculate_cost, extract_usage_metadata
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MODELS = [m.value["model"] for m in ModelPricing]
 
@@ -148,10 +151,10 @@ async def run_resume_audit(original_resume: str, tailored_resume: str) -> Dict[s
                     "toolUsed": model_name
                 }
         except Exception as e:
-            print(f"[AUDIT] Model fallback failed for {model_name}: {e}")
+            logger.warning("Audit model fallback failed for %s: %s", model_name, e)
             continue
             
-    print("[AUDIT] All models failed, returning clean fallback.")
+    logger.error("All audit models failed — returning clean fallback")
     return {
         "data": fallback_audit,
         "usage": usage_info,
@@ -209,10 +212,10 @@ async def run_analysis_judge(resume: str, jd: str, analysis: str) -> Dict[str, A
                     "toolUsed": model_name
                 }
         except Exception as e:
-            print(f"[JUDGE] Model fallback failed for {model_name}: {e}")
+            logger.warning("Judge model fallback failed for %s: %s", model_name, e)
             continue
             
-    print("[JUDGE] All models failed, returning fallback judge report.")
+    logger.error("All judge models failed — returning fallback report")
     return {
         "data": fallback_judge,
         "usage": usage_info,
