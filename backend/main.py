@@ -25,14 +25,24 @@ async def verify_api_key(request: Request, x_api_key: Optional[str] = Header(Non
     if request.url.path == "/health":
         return
     expected_key = os.getenv("BACKEND_API_KEY")
-    if expected_key and x_api_key != expected_key:
+    if not expected_key:
+        raise HTTPException(status_code=500, detail="BACKEND_API_KEY environment variable is not set on the server")
+    if x_api_key != expected_key:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 app = FastAPI(title="Offer Fit AI API", dependencies=[Depends(verify_api_key)])
 
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+allowed_origins = list(set([
+    frontend_url,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://offerfit.vercel.app",
+]))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=allowed_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

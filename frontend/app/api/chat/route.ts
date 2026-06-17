@@ -16,7 +16,7 @@ import {
 } from "@/config/constants";
 
 import { AnalysisResult } from "@/types";
-import { checkRateLimit, getCache, setCache } from "@/services/redis";
+import { checkRateLimit, decrementRateLimit, getCache, setCache } from "@/services/redis";
 import { createHash } from "crypto";
 
 function makeSSE(controller: ReadableStreamDefaultController) {
@@ -59,11 +59,14 @@ export async function POST(req: Request) {
     ""
   ).trim();
   const serverSecret = (
-    process.env.NEXT_PUBLIC_BENCHMARK_SECRET ||
     process.env.BENCHMARK_SECRET ||
     ""
   ).trim();
   const isTestMode = testSecret !== "" && testSecret === serverSecret;
+
+  let user: any = null;
+  let charged = false;
+  let completed = false;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -79,8 +82,9 @@ export async function POST(req: Request) {
             : await createServerClient();
 
         const {
-          data: { user },
+          data: { user: fetchedUser },
         } = await supabase.auth.getUser();
+        user = fetchedUser;
 
         if (!user && !isTestMode) {
           await logSystemEvent({
@@ -163,6 +167,8 @@ export async function POST(req: Request) {
             sse.close();
             return;
           }
+
+          charged = true;
 
           supabase
             .rpc("increment_user_usage", { p_user_id: user.id })
@@ -457,6 +463,7 @@ export async function POST(req: Request) {
           toolUsed,
         });
 
+        completed = true;
         sse.close();
       } catch (error: unknown) {
         await logSystemEvent({
@@ -465,6 +472,47 @@ export async function POST(req: Request) {
           message: (error as Error).message || "Analysis failed",
           details: { error },
         });
+
+        if (user && charged) {
+          try {
+            await decrementRateLimit(`rate:daily:${user.id}`);
+            
+            if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+              const supabaseAdmin = createSupabaseClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.SUPABASE_SERVICE_ROLE_KEY
+              );
+              
+              const { error: rpcError } = await supabaseAdmin.rpc("decrement_user_usage", { p_user_id: user.id });
+              
+              if (rpcError) {
+                const { data: usageData } = await supabaseAdmin
+                  .from("user_usage")
+                  .select("daily_count")
+                  .eq("user_id", user.id)
+                  .maybeSingle();
+
+                if (usageData) {
+                  const currentCount = usageData.daily_count || 1;
+                  await supabaseAdmin
+                    .from("user_usage")
+                    .update({ daily_count: Math.max(0, currentCount - 1) })
+                    .eq("user_id", user.id);
+                }
+              }
+            }
+
+            await logSystemEvent({
+              level: "INFO",
+              source: "QUOTA_REFUNDED",
+              message: `Refunded 1 credit for ${mode} due to failure`,
+              userId: user.id,
+              details: { mode, error: (error as Error).message },
+            });
+          } catch (refundErr) {
+            console.error("Failed to refund usage quota:", refundErr);
+          }
+        }
 
         if (analysisId) {
           const supabaseFallback =
@@ -484,6 +532,48 @@ export async function POST(req: Request) {
         sse.close();
       }
     },
+    async cancel(reason) {
+      if (charged && !completed && user) {
+        try {
+          await decrementRateLimit(`rate:daily:${user.id}`);
+          
+          if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            const supabaseAdmin = createSupabaseClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY
+            );
+            
+            const { error: rpcError } = await supabaseAdmin.rpc("decrement_user_usage", { p_user_id: user.id });
+            
+            if (rpcError) {
+              const { data: usageData } = await supabaseAdmin
+                .from("user_usage")
+                .select("daily_count")
+                .eq("user_id", user.id)
+                .maybeSingle();
+
+              if (usageData) {
+                const currentCount = usageData.daily_count || 1;
+                await supabaseAdmin
+                  .from("user_usage")
+                  .update({ daily_count: Math.max(0, currentCount - 1) })
+                  .eq("user_id", user.id);
+              }
+            }
+          }
+
+          await logSystemEvent({
+            level: "INFO",
+            source: "QUOTA_REFUNDED",
+            message: `Refunded 1 credit for ${mode} due to user cancellation/abort`,
+            userId: user.id,
+            details: { mode, reason: reason?.toString() || "client abort" },
+          });
+        } catch (refundErr) {
+          console.error("Failed to refund usage quota on cancel:", refundErr);
+        }
+      }
+    }
   });
 
   return new Response(stream, {
