@@ -66,6 +66,8 @@ export interface AnalysisResult {
   intel?: CompanyIntel;
   strategy?: StrategyData;
   audit_report?: AuditData;
+  judge_override?: boolean;
+  judge_critique?: string;
 }
 
 export interface AnalysisInsights extends AnalysisResult {

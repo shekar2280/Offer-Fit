@@ -1,13 +1,19 @@
-import { createClient } from "@/services/supabase/server";
+import { createClient as createServerClient } from "@/services/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { getRelevantContext } from "@/services/supabase/rag";
 import {
   runAnalysisAgent,
   runMultiStepCustomization,
   runResearchAgent,
-  AgenticAnalysisResult
+  AgenticAnalysisResult,
 } from "@/lib/ai/agent";
 import { logSystemEvent } from "@/services/supabase/logger";
-import { PLAN_QUOTAS, PlanType, getMidnightISTResetMs } from "@/config/constants";
+import { evaluateAnalysis } from "@/lib/ai/evaluator";
+import {
+  PLAN_QUOTAS,
+  PlanType,
+  getMidnightISTResetMs,
+} from "@/config/constants";
 
 import { AnalysisResult } from "@/types";
 import { checkRateLimit, getCache, setCache } from "@/services/redis";
@@ -17,10 +23,18 @@ function makeSSE(controller: ReadableStreamDefaultController) {
   const encoder = new TextEncoder();
   return {
     send(data: object) {
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+      try {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+      } catch (e) {
+        console.warn("Could not send SSE: controller may be closed.");
+      }
     },
     close() {
-      controller.close();
+      try {
+        controller.close();
+      } catch (e) {
+        // Ignore if already closed
+      }
     },
   };
 }
@@ -44,7 +58,11 @@ export async function POST(req: Request) {
     req.headers.get("x-test-secret") ||
     ""
   ).trim();
-  const serverSecret = (process.env.NEXT_PUBLIC_BENCHMARK_SECRET || "").trim();
+  const serverSecret = (
+    process.env.NEXT_PUBLIC_BENCHMARK_SECRET ||
+    process.env.BENCHMARK_SECRET ||
+    ""
+  ).trim();
   const isTestMode = testSecret !== "" && testSecret === serverSecret;
 
   const stream = new ReadableStream({
@@ -52,7 +70,14 @@ export async function POST(req: Request) {
       const sse = makeSSE(controller);
 
       try {
-        const supabase = await createClient();
+        const supabase =
+          isTestMode && process.env.SUPABASE_SERVICE_ROLE_KEY
+            ? createSupabaseClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.SUPABASE_SERVICE_ROLE_KEY,
+              )
+            : await createServerClient();
+
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -62,7 +87,7 @@ export async function POST(req: Request) {
             level: "ERROR",
             source: "AUTH_FAILURE",
             message: "Unauthorized API access attempt",
-            details: { mode }
+            details: { mode },
           });
           sse.send({ type: "error", error: "Unauthorized" });
           sse.close();
@@ -78,9 +103,18 @@ export async function POST(req: Request) {
             jd,
           ));
 
-        const jdHash = createHash("sha256").update(context + jd + mode).digest("hex");
+        const jdHash = createHash("sha256")
+          .update(context + jd + mode)
+          .digest("hex");
         const cacheKey = `report:${user?.id || "benchmark"}:${jdHash}`;
-        const cachedReport = (await getCache(cacheKey)) as { markdown?: string; metadata?: unknown; toolUsed?: string } | null;
+
+        const cachedReport = isTestMode
+          ? null
+          : ((await getCache(cacheKey)) as {
+              markdown?: string;
+              metadata?: unknown;
+              toolUsed?: string;
+            } | null);
 
         if (cachedReport) {
           sse.send({
@@ -120,7 +154,7 @@ export async function POST(req: Request) {
               source: "QUOTA_EXHAUSTED",
               message: "Daily quota reached for user",
               userId: user.id,
-              details: { limit: userQuota, plan }
+              details: { limit: userQuota, plan },
             });
             sse.send({
               type: "error",
@@ -130,15 +164,17 @@ export async function POST(req: Request) {
             return;
           }
 
-          supabase.rpc("increment_user_usage", { p_user_id: user.id }).then(() => {
-            logSystemEvent({
-              level: "INFO",
-              source: "QUOTA_CHARGED",
-              message: `Charged 1 credit for ${mode}`,
-              userId: user.id,
-              details: { mode, jdHash }
+          supabase
+            .rpc("increment_user_usage", { p_user_id: user.id })
+            .then(() => {
+              logSystemEvent({
+                level: "INFO",
+                source: "QUOTA_CHARGED",
+                message: `Charged 1 credit for ${mode}`,
+                userId: user.id,
+                details: { mode, jdHash },
+              });
             });
-          });
         }
 
         sse.send({
@@ -146,7 +182,6 @@ export async function POST(req: Request) {
           step: 1,
           message: "Loading resume context...",
         });
-
 
         sse.send({
           type: "progress",
@@ -166,9 +201,13 @@ export async function POST(req: Request) {
 
         let fetchedPillars = null;
         if (analysisId) {
-          const { data } = await supabase.from("analyses").select("jd_pillars").eq("id", analysisId).single();
+          const { data } = await supabase
+            .from("analyses")
+            .select("jd_pillars")
+            .eq("id", analysisId)
+            .single();
           if (data?.jd_pillars) {
-              fetchedPillars = data.jd_pillars;
+            fetchedPillars = data.jd_pillars;
           }
         }
 
@@ -188,7 +227,7 @@ export async function POST(req: Request) {
             location,
             jobType,
             userName,
-            fetchedPillars
+            fetchedPillars,
           );
         } else {
           sse.send({
@@ -201,7 +240,7 @@ export async function POST(req: Request) {
             supabase,
             companyName,
             position,
-            location
+            location,
           );
 
           sse.send({
@@ -222,31 +261,76 @@ export async function POST(req: Request) {
             userName,
             researchResult,
             undefined,
-            fetchedPillars
+            fetchedPillars,
           );
 
           const intelData = {
             salary_insight: researchResult.salary_insight,
             company_cheat_sheet: researchResult.company_cheat_sheet,
-            culture_traits: researchResult.culture_traits
+            culture_traits: researchResult.culture_traits,
           };
 
-          const totalPromptTokens = (researchResult.usage?.promptTokenCount || 0) + (analysisResult.usage?.promptTokenCount || 0);
-          const totalCandidatesTokens = (researchResult.usage?.candidatesTokenCount || 0) + (analysisResult.usage?.candidatesTokenCount || 0);
-          const totalTokenCount = (researchResult.usage?.totalTokenCount || 0) + (analysisResult.usage?.totalTokenCount || 0);
-          const totalCost = (researchResult.estimated_cost || 0) + (analysisResult.estimated_cost || 0);
+          const totalPromptTokens =
+            (researchResult.usage?.promptTokenCount || 0) +
+            (analysisResult.usage?.promptTokenCount || 0);
+          const totalCandidatesTokens =
+            (researchResult.usage?.candidatesTokenCount || 0) +
+            (analysisResult.usage?.candidatesTokenCount || 0);
+          const totalTokenCount =
+            (researchResult.usage?.totalTokenCount || 0) +
+            (analysisResult.usage?.totalTokenCount || 0);
+          const totalCost =
+            (researchResult.estimated_cost || 0) +
+            (analysisResult.estimated_cost || 0);
 
-          result = { 
-            ...analysisResult, 
-            data: { ...(analysisResult.data as Record<string, unknown>), ...intelData },
+          result = {
+            ...analysisResult,
+            data: {
+              ...(analysisResult.data as Record<string, unknown>),
+              ...intelData,
+            },
             intel: researchResult,
             usage: {
               promptTokenCount: totalPromptTokens,
               candidatesTokenCount: totalCandidatesTokens,
-              totalTokenCount: totalTokenCount
+              totalTokenCount: totalTokenCount,
             },
-            estimated_cost: totalCost
+            estimated_cost: totalCost,
           };
+
+          if (!bypassJudge) {
+            try {
+              const judgeResult = await evaluateAnalysis(
+                context,
+                jd,
+                analysisResult.markdown,
+              );
+              const correctedVerdict = judgeResult?.corrected_verdict;
+              if (correctedVerdict && !judgeResult.passed) {
+                const parsedResultData = result.data as Record<string, unknown>;
+                result = {
+                  ...result,
+                  data: {
+                    ...parsedResultData,
+                    verdict: correctedVerdict,
+                    judge_override: true,
+                    judge_critique:
+                      judgeResult.override_reason || judgeResult.critique,
+                  },
+                };
+                sse.send({
+                  type: "progress",
+                  step: 4,
+                  message: `Judge override: ${correctedVerdict}`,
+                });
+              }
+            } catch (judgeErr) {
+              console.warn(
+                "[JUDGE] Failed to run judge, using raw verdict:",
+                judgeErr,
+              );
+            }
+          }
         }
 
         const {
@@ -269,7 +353,6 @@ export async function POST(req: Request) {
               ? "Refining LaTeX output..."
               : "Computing match score...",
         });
-
 
         const parsedData = data as Partial<AnalysisResult>;
 
@@ -296,7 +379,7 @@ export async function POST(req: Request) {
                 intel_id: finalIntel?.id || null,
                 customization_strategy: strategy || null,
                 audit_report: audit || null,
-                status: "completed"
+                status: "completed",
               })
               .eq("id", analysisId);
           } else {
@@ -318,7 +401,7 @@ export async function POST(req: Request) {
               estimated_cost: existingCost + (estimated_cost || 0),
               analysis_result: markdown,
               intel_id: finalIntel?.id || null,
-              status: "completed"
+              status: "completed",
             };
             await supabase
               .from("analyses")
@@ -359,9 +442,13 @@ export async function POST(req: Request) {
                 total_tokens: existingTokens + (usage?.totalTokenCount || 0),
                 estimated_cost: existingCost + (estimated_cost || 0),
                 intel: finalIntel || null,
+                judge_override: parsedData.judge_override || false,
+                judge_critique: parsedData.judge_critique || null,
               };
 
-        await setCache(cacheKey, { markdown, metadata, toolUsed }, 86400);
+        if (!isTestMode) {
+          await setCache(cacheKey, { markdown, metadata, toolUsed }, 86400);
+        }
 
         sse.send({
           type: "result",
@@ -380,8 +467,14 @@ export async function POST(req: Request) {
         });
 
         if (analysisId) {
-          const supabase = await createClient();
-          await supabase
+          const supabaseFallback =
+            isTestMode && process.env.SUPABASE_SERVICE_ROLE_KEY
+              ? createSupabaseClient(
+                  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                  process.env.SUPABASE_SERVICE_ROLE_KEY,
+                )
+              : await createServerClient();
+          await supabaseFallback
             .from("analyses")
             .update({ status: "failed" })
             .eq("id", analysisId);
@@ -401,4 +494,3 @@ export async function POST(req: Request) {
     },
   });
 }
-
