@@ -1,0 +1,262 @@
+\documentclass[10pt, letterpaper]{article}
+
+\usepackage[
+    ignoreheadfoot,
+    top=0.65 cm,
+    bottom=0.65 cm,
+    left=1.0 cm,
+    right=1.0 cm,
+    footskip=0.3 cm
+]{geometry}
+
+\usepackage{titlesec}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage[dvipsnames]{xcolor}
+\definecolor{primaryColor}{HTML}{101820}
+
+\usepackage{enumitem}
+\usepackage{fontawesome5}
+\usepackage{amsmath}
+
+\usepackage[
+    pdftitle={Resume — Somashekar T},
+    pdfauthor={Somashekar T},
+    colorlinks=true,
+    urlcolor=primaryColor
+]{hyperref}
+
+\usepackage{changepage}
+\usepackage{needspace}
+\usepackage{iftex}
+
+\ifPDFTeX
+    \input{glyphtounicode}
+    \pdfgentounicode=1
+    \usepackage[utf8]{inputenc}
+    \usepackage{lmodern}
+\fi
+
+\pagestyle{empty}
+\setcounter{secnumdepth}{0}
+
+\setlength{\parindent}{0pt}
+\setlength{\columnsep}{0cm}
+
+\titleformat{\section}
+{\needspace{3\baselineskip}\bfseries\normalsize}
+{}{0pt}{}
+[\vspace{1pt}\titlerule]
+
+\titlespacing{\section}{0pt}{0.14cm}{0.08cm}
+
+\renewcommand\labelitemi{$\circ$}
+
+\newenvironment{highlights}{
+\begin{itemize}[
+    topsep=0.03cm,
+    itemsep=0.8pt,
+    parsep=0pt,
+    partopsep=0pt,
+    leftmargin=0.38cm
+]
+}{
+\end{itemize}
+}
+
+\newenvironment{onecolentry}{
+\begin{adjustwidth}{0.05cm}{0.05cm}
+}{
+\end{adjustwidth}
+}
+
+\newenvironment{header}{
+\centering\linespread{1.02}
+}{
+\par
+}
+
+\let\hrefWithoutArrow\href
+\renewcommand{\href}[2]{\hrefWithoutArrow{#1}{#2}}
+
+\begin{document}
+
+% HEADER
+
+\begin{header}
+{\fontsize{22pt}{22pt}\selectfont \textbf{SOMASHEKAR T}}
+
+\vspace{0.1cm}
+
+\normalsize
+\faPhone\ +91 9876543210000 \quad
+\faEnvelope\ \href{mailto:john.doe@example.com}{john.doe@example.com} \quad
+\faLinkedin\ \href{https://linkedin.com/in/t-somashekar}{t-somashekar} \quad
+\faGithub\ \href{https://github.com/shekar2280}{shekar2280} \quad
+\faCode\ \href{https://leetcode.com/u/Shekar25}{Shekar25}
+\end{header}
+
+% OBJECTIVE
+
+\section{OBJECTIVE}
+
+\begin{onecolentry}
+Seeking to leverage my full-stack expertise to contribute as a [Position] at [Company].
+\end{onecolentry}
+
+% SKILLS
+
+\section{SKILLS}
+
+\begin{onecolentry}
+
+\small
+
+\textbf{Languages:}
+TypeScript, JavaScript (ES6+), Python, SQL, C++
+
+\vspace{0.03cm}
+
+\textbf{Frontend:}
+React.js, Next.js, React Native, Expo, TanStack Query, Tailwind CSS, NativeWind, Framer Motion
+
+\vspace{0.03cm}
+
+\textbf{Backend:}
+Node.js, Express.js, FastAPI, REST APIs, WebSockets, Socket.io, Celery, Inngest
+
+\vspace{0.03cm}
+
+\textbf{Databases \& Infrastructure:}
+PostgreSQL, MongoDB, Supabase, Firebase, Redis, Docker, Git, GitHub, CI/CD
+
+\vspace{0.03cm}
+
+\textbf{Concepts:}
+Data Structures \& Algorithms, Object-Oriented Programming, Database Design, REST API Design, Authentication, Authorization, Caching, Async Processing, Event-Driven Architecture, Real-Time Systems, Offline-First Systems, Vector Search, RAG Systems
+
+\end{onecolentry}
+
+\section{EXPERIENCE}
+
+\textbf{Freelance React Native Developer --- Partylist}
+\hfill
+\textit{Feb 2026 -- Present}
+
+\textit{React Native, Expo Router, TypeScript, TanStack Query, Firebase, Socket.io}
+
+\begin{onecolentry}
+\begin{highlights}
+
+\item Developed and maintained a production React Native application for event planning and vendor booking, collaborating directly with stakeholders to deliver features, resolve issues, and improve application performance.
+
+\item Implemented predictive background prefetching with TanStack Query to load vendor profiles, packages, reviews, and booking information before navigation, reducing perceived loading times across key user flows.
+
+\item Designed a geographical proximity cache using AsyncStorage and the Haversine formula to reuse previously geocoded locations when users remain within a configurable movement threshold, reducing unnecessary API requests.
+
+\item Built real-time messaging features using Socket.io, including optimistic updates, image sharing, typing indicators, presence tracking, and message reconciliation to ensure reliable chat synchronization.
+
+\item Configured disk-backed image caching with expo-image and developed adaptive loading states to improve perceived performance and user experience on varying network conditions.
+
+\end{highlights}
+\end{onecolentry}
+
+\vspace{0.15cm}
+
+% PROJECTS
+
+\section{PROJECTS}
+\vspace{0.10cm}
+
+% Offer Fit
+
+\textbf{Offer Fit --- AI Resume Analysis Platform}
+\hfill
+\href{https://github.com/shekar2280/Offer-Fit}{GitHub}
+
+\textit{Next.js, FastAPI, Supabase, PostgreSQL, Gemini}
+
+\begin{onecolentry}
+\begin{highlights}
+
+\item Orchestrated a multi-stage AI pipeline for company research, resume customization, and output auditing, chaining structured Gemini workflows to generate tailored resume recommendations.
+
+\item Designed a Supabase-backed company intelligence cache storing company profiles, reducing repeated web searches and LLM inference for duplicate requests.
+
+\item Implemented semantic retrieval using Gemini embeddings, pgvector, and cosine similarity search to match job descriptions with relevant resume guidance and style rules.
+
+\item Built a Chrome extension that extracts job descriptions from DOM content and structured schema markup (JSON-LD), applying preprocessing rules to remove boilerplate before AI analysis.
+
+\end{highlights}
+\end{onecolentry}
+
+\vspace{0.15cm}
+
+
+% Safar
+
+\textbf{Safar --- AI Travel Planning Platform}
+\hfill
+\href{https://github.com/shekar2280/safar-app}{GitHub}
+
+\textit{React Native, FastAPI, PostgreSQL, Redis, Celery, Gemini}
+
+\begin{onecolentry}
+\begin{highlights}
+
+\item Designed an offline state synchronization engine using React Native NetInfo and AsyncStorage, consolidating local trip mutations and synchronizing pending trip updates when connectivity is restored.
+
+\item Reduced duplicate itinerary generation by normalizing travel search parameters and serving cached itinerary documents from PostgreSQL instead of re-triggering LLM generation.
+
+\item Architected a real-time weather notification pipeline using Celery workers, Redis Pub/Sub, PostgreSQL caching, and WebSockets to deliver real-time forecast updates to connected clients.
+
+\item Implemented a Gemini fallback chain with exponential backoff retries to recover gracefully from rate limits and temporary model availability issues.
+
+\end{highlights}
+\end{onecolentry}
+
+\vspace{0.15cm}
+
+
+% Stocksy
+
+\textbf{Stocksy --- Stock Market Platform}
+\hfill
+\href{https://github.com/shekar2280/stocksy}{GitHub}
+
+\textit{Next.js, Inngest, Redis, MongoDB, TypeScript}
+
+\begin{onecolentry}
+\begin{highlights}
+
+\item Built a stock-tracking platform supporting portfolio management, watchlists, transaction processing, and personalized market insights using Next.js.
+
+\item Developed event-driven workflows with Inngest to automate onboarding flows, stock price alerts, transactional emails, and scheduled portfolio price updates.
+
+\item Reduced external API usage by caching company profiles in Upstash Redis with 24-hour TTLs and leveraging request-level caching for frequently accessed market data.
+
+\item Secured trading operations through email-based transaction PIN verification, storing hashed PINs in MongoDB with automatic expiration using TTL indexes.
+
+\end{highlights}
+\end{onecolentry}
+
+\vspace{0.15cm}
+
+% EDUCATION
+
+\section{EDUCATION}
+
+\begin{onecolentry}
+
+\textbf{Indian Institute of Information Technology, Sonepat}
+\hfill
+\textbf{2021 -- 2025}
+
+\textit{B.Tech in Information Technology}
+\hfill
+\textit{CGPA: 8.27 / 10.0}
+
+\end{onecolentry}
+
+
+\end{document}

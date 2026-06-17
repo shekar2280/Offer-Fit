@@ -1,0 +1,15 @@
+{
+  "testName": "Customize for Travel Tech Company",
+  "mode": "customize",
+  "job": {
+    "company": "InMobi",
+    "position": "Product Engineer",
+    "description": "Seeking engineers who have built travel or itinerary planning apps. Fast API, Redis, and location-based caching knowledge required."
+  },
+  "resumeFile": "master_resume.tex",
+  "assertions": [
+    { "type": "contains", "value": "InMobi" },
+    { "type": "contains", "value": "FastAPI" },
+    { "type": "contains", "value": "Redis" }
+  ]
+}

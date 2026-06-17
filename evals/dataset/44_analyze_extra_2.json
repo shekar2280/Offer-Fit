@@ -1,0 +1,11 @@
+{
+  "testName": "Overqualified Director vs Senior Role",
+  "mode": "analyze",
+  "expectedVerdict": "SHORTLIST",
+  "job": {
+    "company": "PhonePe",
+    "position": "Senior Software Engineer",
+    "description": "Looking for a strong senior engineer with system design and leadership capabilities to guide the team. 5+ years experience."
+  },
+  "resume": "VP of Engineering and former Director of Engineering with 10 years of experience scaling systems. Strong hands-on coding skills."
+}

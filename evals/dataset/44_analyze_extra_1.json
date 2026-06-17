@@ -1,0 +1,11 @@
+{
+  "testName": "Underqualified Junior vs Mid-level",
+  "mode": "analyze",
+  "expectedVerdict": "REJECT",
+  "job": {
+    "company": "Meesho",
+    "position": "Mid-level React Developer",
+    "description": "Looking for 4+ years of React experience. Must have architected frontends independently."
+  },
+  "resume": "Junior React developer with 1 year of experience. Assisted in building UI components using Tailwind."
+}

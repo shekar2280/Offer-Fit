@@ -2,9 +2,10 @@
   "testName": "Fresher vs Senior AI Engineer",
   "expectedVerdict": "REJECT",
   "job": {
-    "company": "OpenScale AI",
+    "company": "Postman",
     "position": "Senior Machine Learning Engineer",
     "description": "Requires 7+ years in production ML systems. Expert in distributed training and CUDA optimization."
   },
-  "resume": "Recent CS graduate with a 3-month internship in frontend development. Proficient in HTML, CSS, and basic JavaScript. Interested in learning AI."
+  "resume": "Recent CS graduate with a 3-month internship in frontend development. Proficient in HTML, CSS, and basic JavaScript. Interested in learning AI.",
+  "mode": "analyze"
 }

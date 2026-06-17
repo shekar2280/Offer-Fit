@@ -1,0 +1,15 @@
+{
+  "testName": "Customize for Backend Infrastructure",
+  "mode": "customize",
+  "job": {
+    "company": "Ola",
+    "position": "Backend / Platform Engineer",
+    "description": "We need a strong backend engineer focused on Node.js, Redis, Celery, and real-time systems (WebSockets). Docker and CI/CD knowledge is a must for our cloud infrastructure."
+  },
+  "resumeFile": "master_resume.tex",
+  "assertions": [
+    { "type": "contains", "value": "Ola" },
+    { "type": "contains", "value": "Platform Engineer" },
+    { "type": "contains", "value": "Docker" }
+  ]
+}

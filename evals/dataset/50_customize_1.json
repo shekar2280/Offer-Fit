@@ -1,0 +1,15 @@
+{
+  "testName": "Customize for Next.js Full Stack",
+  "mode": "customize",
+  "job": {
+    "company": "Razorpay",
+    "position": "Full Stack Engineer (Next.js)",
+    "description": "Seeking a developer skilled in Next.js, Server Actions, TanStack Query, and PostgreSQL. Experience building high-performance web applications."
+  },
+  "resumeFile": "master_resume.tex",
+  "assertions": [
+    { "type": "contains", "value": "Razorpay" },
+    { "type": "contains", "value": "Next.js" },
+    { "type": "contains", "value": "PostgreSQL" }
+  ]
+}

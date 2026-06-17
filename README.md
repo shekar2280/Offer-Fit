@@ -43,43 +43,35 @@ _AI-driven career intelligence and resume optimization engine — score your res
 
 ## 🏗️ Architecture
 
-OfferFit uses a decoupled frontend/backend architecture powered by a multi-agent AI pipeline:
+![Analyze and Customize workflow diagram](assets/workflow.png)
 
-```
-┌─────────────────────────────────────────┐
-│           Next.js 15 Frontend           │
-│  (App Router · React 19 · Tailwind CSS) │
-└────────────────────┬────────────────────┘
-                     │ REST API (API Key Auth)
-┌────────────────────▼────────────────────┐
-│         FastAPI Backend (Python)        │
-│                                         │
-│  ┌──────────┐  ┌──────────┐            │
-│  │ Analysis │  │ Research │            │
-│  │  Agent   │  │  Agent   │            │
-│  └──────────┘  └──────────┘            │
-│  ┌──────────┐  ┌──────────┐            │
-│  │ Strategy │  │  Audit   │            │
-│  │  Agent   │  │  Agent   │            │
-│  └──────────┘  └──────────┘            │
-│                                         │
-│         Google Gemini 2.5 Flash         │
-│         Tavily Web Search API           │
-└────────────────────┬────────────────────┘
-                     │
-┌────────────────────▼────────────────────┐
-│           Supabase (BaaS)               │
-│     Auth · PostgreSQL · Storage         │
-└─────────────────────────────────────────┘
-```
+OfferFit uses a decoupled frontend/backend architecture powered by a two-stage, multi-agent AI pipeline.
 
-### AI Agent Pipeline
+### 1. Analyze Route — Talent Screening & Fit Evaluation
+- **Research Agent** — Searches the web via Tavily for live company intel (tech stack, culture, salary bands). Results are cached in Supabase to avoid redundant web calls.
+- **Primary Analysis Agent** — Maps the resume against the JD using Gemini LLM to produce a structured report: verdict (`APPLY` / `STRETCH` / `REJECT` / `SHORTLIST`), matched skills, missing skills, and a markdown evaluation.
+- **Appellate Judge** — Applies deterministic screening rules to the primary output and overrides the verdict when a rule is violated. Rules are intentionally adversarial — they catch seniority fakers, tech ecosystem mismatches, scale mismatches, and false negatives.
 
-- **Analysis Agent** — Scores resume-JD match, identifies skill gaps, and generates structured feedback
-- **Research Agent** — Crawls the web (via Tavily) for company intelligence to inform tailoring strategy
-- **Strategy Agent** — Generates custom bullet points aligned to the JD and company culture
-- **Audit Agent** — Verifies the tailored resume for accuracy; Judge sub-agent validates AI outputs
-- **Insights Agent** — ATS scoring engine with keyword density and skill gap analysis
+### 2. Customize Route — Resume Tailoring & Optimization
+- **Strategy Formulation** — LLM builds an execution plan listing missing skills and rewrite targets.
+- **JD Embeddings + RAG Retrieval** — Target skills are embedded with `gemini-embedding-2` (768-dim vectors). A `match_bullets` RPC on Supabase pgvector returns the top-5 semantically similar high-quality bullet examples as few-shot style guidance.
+- **Tailoring Generation** — LLM rewrites experience bullets using the retrieved examples while preserving all LaTeX structure and mandatory keyword tokens.
+- **Integrity Audit** — An auditor agent compares the tailored resume against the original, detects hallucinations, and computes an integrity score.
+
+---
+
+## 📈 Benchmark & Evaluation Suite
+
+We run an automated evaluation suite to guarantee the pipeline's accuracy and robustness.
+
+![Benchmark terminal output](assets/evals_result.png)
+
+| Route | Score | Details |
+|---|---|---|
+| **Analyze** | **10% Judge Uplift** | Appellate Judge corrected 1 in 10 edge cases that the primary agent missed |
+| **Customize** | **100% (10/10)** | All assertions passed; LaTeX structure preserved across every test |
+
+For detailed information on the dataset traps and to run the test suite yourself, see the [evals/README.md](evals/README.md).
 
 ---
 

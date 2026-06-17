@@ -1,0 +1,15 @@
+{
+  "testName": "Customize for FinTech Startup",
+  "mode": "customize",
+  "job": {
+    "company": "Postman",
+    "position": "Software Engineer",
+    "description": "Join our FinTech team. We build AWS payment tracking platforms. Experience with real-time data, MongoDB, Inngest, and transaction security is essential."
+  },
+  "resumeFile": "master_resume.tex",
+  "assertions": [
+    { "type": "contains", "value": "Postman" },
+    { "type": "contains", "value": "Inngest" },
+    { "type": "contains", "value": "MongoDB" }
+  ]
+}
