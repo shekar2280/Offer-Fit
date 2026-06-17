@@ -1,11 +1,34 @@
 const ScraperEngine = {
   extract() {
-    return (
+    let data =
       this.fromLinkedIn() ||
+      this.fromWellfound() ||
+      this.fromYC() ||
       this.fromJSONLD() ||
       this.fromMetaTags() ||
-      this.fromHeuristics()
-    );
+      this.fromHeuristics();
+
+    if (data) {
+      if (!data.description || data.description.trim().length < 50) {
+        const jsonLdData = this.fromJSONLD();
+        if (jsonLdData && jsonLdData.description && jsonLdData.description.trim().length >= 50) {
+          data.description = jsonLdData.description;
+        } else {
+          const heuristicData = this.fromHeuristics();
+          if (heuristicData && heuristicData.description && heuristicData.description.trim().length >= 50) {
+            data.description = heuristicData.description;
+          }
+        }
+      }
+
+      if (data.yoeRequired === undefined || data.yoeRequired === null) {
+        data.yoeRequired = this.extractYOEFromText(
+          (data.description || "") + "\n" + (document.body.innerText || ""),
+          data.role
+        );
+      }
+    }
+    return data;
   },
 
   fromLinkedIn() {
@@ -18,6 +41,8 @@ const ScraperEngine = {
       ".jobs-unified-top-card__job-title",
       "h1.t-24",
       ".job-details-jobs-unified-top-card__job-title-link",
+      ".top-card-layout__title",
+      ".topcard__title",
       "h1[class*='job-title']",
       ".jobs-details__main-content h1",
       ".job-details-jobs-unified-top-card__job-title a",
@@ -47,6 +72,8 @@ const ScraperEngine = {
       ".job-details-jobs-unified-top-card__primary-description a",
       "a[data-tracking-control-name='public_jobs_topcard-org-name']",
       ".topcard__org-name-link",
+      ".topcard__flavor-row a",
+      "a[href*='/company/']",
       "span[class*='company']",
     ];
 
@@ -69,8 +96,11 @@ const ScraperEngine = {
       ".jobs-description__content",
       "#job-details",
       ".jobs-description",
+      ".show-more-less-html__markup",
+      ".show-more-less-html__markup--collapsed-height",
       "div[class*='jobs-description']",
       "section[class*='description']",
+      "div[class*='show-more-less-html']",
       ".job-view-layout",
       "article",
     ];
@@ -163,7 +193,135 @@ const ScraperEngine = {
 
     if (!role && !company) return null;
 
-    return { company, role, location, jobType, description, source: "LinkedIn" };
+    const yoeRequired = this.extractYOEFromPage() || this.extractYOEFromText(description, role);
+
+    return { company, role, location, jobType, description, yoeRequired, source: "LinkedIn" };
+  },
+
+  fromWellfound() {
+    const isWellfound = window.location.hostname.includes("wellfound.com") || window.location.hostname.includes("angel.co");
+    if (!isWellfound) return null;
+
+    const roleSelectors = [
+      "h1.cl-job-title",
+      "h1[class*='jobTitle']",
+      "h1",
+      ".job-header h1",
+      "title"
+    ];
+    let role = this.getTextBySelectors(roleSelectors);
+    if (role && role.includes(" | ")) {
+      role = role.split(" | ")[0].trim();
+    }
+
+    const companySelectors = [
+      "h1[class*='companyName']",
+      ".cl-company-name",
+      "a[class*='companyLink']",
+      "h2[class*='company']",
+      ".job-header h2"
+    ];
+    let company = this.getTextBySelectors(companySelectors);
+    if (company && company.includes(" at ")) {
+      company = company.split(" at ")[1].trim();
+    }
+
+    const descSelectors = [
+      ".cl-job-description",
+      "[class*='jobDescription']",
+      "[class*='description']",
+      ".job-description",
+      "article"
+    ];
+    let description = "";
+    for (const sel of descSelectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        description = this.cleanText(el.innerText || el.textContent || "");
+        if (description.length > 50) break;
+      }
+    }
+
+    const locSelectors = [
+      ".cl-job-location",
+      "[class*='location']",
+      "[class*='jobLoc']",
+      "[class*='metadata'] span"
+    ];
+    let location = this.getTextBySelectors(locSelectors) || "Remote / Hybrid";
+
+    let yoeRequired = this.extractYOEFromPage() || this.extractYOEFromText(description + "\n" + document.body.innerText, role);
+
+    return {
+      company: company || "Wellfound Startup",
+      role: role || "Software Developer",
+      location,
+      jobType: "Full-time",
+      description,
+      yoeRequired,
+      source: "Wellfound"
+    };
+  },
+
+  fromYC() {
+    const isYC = window.location.hostname.includes("workatastartup.com") || window.location.hostname.includes("ycombinator.com");
+    if (!isYC) return null;
+
+    const roleSelectors = [
+      "h1.job-title",
+      "h1.text-3xl",
+      "h1",
+      ".job-header h1"
+    ];
+    let role = this.getTextBySelectors(roleSelectors);
+
+    const companySelectors = [
+      ".company-name",
+      "h2.company-title",
+      "a[href*='/companies/'] h1",
+      "a[href*='/companies/'] h2",
+      "div.company-title a",
+      "h1.company-title"
+    ];
+    let company = this.getTextBySelectors(companySelectors);
+
+    const descSelectors = [
+      ".job-description",
+      ".company-description",
+      "div.description",
+      "article"
+    ];
+    let description = "";
+    for (const sel of descSelectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        description = this.cleanText(el.innerText || el.textContent || "");
+        if (description.length > 50) break;
+      }
+    }
+
+    const locSelectors = [
+      ".job-location",
+      ".location-text",
+      "span[class*='location']",
+      ".job-metadata"
+    ];
+    let location = this.getTextBySelectors(locSelectors) || "Remote";
+    if (location && location.includes("·")) {
+      location = location.split("·")[0].trim();
+    }
+
+    let yoeRequired = this.extractYOEFromPage() || this.extractYOEFromText(description + "\n" + document.body.innerText, role);
+
+    return {
+      company: company || "YC Startup",
+      role: role || "Software Engineer",
+      location,
+      jobType: "Full-time",
+      description,
+      yoeRequired,
+      source: "YC Work at a Startup"
+    };
   },
 
   fromJSONLD() {
@@ -173,6 +331,16 @@ const ScraperEngine = {
         const data = JSON.parse(script.innerText || script.textContent);
         const job = this.findJobObject(data);
         if (job) {
+          let yoeRequired = null;
+
+          if (job.experienceRequirements) {
+            if (typeof job.experienceRequirements === 'string') {
+              yoeRequired = this.extractYOEFromText(job.experienceRequirements, job.title);
+            } else if (job.experienceRequirements.monthsOfExperience) {
+              yoeRequired = Math.round(parseFloat(job.experienceRequirements.monthsOfExperience) / 12);
+            }
+          }
+
           return {
             company: job.hiringOrganization?.name || job.hiringOrganization || "",
             role: job.title || "",
@@ -187,6 +355,7 @@ const ScraperEngine = {
               ? job.employmentType.join(", ")
               : job.employmentType || "",
             description: this.cleanDescription(job.description || ""),
+            yoeRequired,
             source: "JSON-LD",
           };
         }
@@ -238,7 +407,7 @@ const ScraperEngine = {
         ?.innerText || "";
     const description =
       document.querySelector(
-        'article, #job-description, .description, [class*="job-details"]'
+        'article, #job-description, .description, [class*="job-details"], #jobDescriptionText, [class*="jobsearch-JobComponent-description"], .show-more-less-html__markup'
       )?.innerText || "";
 
     return {
@@ -249,6 +418,96 @@ const ScraperEngine = {
       description: this.cleanText(description.trim()),
       source: "Heuristic",
     };
+  },
+
+  getTextBySelectors(selectors) {
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const text = (el.innerText || el.textContent || "").trim();
+        if (text.length > 0) return text;
+      }
+    }
+    return "";
+  },
+
+  extractYOEFromPage() {
+    const tags = document.querySelectorAll('span, div, p, li, td');
+    const badgePattern = /^(\d+)\s*(?:-|–|to)?\s*(\d+)?\s*(?:years?|yrs?)(?:\s+of)?\s*(?:experience|exp)?\s*\+?$/i;
+
+    for (const el of tags) {
+      if (el.childNodes.length === 1 && el.childNodes[0].nodeType === Node.TEXT_NODE) {
+        const text = el.innerText.trim();
+        if (badgePattern.test(text)) {
+          const match = text.match(badgePattern);
+          if (match) {
+            return parseFloat(match[1]); 
+          }
+        }
+      }
+    }
+    return null;
+  },
+
+  extractYOEFromText(text, title) {
+    if (!text) return null;
+
+    const yoePatterns = [
+      /(\d+)\s*(?:-|–|to)\s*(\d+)\s*(?:years?|yrs?)(?:\s+of)?\s*(?:relevant|professional|work|industry)?\s*experience/i,
+      /(\d+)\s*\+\s*(?:years?|yrs?)(?:\s+of)?\s*(?:relevant|professional|work|industry)?\s*experience/i,
+      /(?:minimum\s+of|at\s+least|required|need|prefer|minimum)?\s*(\d+)\s*(?:years?|yrs?)(?:\s+of)?\s*(?:relevant|professional|work|industry)?\s*experience/i,
+      /(\d+)\s*(?:-|–|to)\s*(\d+)\s*(?:years?|yrs?)/i,
+      /(\d+)\s*\+\s*(?:years?|yrs?)/i,
+      /\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:years?|yrs?)(?:\s+of)?\s*(?:relevant|professional|work|industry)?\s*experience/i,
+      /(\d+)\s*(?:years?|yrs?)\s+(?:required|preferred|experience)/i
+    ];
+
+    if (title) {
+      for (const pattern of yoePatterns) {
+        const match = title.match(pattern);
+        if (match) {
+          return this.parseNumber(match[1]);
+        }
+      }
+    }
+
+    const sentences = text.split(/[\n.]/);
+    for (const sentence of sentences) {
+      const trimmed = sentence.trim();
+      if (
+        trimmed.toLowerCase().includes("experience") ||
+        trimmed.toLowerCase().includes("yoe") ||
+        trimmed.toLowerCase().includes("year") ||
+        trimmed.toLowerCase().includes("yrs")
+      ) {
+        for (const pattern of yoePatterns) {
+          const match = trimmed.match(pattern);
+          if (match) {
+            return this.parseNumber(match[1]);
+          }
+        }
+      }
+    }
+
+    for (const pattern of yoePatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        return this.parseNumber(match[1]);
+      }
+    }
+
+    return null;
+  },
+
+  parseNumber(str) {
+    const wordMap = {
+      one: 1, two: 2, three: 3, four: 4, five: 5,
+      six: 6, seven: 7, eight: 8, nine: 9, ten: 10
+    };
+    const val = str.toLowerCase().trim();
+    if (wordMap[val]) return wordMap[val];
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? null : parsed;
   },
 
   cleanText(text) {

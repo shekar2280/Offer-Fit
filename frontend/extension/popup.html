@@ -1,232 +1,629 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <style>
+    :root {
+      --primary: #F2AA4C;
+      --primary-rgb: 242, 170, 76;
+      --bg: #0a0a0a;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.5);
+      --success: #2ed573;
+      --success-bg: rgba(46, 213, 115, 0.15);
+      --danger: #ff4757;
+      --danger-bg: rgba(255, 71, 87, 0.15);
+      --warning: #ffa502;
+      --warning-bg: rgba(255, 165, 2, 0.15);
+    }
+
     body {
-      width: 320px;
-      padding: 20px;
-      background: #0a0a0a;
-      color: white;
-      font-family: 'Inter', system-ui, sans-serif;
-      margin: 0;
-    }
-    .container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    #view-profile {
-      max-height: 420px;
+      width: 360px;
+      max-height: 580px;
       overflow-y: auto;
-      padding-right: 4px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
     }
-    #view-profile::-webkit-scrollbar {
-      width: 4px;
+
+    body::-webkit-scrollbar {
+      width: 6px;
     }
-    #view-profile::-webkit-scrollbar-thumb {
-      background: rgba(242, 170, 76, 0.3);
-      border-radius: 2px;
+    body::-webkit-scrollbar-track {
+      background: transparent;
     }
-    .copy-card {
-      transition: all 0.2s ease;
-      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    body::-webkit-scrollbar-thumb {
+      background: rgba(242, 170, 76, 0.2);
+      border-radius: 3px;
     }
-    .copy-card:hover {
-      background: rgba(255, 255, 255, 0.08) !important;
-      border-color: rgba(242, 170, 76, 0.3) !important;
+    body::-webkit-scrollbar-thumb:hover {
+      background: rgba(242, 170, 76, 0.4);
     }
+
     .header {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
+    
     .logo {
-      width: 24px;
-      height: 24px;
-      background: #F2AA4C;
-      border-radius: 6px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 0 12px rgba(242, 170, 76, 0.3);
     }
+
     h1 {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 2px;
       margin: 0;
-      color: #F2AA4C;
+      color: var(--primary);
+      text-shadow: 0 0 10px rgba(242, 170, 76, 0.1);
     }
-    .card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 12px;
-      border-radius: 12px;
+
+    /* Tabs styling */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 16px;
+      gap: 4px;
     }
-    .label {
-      font-size: 8px;
-      font-weight: 800;
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 0;
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-      color: rgba(255, 255, 255, 0.4);
+      color: var(--text-muted);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: linear-gradient(180deg, transparent 80%, rgba(242, 170, 76, 0.08) 100%);
+    }
+
+    /* Views */
+    .view-content {
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .view-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Card standard design */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      border-color: rgba(242, 170, 76, 0.15);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .card-title {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
       margin-bottom: 4px;
     }
-    .value {
-      font-size: 12px;
+
+    .card-value {
+      font-size: 13px;
       font-weight: 600;
-      white-space: nowrap;
+      color: var(--text);
+      word-wrap: break-word;
+    }
+
+    /* Metadata rows */
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      padding: 6px 0;
+    }
+
+    .meta-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .meta-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .meta-value {
+      font-size: 11px;
+      font-weight: 700;
+      max-width: 200px;
       overflow: hidden;
       text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: right;
     }
-    button {
+
+    .meta-value.success-text {
+      color: var(--success);
+    }
+
+    .meta-value.warning-text {
+      color: var(--warning);
+      font-style: italic;
+    }
+
+    .meta-value.danger-text {
+      color: var(--danger);
+      font-style: italic;
+    }
+
+    /* Buttons */
+    button, .btn {
       width: 100%;
-      padding: 14px;
-      background: #F2AA4C;
+      padding: 11px;
+      background: var(--primary);
       border: none;
       border-radius: 8px;
       color: black;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 1.5px;
+      letter-spacing: 1.2px;
       font-size: 11px;
       cursor: pointer;
-      transition: all 0.3s;
-      margin-top: 10px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-sizing: border-box;
     }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(242, 170, 76, 0.3);
+
+    button:hover, .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(242, 170, 76, 0.35);
     }
-    #status {
+
+    button:active, .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-secondary {
+      background: rgba(242, 170, 76, 0.08);
+      border: 1px solid rgba(242, 170, 76, 0.3);
+      color: var(--primary);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(242, 170, 76, 0.15);
+      border-color: var(--primary);
+      box-shadow: none;
+    }
+
+    .btn-danger {
+      background: rgba(255, 71, 87, 0.1);
+      border: 1px solid rgba(255, 71, 87, 0.3);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: rgba(255, 71, 87, 0.2);
+      border-color: var(--danger);
+      box-shadow: none;
+    }
+
+    /* Forms inputs */
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-label {
       font-size: 10px;
-      text-align: center;
-      color: rgba(255, 255, 255, 0.3);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: white;
+      padding: 10px;
+      font-size: 12px;
+      font-family: inherit;
+      box-sizing: border-box;
+      transition: all 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 8px rgba(242, 170, 76, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Score Ring Styling */
+    .score-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(242, 170, 76, 0.03) 100%);
+      border: 1px solid var(--card-border);
+      padding: 16px;
+      border-radius: 14px;
+      margin-bottom: 16px;
+    }
+
+    .progress-container {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring__circle {
+      transition: stroke-dashoffset 0.4s ease-out;
+    }
+
+    .progress-text {
+      position: absolute;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .score-info {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .score-title {
+      font-size: 14px;
+      font-weight: 800;
+      margin: 0 0 2px 0;
+    }
+
+    .score-verdict {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Badges list */
+    .badge-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    .badge-matched {
+      background: var(--success-bg);
+      border: 1px solid rgba(46, 213, 115, 0.25);
+      color: var(--success);
+    }
+
+    .badge-missing {
+      background: var(--danger-bg);
+      border: 1px solid rgba(255, 71, 87, 0.25);
+      color: var(--danger);
+    }
+
+    .badge-neutral {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    /* YOE Status Banners */
+    .status-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .status-banner.success {
+      background: var(--success-bg);
+      color: var(--success);
+      border-left: 3px solid var(--success);
+    }
+
+    .status-banner.danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border-left: 3px solid var(--danger);
+    }
+
+    .status-banner.warning {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border-left: 3px solid var(--warning);
+    }
+
+    /* Excerpt Box */
+    .excerpt-box {
+      font-size: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 8px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      max-height: 50px;
+      overflow-y: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    /* Flex row layouts */
+    .flex-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .flex-row > * {
+      flex: 1;
     }
   </style>
 </head>
 <body>
+  <!-- Header -->
   <div class="header">
     <img src="icon.png" class="logo" alt="Logo">
-    <h1>Intelligence</h1>
+    <h1>Job Intelligence</h1>
   </div>
 
-  <div class="tabs" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-    <div id="tab-sync" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #F2AA4C; cursor: pointer;">Sync</div>
-    <div id="tab-profile" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.4); cursor: pointer;">Profile</div>
+  <!-- Tabs Navigation -->
+  <div class="tabs">
+    <div id="tab-match" class="tab-btn active" data-tab="view-match">Job Match</div>
+    <div id="tab-profile" class="tab-btn" data-tab="view-profile">My Profile</div>
   </div>
 
-  <div id="view-sync">
-    <div id="job-info" class="container" style="display: none;">
-      <div class="card">
-        <div class="label">Company</div>
-        <div id="company" class="value">Detecting...</div>
-      </div>
-      <div class="card">
-        <div class="label">Position</div>
-        <div id="role" class="value">Detecting...</div>
-      </div>
-      <div class="card">
-        <div class="label">Location</div>
-        <div id="location" class="value">Detecting...</div>
-      </div>
-      <div class="card">
-        <div class="label">Role Type</div>
-        <div id="jobType" class="value">Detecting...</div>
-      </div>
-      <button id="sync-btn">Analyze This Job</button>
-    </div>
-
-    <div id="no-job" style="text-align: center; padding: 20px 0;">
-      <p style="font-size: 12px; color: rgba(255,255,255,0.5)">Open a job post to begin.</p>
-    </div>
-  </div>
-
-  <div id="view-profile" style="display: none;" class="container">
-    <div style="font-size: 9px; font-weight: 800; tracking: 1.5px; text-transform: uppercase; color: rgba(255, 255, 255, 0.4); margin-bottom: 4px;">Click to Copy Details</div>
+  <!-- VIEW 1: JOB COMPATIBILITY MATCH -->
+  <div id="view-match" class="view-content active">
     
-    <div id="copy-helper-list" class="container" style="gap: 8px;">
-      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
-        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
-          <div class="label">Full Name</div>
-          <div id="c-name" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+    <!-- Scraped Status and Suggestions Warning Box -->
+    <div id="scrape-warning-box" class="status-banner warning" style="display: none; margin-bottom: 12px; font-size: 10px; line-height: 1.4;">
+      <span>⚠️ Detection incomplete. Try reloading the job page in your browser and click "Scan Current Tab" below.</span>
+    </div>
+
+    <!-- Active Job Information Details -->
+    <div id="job-info" style="display: none;">
+      
+      <!-- Structured Scrape Card -->
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span>Job Extraction Status</span>
+          <span id="scrape-status-badge" class="badge">Checking...</span>
         </div>
-        <button class="copy-btn" data-target="c-name" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+        
+        <div style="display: flex; flex-direction: column;">
+          <div class="meta-row">
+            <span class="meta-label">Position:</span>
+            <span id="job-role-val" class="meta-value">-</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Company:</span>
+            <span id="job-company-val" class="meta-value">-</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Location:</span>
+            <span id="job-location-val" class="meta-value">-</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Role Type:</span>
+            <span id="job-type-val" class="meta-value">-</span>
+          </div>
+        </div>
       </div>
 
-      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
-        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
-          <div class="label">Email Address</div>
-          <div id="c-email" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+      <!-- Score Dashboard -->
+      <div class="score-container">
+        <div class="progress-container">
+          <svg class="progress-ring" width="72" height="72">
+            <circle class="progress-ring__background" stroke="rgba(255, 255, 255, 0.05)" stroke-width="5" fill="transparent" r="31" cx="36" cy="36"/>
+            <circle id="score-ring" class="progress-ring__circle" stroke="var(--primary)" stroke-width="5" fill="transparent" r="31" cx="36" cy="36" stroke-dasharray="194.78" stroke-dashoffset="194.78" stroke-linecap="round"/>
+          </svg>
+          <div class="progress-text" id="score-percent">0%</div>
         </div>
-        <button class="copy-btn" data-target="c-email" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+        <div class="score-info">
+          <div class="score-title" id="score-title-text">Match Score</div>
+          <div class="score-verdict" id="score-verdict-text">Setup your profile to start.</div>
+        </div>
       </div>
 
-
-
-      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
-        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
-          <div class="label">Location</div>
-          <div id="c-location" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+      <!-- Priority Experience required validation -->
+      <div class="card">
+        <div class="card-title">Experience Compatibility</div>
+        <div style="font-size: 11px; margin-bottom: 6px;">
+          Required: <span id="exp-required-val" style="font-weight: 700;">Scanning...</span> &middot; 
+          Your Profile: <span id="exp-user-val" style="font-weight: 700;">0 years</span>
         </div>
-        <button class="copy-btn" data-target="c-location" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+        <div id="exp-status-banner" class="status-banner warning">
+          <span>Scanning page for requirements...</span>
+        </div>
       </div>
 
-      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
-        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
-          <div class="label">Headline</div>
-          <div id="c-headline" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+      <!-- Skills matching breakdown -->
+      <div class="card">
+        <div class="card-title">Required Skills Compatibility</div>
+        <div style="margin-bottom: 10px;">
+          <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">Matched Skills:</div>
+          <div id="skills-matched" class="badge-container">
+            <span style="font-size: 10px; color: var(--text-muted); font-style: italic;">None detected</span>
+          </div>
         </div>
-        <button class="copy-btn" data-target="c-headline" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
+        <div>
+          <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">Missing Skills:</div>
+          <div id="skills-missing" class="badge-container">
+            <span style="font-size: 10px; color: var(--text-muted); font-style: italic;">None detected</span>
+          </div>
+        </div>
       </div>
 
-      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
-        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
-          <div class="label">Primary Skills</div>
-          <div id="c-skills" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
+      <!-- Match Action trigger buttons -->
+      <div style="margin-top: 14px; margin-bottom: 20px; padding-bottom: 10px;">
+        <button id="btn-run-match" style="margin-bottom: 8px;">Scan & Match Tab</button>
+        
+        <div class="flex-row">
+          <button id="sync-btn" class="btn btn-secondary" style="margin-top: 0;">Analyze on Site</button>
+          <button id="customize-btn" class="btn btn-secondary" style="margin-top: 0;">Tailor Resume</button>
         </div>
-        <button class="copy-btn" data-target="c-skills" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
-      </div>
-
-      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
-        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
-          <div class="label">University</div>
-          <div id="c-university" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
-        </div>
-        <button class="copy-btn" data-target="c-university" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
-      </div>
-
-      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
-        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
-          <div class="label">Field of Study</div>
-          <div id="c-study" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
-        </div>
-        <button class="copy-btn" data-target="c-study" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
-      </div>
-
-      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
-        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
-          <div class="label">Graduation Year</div>
-          <div id="c-grad-year" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
-        </div>
-        <button class="copy-btn" data-target="c-grad-year" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
-      </div>
-
-      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
-        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
-          <div class="label">LinkedIn URL</div>
-          <div id="c-linkedin" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
-        </div>
-        <button class="copy-btn" data-target="c-linkedin" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
-      </div>
-
-      <div class="card copy-card" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px;">
-        <div style="overflow: hidden; flex: 1; padding-right: 10px;">
-          <div class="label">Website/Github</div>
-          <div id="c-website" class="value" style="font-size: 11px; font-weight: 600; color: white;">Not Synced</div>
-        </div>
-        <button class="copy-btn" data-target="c-website" style="width: auto; margin: 0; padding: 6px 12px; font-size: 9px; border-radius: 6px; background: rgba(242, 170, 76, 0.1); color: #F2AA4C; border: 1px solid rgba(242, 170, 76, 0.25);">Copy</button>
       </div>
     </div>
+
+    <!-- No active Job context display -->
+    <div id="no-job" style="text-align: center; padding: 40px 20px;">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">No Job Detected</p>
+      <p style="font-size: 11px; color: rgba(255,255,255,0.3); margin: 0 0 20px 0; line-height: 1.4;">
+        Open a job posting page on LinkedIn, Wellfound, YC Startup Jobs, or any job website to extract compatibility score.
+      </p>
+      <button id="btn-force-scrape-manual" class="btn-secondary">Scan Current Tab</button>
+    </div>
+  </div>
+
+  <!-- VIEW 2: MY PROFILE STATE AND EDITOR -->
+  <div id="view-profile" class="view-content">
     
-    <button id="sync-web-profile" style="background: rgba(242, 170, 76, 0.1); border: 1px solid #F2AA4C; color: #F2AA4C; margin-top: 15px; margin-bottom: 5px;">Force Sync from Web Profile</button>
+    <!-- Subview A: Profile View mode -->
+    <div id="profile-view-state" class="container">
+      <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Your Saved Profile Data</div>
+      
+      <div class="card">
+        <div class="card-title">Full Name</div>
+        <div id="c-name" class="card-value">Not configured</div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">Email</div>
+        <div id="c-email" class="card-value">Not configured</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Target Roles</div>
+        <div id="c-title" class="card-value">Not configured</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Experience Level</div>
+        <div id="c-yoe" class="card-value">0 years</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Skills / Keywords</div>
+        <div id="c-skills-list" class="badge-container">
+          <span class="badge badge-neutral">No skills added</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Resume Content Excerpt</div>
+        <div id="c-resume-excerpt" class="excerpt-box">Empty resume text. Save a resume in Edit mode to use on-site.</div>
+      </div>
+
+      <button id="edit-profile-btn" style="margin-bottom: 8px;">Edit Profile Details</button>
+      <button id="sync-web-profile" class="btn-secondary">Sync Profile From Web App</button>
+    </div>
+
+    <!-- Subview B: Profile Editor form mode -->
+    <div id="profile-edit-state" class="container" style="display: none;">
+      <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--primary); margin-bottom: 12px;">Edit Profile Details</div>
+      
+      <div class="form-group">
+        <label class="form-label" for="input-name">Full Name</label>
+        <input type="text" id="input-name" placeholder="John Doe">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="input-email">Email Address</label>
+        <input type="email" id="input-email" placeholder="john.doe@example.com">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="input-title">Target Role / Title</label>
+        <input type="text" id="input-title" placeholder="Frontend Engineer, React Developer">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="input-yoe">Years of Experience</label>
+        <input type="number" id="input-yoe" min="0" max="50" step="0.5" placeholder="3">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="input-skills">Skills (Comma-separated)</label>
+        <textarea id="input-skills" rows="3" placeholder="React, Node.js, TypeScript, SQL, Git, AWS"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="input-resume">Resume Text (Optional context)</label>
+        <textarea id="input-resume" rows="6" placeholder="Paste your plain-text resume here..."></textarea>
+      </div>
+
+      <div class="flex-row" style="margin-top: 14px;">
+        <button id="save-profile-btn">Save</button>
+        <button id="cancel-edit-btn" class="btn-danger">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <script src="popup.js"></script>
