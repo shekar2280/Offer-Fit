@@ -10,7 +10,7 @@ export function useResumeHistory(selectedId: string | null | undefined, user: Us
   const queryClient = useQueryClient();
   const [jobOverrides, setJobOverrides] = useState<{ company?: string; role?: string; description?: string }>({});
 
-  const { data: savedData, isLoading: isHistoryLoading } = useQuery({
+  const { data: queryData, isLoading: isHistoryLoading } = useQuery({
     queryKey: ["analysis", selectedId],
     queryFn: async () => {
       if (!selectedId) return null;
@@ -27,6 +27,8 @@ export function useResumeHistory(selectedId: string | null | undefined, user: Us
     gcTime: 1000 * 60 * 30,
     placeholderData: keepPreviousData,
   });
+
+  const savedData = selectedId ? queryData : null;
 
   useEffect(() => {
     if (!isAnalyzing) {
