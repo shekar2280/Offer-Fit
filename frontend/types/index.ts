@@ -145,6 +145,7 @@ export interface ActiveWorkspaceProps {
     onSwitchMode: (mode: "analysis" | "customize") => void;
     companyInputRef?: React.RefObject<HTMLInputElement | null>;
     isOverQuota?: boolean;
+    isLoadingProfile?: boolean;
 }
 
 export interface DiffLine {
@@ -175,4 +176,5 @@ export interface ResumeSetupProps {
     isUploading: boolean;
     selectedId: string | null;
     saveBaselineLatex?: () => Promise<void>;
+    isLoadingProfile?: boolean;
 }

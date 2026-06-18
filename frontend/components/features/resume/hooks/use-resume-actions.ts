@@ -77,7 +77,6 @@ export function useResumeActions({
                 .upsert({ id: user.id, latex_source: latexText, email: user.email }, { onConflict: 'id' });
             if (error) throw error;
             setHasExistingResume(true);
-            toast.success("Master LaTeX saved to your profile!");
         } catch { toast.error("Failed to save to profile."); }
     };
 
