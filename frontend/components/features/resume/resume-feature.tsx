@@ -75,7 +75,8 @@ export function ResumeFeature({
     const {
         extractedText, setExtractedText,
         latexText, setLatexText,
-        hasExistingResume, setHasExistingResume
+        hasExistingResume, setHasExistingResume,
+        isLoadingProfile
     } = useResumeProfile(user ?? null);
 
     const {
@@ -312,6 +313,7 @@ export function ResumeFeature({
                                 onSwitchMode={handleSwitchMode}
                                 companyInputRef={companyInputRef}
                                 isOverQuota={isOverQuota}
+                                isLoadingProfile={isLoadingProfile}
                             />
                         </div>
                     </div>

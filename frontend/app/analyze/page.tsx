@@ -19,13 +19,17 @@ export default function AnalyzePage() {
     );
 }
 
+import { useSearchParams } from "next/navigation";
+
 function AnalyzePageContent() {
     const { session } = useAnalysisSession();
+    const searchParams = useSearchParams();
+    const id = searchParams.get("id") || null;
 
     return (
         <AuthGuard>
             <AnalyzeContent 
-                id={session.id} 
+                id={id} 
                 companyName={session.companyName}
                 position={session.position}
                 jd={session.jd}

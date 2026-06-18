@@ -23,7 +23,7 @@ export default function CustomizePage() {
 function CustomizePageContent() {
     const { session } = useAnalysisSession();
     const searchParams = useSearchParams();
-    const id = searchParams.get("id") || session.id;
+    const id = searchParams.get("id") || null;
 
     return (
         <AuthGuard>

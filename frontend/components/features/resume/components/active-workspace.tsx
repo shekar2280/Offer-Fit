@@ -61,6 +61,7 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                             isUploading={isUploading}
                             selectedId={selectedId}
                             saveBaselineLatex={saveBaselineLatex}
+                            isLoadingProfile={props.isLoadingProfile}
                         />
 
                         <JobDetails
