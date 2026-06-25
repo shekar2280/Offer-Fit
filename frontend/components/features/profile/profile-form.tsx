@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, Briefcase, GraduationCap, ShieldCheck, Globe, LogOut, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { User, Briefcase, GraduationCap, ShieldCheck, Globe, LogOut, CheckCircle2, AlertCircle, Sparkles, Terminal } from "lucide-react";
 import { createClient } from "@/services/supabase/client";
 import { PersonalInfoSection } from "./components/personal-info-section";
 import { ProfessionalSection } from "./components/professional-section";
 import { EducationSection } from "./components/education-section";
 import { LegalSection } from "./components/legal-section";
+import { ProjectIntelligenceSection } from "./components/project-intelligence-section";
 import { LogoutButton } from "../auth/logout-button";
 import { DeleteAccountButton } from "../auth/delete-account-button";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -59,6 +60,7 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
     const sections = [
         { id: "personal", label: "Personal Info", icon: User },
         { id: "professional", label: "Professional DNA", icon: Briefcase },
+        { id: "projects", label: "Projects", icon: Terminal },
         { id: "education", label: "Academic Info", icon: GraduationCap },
         { id: "legal", label: "Legal & Bio", icon: ShieldCheck },
     ];
@@ -239,19 +241,22 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
                         <div className="relative z-10">
                             {section === "personal" && <PersonalInfoSection formData={formData} setFormData={setFormData} />}
                             {section === "professional" && <ProfessionalSection formData={formData} setFormData={setFormData} />}
+                            {section === "projects" && <ProjectIntelligenceSection user={user} />}
                             {section === "education" && <EducationSection formData={formData} setFormData={setFormData} />}
                             {section === "legal" && <LegalSection formData={formData} setFormData={setFormData} />}
                         </div>
 
-                        <div className="mt-12 pt-6 border-t border-white/[0.04] flex justify-end relative z-10">
-                            <button
-                                onClick={handleSave}
-                                disabled={loading}
-                                className="group relative px-8 py-3.5 bg-primary text-black rounded-xl font-extrabold text-[10px] uppercase tracking-[0.15em] hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(242,170,76,0.2)] disabled:opacity-50 disabled:hover:scale-100"
-                            >
-                                {loading ? "Syncing..." : "Sync Profile changes"}
-                            </button>
-                        </div>
+                        {section !== "projects" && (
+                            <div className="mt-12 pt-6 border-t border-white/[0.04] flex justify-end relative z-10">
+                                <button
+                                    onClick={handleSave}
+                                    disabled={loading}
+                                    className="group relative px-8 py-3.5 bg-primary text-black rounded-xl font-extrabold text-[10px] uppercase tracking-[0.15em] hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(242,170,76,0.2)] disabled:opacity-50 disabled:hover:scale-100"
+                                >
+                                    {loading ? "Syncing..." : "Sync Profile changes"}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>

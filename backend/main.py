@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
+import re
 import logging
 from dotenv import load_dotenv
 
@@ -19,6 +20,9 @@ from app.ai.agents.research import run_research_agent
 from app.ai.agents.strategy import run_strategy_agent
 from app.ai.agents.audit import run_resume_audit, run_analysis_judge
 from app.ai.agents.pillars import run_extract_pillars
+from app.ai.agents.project_kb import run_project_kb_parser
+from app.core.supabase import store_project_intelligence, get_project_intelligence
+from app.services.github import fetch_github_repo_readme, fetch_github_commits, fetch_github_languages, fetch_github_package_dependencies, fetch_github_prs, is_meaningful_commit
 from google import genai
 
 async def verify_api_key(request: Request, x_api_key: Optional[str] = Header(None)):
@@ -61,6 +65,7 @@ class AnalyzeRequest(BaseModel):
     execution_plan: Optional[Dict[str, Any]] = None
     bypass_judge: bool = False
     jd_pillars: Optional[Dict[str, Any]] = None
+    user_id: Optional[str] = None
 
 class ResearchRequest(BaseModel):
     company_name: str
@@ -91,6 +96,23 @@ class InsightsRequest(BaseModel):
 class PillarsRequest(BaseModel):
     jd: str
 
+class FeatureInput(BaseModel):
+    name: str
+    description: str
+    commits: str
+
+class IngestKBRequest(BaseModel):
+    user_id: str
+    project_name: str
+    context: str
+    technologies: List[str]
+    features: List[FeatureInput]
+
+class GitHubSyncRequest(BaseModel):
+    user_id: str
+    repo_url: str
+    github_email: Optional[str] = None
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
@@ -109,10 +131,12 @@ async def analyze(req: AnalyzeRequest):
             user_name=req.user_name,
             intel=req.intel,
             execution_plan=req.execution_plan,
-            jd_pillars=req.jd_pillars
+            jd_pillars=req.jd_pillars,
+            user_id=req.user_id
         )
         return result
     except Exception as e:
+        logger.exception("POST /analyze failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/research")
@@ -126,6 +150,7 @@ async def research(req: ResearchRequest):
         )
         return result
     except Exception as e:
+        logger.exception("POST /research failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/strategy")
@@ -140,6 +165,7 @@ async def strategy(req: StrategyRequest):
         )
         return result
     except Exception as e:
+        logger.exception("POST /strategy failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/audit")
@@ -151,6 +177,7 @@ async def audit(req: AuditRequest):
         )
         return result
     except Exception as e:
+        logger.exception("POST /audit failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/judge")
@@ -163,6 +190,7 @@ async def judge(req: JudgeRequest):
         )
         return result
     except Exception as e:
+        logger.exception("POST /judge failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/extract-pillars")
@@ -171,6 +199,7 @@ async def extract_pillars(req: PillarsRequest):
         result = await run_extract_pillars(jd=req.jd)
         return result
     except Exception as e:
+        logger.exception("POST /extract-pillars failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/insights")
@@ -220,6 +249,203 @@ Return exactly this shape:
     except Exception as e:
         logger.error("ATS insights generation failed: %s", e)
         return { "atsScore": 0, "keywordDensity": 0, "matchedSkills": [], "missingSkills": [] }
+
+@app.post("/project-kb/ingest")
+async def ingest_project_kb(req: IngestKBRequest):
+    try:
+        features_built = []
+        evidence = []
+        signals = ["custom"]
+        
+        for f in req.features:
+            if f.name.strip():
+                features_built.append(f.name.strip())
+            desc = f.description.strip()
+            comm = f.commits.strip()
+            combined_evidence = ""
+            if desc and comm:
+                combined_evidence = f"{desc} ({comm})"
+            elif desc:
+                combined_evidence = desc
+            elif comm:
+                combined_evidence = comm
+            
+            if combined_evidence:
+                evidence.append(combined_evidence)
+
+        stored = await store_project_intelligence(
+            user_id=req.user_id,
+            project_name=req.project_name,
+            context=req.context,
+            features_built=features_built,
+            tech_stack=req.technologies,
+            evidence=evidence,
+            signals=signals
+        )
+        return {"success": True, "data": stored}
+    except Exception as e:
+        logger.exception("POST /project-kb/ingest failed:")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/project-kb/github/sync")
+async def sync_github_repo(req: GitHubSyncRequest):
+    try:
+        clean_url = req.repo_url.split(";")[0]
+        repo_parts = clean_url.replace("https://github.com/", "").strip("/").split("/")
+        if len(repo_parts) < 2:
+            raise ValueError("Invalid GitHub repository format. Use owner/repo")
+        owner, repo = repo_parts[0], repo_parts[1]
+
+        existing_projects = await get_project_intelligence(req.user_id)
+        existing = next((p for p in existing_projects if p.get("project_name") == repo), None)
+
+        last_commit_sha = None
+        last_pr_id = None
+        existing_features = []
+        existing_evidence = []
+
+        if existing:
+            existing_context = existing.get("context", "")
+            meta_match = re.match(r"^\[repo:([^;\]]+)(?:;commit:([^;\]]+))?(?:;pr:([^;\]]+))?\]\s*(.*)", existing_context)
+            if meta_match:
+                last_commit_sha = meta_match.group(2)
+                last_pr_id = meta_match.group(3)
+            existing_features = existing.get("features_built", [])
+            existing_evidence = existing.get("evidence", [])
+
+        readme = await fetch_github_repo_readme(owner, repo)
+        commits_raw = await fetch_github_commits(owner, repo, author_email=req.github_email)
+
+        if not commits_raw and not existing:
+            raise HTTPException(
+                status_code=400,
+                detail="No commits found for your GitHub email in this repository. You can only sync repositories you have contributed to."
+            )
+
+        new_commits_raw = []
+        if last_commit_sha:
+            found_idx = -1
+            for idx, c in enumerate(commits_raw):
+                if c.get("sha") == last_commit_sha:
+                    found_idx = idx
+                    break
+            if found_idx != -1:
+                new_commits_raw = commits_raw[:found_idx]
+            else:
+                new_commits_raw = commits_raw
+        else:
+            new_commits_raw = commits_raw
+
+        author_username = None
+        for c in commits_raw:
+            if c.get("commit", {}).get("author", {}).get("email") == req.github_email:
+                author_username = c.get("author", {}).get("login")
+                if author_username:
+                    break
+
+        prs_raw = await fetch_github_prs(owner, repo, author_username=author_username)
+        new_prs_raw = []
+        if last_pr_id:
+            found_idx = -1
+            for idx, pr in enumerate(prs_raw):
+                if str(pr.get("id")) == str(last_pr_id):
+                    found_idx = idx
+                    break
+            if found_idx != -1:
+                new_prs_raw = prs_raw[:found_idx]
+            else:
+                new_prs_raw = prs_raw
+        else:
+            new_prs_raw = prs_raw
+
+        if not new_commits_raw and not new_prs_raw and existing:
+            return {"success": True, "data": existing}
+
+        tech_stack = await fetch_github_languages(owner, repo)
+        package_frameworks = await fetch_github_package_dependencies(owner, repo)
+        
+        # Merge both tech lists uniquely
+        tech_set = set(tech_stack)
+        for fw in package_frameworks:
+            tech_set.add(fw)
+        tech_stack = list(tech_set)
+
+        filtered_commits = [c for c in new_commits_raw if is_meaningful_commit(c.get("commit", {}).get("message", ""))]
+        commits_formatted = []
+        for c in filtered_commits:
+            commit_info = c.get("commit", {})
+            message = commit_info.get("message", "").split("\n")[0]
+            author = commit_info.get("author", {}).get("name", "Unknown")
+            date = commit_info.get("author", {}).get("date", "Unknown date")
+            commits_formatted.append(f"[{date}] {author}: {message}")
+
+        commits_str = "\n".join(commits_formatted)
+
+        prs_formatted = []
+        for pr in new_prs_raw:
+            title = pr.get("title", "")
+            body = pr.get("body", "") or ""
+            body_first_lines = "\n".join(body.split("\n")[:3])
+            prs_formatted.append(f"PR #{pr.get('number')}: {title}\nDescription: {body_first_lines}")
+
+        prs_str = "\n".join(prs_formatted)
+
+        features_input = []
+        if commits_str:
+            features_input.append({
+                "name": "Commits",
+                "description": "User commits in the repository",
+                "commits": commits_str
+            })
+        if prs_str:
+            features_input.append({
+                "name": "Pull Requests",
+                "description": "Merged Pull Requests authored by user",
+                "commits": prs_str
+            })
+
+        project_intel = run_project_kb_parser(
+            project_name=repo,
+            context=readme[:2000],
+            technologies=tech_stack,
+            features_input=features_input,
+            existing_features=existing_features,
+            existing_evidence=existing_evidence
+        )
+
+        latest_commit_sha = commits_raw[0].get("sha") if commits_raw else last_commit_sha
+        latest_pr_id = prs_raw[0].get("id") if prs_raw else last_pr_id
+
+        meta_prefix = f"repo:{owner}/{repo}"
+        if latest_commit_sha:
+            meta_prefix += f";commit:{latest_commit_sha}"
+        if latest_pr_id:
+            meta_prefix += f";pr:{latest_pr_id}"
+
+        stored = await store_project_intelligence(
+            user_id=req.user_id,
+            project_name=repo,
+            context=f"[{meta_prefix}] {project_intel.context_summary}",
+            features_built=project_intel.features,
+            tech_stack=tech_stack,
+            evidence=project_intel.evidence,
+            signals=project_intel.signals
+        )
+        return {"success": True, "data": stored}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.exception("POST /project-kb/github/sync failed:")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/project-kb")
+async def get_kb(user_id: str):
+    try:
+        projects = await get_project_intelligence(user_id)
+        return {"projects": projects}
+    except Exception as e:
+        logger.exception("GET /project-kb failed:")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
