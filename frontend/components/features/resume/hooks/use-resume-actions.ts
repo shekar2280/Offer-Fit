@@ -8,6 +8,7 @@ import { clearDraft } from "./use-draft-persistence";
 import { LOADING_MESSAGES } from "@/config/constants";
 import { AnalysisResult } from "@/types";
 import { stringifyJdText } from "@/lib/utils";
+import { useAnalysis } from "@/components/providers/analysis-provider";
 
 interface UseResumeActionsProps {
     mode: "analysis" | "customize";
@@ -54,6 +55,7 @@ export function useResumeActions({
 }: UseResumeActionsProps) {
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { resetSession: resetGlobalSession } = useAnalysis();
 
     const [isUploading, setIsUploading] = useState(false);
     const [loadingStep, setLoadingStep] = useState(0);
@@ -65,6 +67,7 @@ export function useResumeActions({
         setJobData({ company: "", role: "", description: "" });
         clearDraft("analysis");
         clearDraft("customize");
+        resetGlobalSession();
         router.push(mode === "customize" ? "/customize" : "/analyze", { scroll: false });
     };
 

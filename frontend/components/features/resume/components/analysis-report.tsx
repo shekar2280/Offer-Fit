@@ -104,17 +104,41 @@ export function AnalysisReport(props: AnalysisReportProps) {
                     <>
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                             {mode === "analysis" && (
-                                <MatchHeader
-                                    score={score}
-                                    verdict={verdict}
-                                    position={position}
-                                    companyName={companyName}
-                                    isAnalyzing={isAnalyzing}
-                                    insights={insights}
-                                    strokeColorClass={strokeColorClass}
-                                    verdictColorClass={verdictColorClass}
-                                    bgColorClass={bgColorClass}
-                                />
+                                <>
+                                    {analysis ? (
+                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                                            <div className="lg:col-span-9 h-full">
+                                                <MatchHeader
+                                                    score={score}
+                                                    verdict={verdict}
+                                                    position={position}
+                                                    companyName={companyName}
+                                                    isAnalyzing={isAnalyzing}
+                                                    insights={insights}
+                                                    strokeColorClass={strokeColorClass}
+                                                    verdictColorClass={verdictColorClass}
+                                                    bgColorClass={bgColorClass}
+                                                />
+                                            </div>
+                                            <div className="lg:col-span-3 flex flex-col gap-4 h-full justify-between">
+                                                <ScoreMetrics insights={(insights || {}) as unknown as NonNullable<typeof insights>} compact={true} />
+                                                <SalaryInsight data={insights?.salary_insight} compact={true} />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <MatchHeader
+                                            score={score}
+                                            verdict={verdict}
+                                            position={position}
+                                            companyName={companyName}
+                                            isAnalyzing={isAnalyzing}
+                                            insights={insights}
+                                            strokeColorClass={strokeColorClass}
+                                            verdictColorClass={verdictColorClass}
+                                            bgColorClass={bgColorClass}
+                                        />
+                                    )}
+                                </>
                             )}
 
                             {mode === "analysis" && isAnalyzing && !analysis && (
@@ -131,10 +155,12 @@ export function AnalysisReport(props: AnalysisReportProps) {
                             {analysis && mode === "analysis" && (
                                 <>
                                     <div className="space-y-12">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <ScoreMetrics insights={(insights || {}) as unknown as NonNullable<typeof insights>} />
-                                            <SalaryInsight data={insights?.salary_insight} />
-                                        </div>
+                                        <SkillsView
+                                            matched={insights?.matched_skills || []}
+                                            missing={insights?.missing_skills || []}
+                                        />
+
+                                        <RedFlags flags={insights?.red_flags || []} />
 
                                         <CompanyIntelligence
                                             score={insights?.culture_fit_score}
@@ -145,18 +171,10 @@ export function AnalysisReport(props: AnalysisReportProps) {
                                         />
 
                                         <div className="space-y-12">
-                                            <SkillsView
-                                                matched={insights?.matched_skills || []}
-                                                missing={insights?.missing_skills || []}
-                                            />
-
-                                            <RedFlags flags={insights?.red_flags || []} />
-
                                             <InterviewQuestions
                                                 data={{ questions: insights?.interview_questions || [] }}
                                                 onCopy={copyText}
                                             />
-
                                         </div>
                                     </div>
                                     <div className="relative z-10 w-full mt-4 border-t border-white/5 space-y-4">

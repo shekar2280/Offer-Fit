@@ -23,23 +23,24 @@ const DossierCard = ({ children, className = "" }: { children: React.ReactNode, 
     </div>
 );
 
-const MetricCard = ({ label, value, unit, color, progress, subtitle }: { label: string, value: string | number, unit: string, color: string, progress: number, subtitle?: string }) => {
+const MetricCard = ({ label, value, unit, color, progress, subtitle, compact }: { label: string, value: string | number, unit: string, color: string, progress: number, subtitle?: string, compact?: boolean }) => {
     const valueStr = String(value);
     const isLongValue = valueStr.length > 8;
 
     return (
-        <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-7 space-y-5 transition-all hover:bg-white/[0.03] hover:border-white/10 h-full flex flex-col justify-between">
+        <div className={`bg-white/[0.02] border border-white/5 rounded-[1.5rem] ${compact ? 'p-4 space-y-2.5' : 'p-7 space-y-5'} transition-all hover:bg-white/[0.03] hover:border-white/10 flex-1 h-full flex flex-col justify-between`}>
             <div className="flex justify-between items-start gap-4">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 shrink-0">{label}</span>
                 <div className="flex items-baseline gap-1 min-w-0">
-                    <span className={`font-black text-white leading-none tracking-tighter truncate ${isLongValue ? 'text-lg sm:text-xl' : 'text-3xl'
+                    <span className={`font-black text-white leading-none tracking-tighter truncate ${
+                        isLongValue ? 'text-lg sm:text-xl' : (compact ? 'text-2xl' : 'text-3xl')
                         }`}>
                         {value}
                     </span>
                     <span className={`text-[10px] font-black uppercase shrink-0 ${color === 'primary' ? 'text-primary/60' : 'text-emerald-500/60'}`}>{unit}</span>
                 </div>
             </div>
-            <div className="space-y-4">
+            <div className={compact ? 'space-y-2' : 'space-y-4'}>
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
                     <div
                         className="h-full rounded-full transition-all duration-1000"
@@ -47,14 +48,14 @@ const MetricCard = ({ label, value, unit, color, progress, subtitle }: { label: 
                     />
                 </div>
                 {subtitle && (
-                    <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest">{subtitle}</p>
+                    <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest truncate">{subtitle}</p>
                 )}
             </div>
         </div>
     );
 };
 
-export function ScoreMetrics({ insights }: { insights: AnalysisResult }) {
+export function ScoreMetrics({ insights, compact }: { insights: AnalysisResult, compact?: boolean }) {
     if (!insights) return null;
     return (
         <>
@@ -65,6 +66,7 @@ export function ScoreMetrics({ insights }: { insights: AnalysisResult }) {
                 color="primary"
                 progress={insights.ats_score || 0}
                 subtitle="Keyword alignment"
+                compact={compact}
             />
             <MetricCard
                 label="Semantic"
@@ -73,15 +75,26 @@ export function ScoreMetrics({ insights }: { insights: AnalysisResult }) {
                 color="emerald-500"
                 progress={insights.keyword_density || 0}
                 subtitle="Contextual Density"
+                compact={compact}
             />
         </>
     );
 }
 
-export function SalaryInsight({ data }: { data?: SalaryInsightType & { location?: string } }) {
+export function SalaryInsight({ data, compact }: { data?: SalaryInsightType & { location?: string }, compact?: boolean }) {
     if (!data) return null;
-    const displayValue = data.range.split(' ')[0];
-    const displayUnit = data.range.includes('LPA') ? 'LPA INR' : data.currency;
+    
+    let displayValue = data.range.split(' ')[0];
+    let displayUnit = data.range.includes('LPA') ? 'LPA INR' : data.currency;
+
+    const lowerRange = data.range.toLowerCase();
+    const hasNumbers = /\d/.test(data.range);
+    const hasCurrencySymbols = /\$|€|£|₹/.test(data.range);
+    
+    if (lowerRange.includes("not available") || lowerRange.includes("n/a") || (!hasNumbers && !hasCurrencySymbols)) {
+        displayValue = "N/A";
+        displayUnit = "";
+    }
 
     return (
         <MetricCard
@@ -91,6 +104,7 @@ export function SalaryInsight({ data }: { data?: SalaryInsightType & { location?
             color="primary"
             progress={75}
             subtitle={data.location || "Market Analysis"}
+            compact={compact}
         />
     );
 }
