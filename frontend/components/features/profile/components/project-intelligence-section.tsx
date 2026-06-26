@@ -11,6 +11,11 @@ const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
+interface DeploymentItem {
+    component: string;
+    platform: string;
+    status?: string;
+}
 
 interface ProjectIntel {
     id: string;
@@ -20,6 +25,7 @@ interface ProjectIntel {
     tech_stack: string[];
     signals: string[];
     evidence: string[];
+    deployments?: DeploymentItem[];
 }
 
 interface FeatureInput {
@@ -33,6 +39,20 @@ const COMMON_TECH_STACK = [
     "React", "Next.js", "TypeScript", "Node.js", "Python", "FastAPI", "Django",
     "PostgreSQL", "MongoDB", "Redis", "Supabase", "Firebase", "Docker", "Kubernetes",
     "AWS", "GCP", "Vercel", "Tailwind CSS", "GraphQL", "REST API", "Gemini", "OpenAI"
+];
+
+const POPULAR_HOSTING_OPTIONS = [
+    "Vercel",
+    "Render",
+    "AWS (Amazon Web Services)",
+    "GCP (Google Cloud Platform)",
+    "Docker / VPS",
+    "Heroku",
+    "Netlify",
+    "Fly.io",
+    "Railway",
+    "Supabase",
+    "Other (Custom)"
 ];
 
 export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
@@ -56,6 +76,17 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
     const [customTech, setCustomTech] = useState("");
     const techDropdownRef = useRef<HTMLDivElement>(null);
 
+    const [deployments, setDeployments] = useState<DeploymentItem[]>([]);
+    const [newComponent, setNewComponent] = useState("Frontend");
+    const [newPlatform, setNewPlatform] = useState("");
+    const [customNewPlatform, setCustomNewPlatform] = useState("");
+    
+    const [isEditingDeployments, setIsEditingDeployments] = useState<string | null>(null);
+    const [editingDeploymentsList, setEditingDeploymentsList] = useState<DeploymentItem[]>([]);
+    const [editNewComponent, setEditNewComponent] = useState("Frontend");
+    const [editNewPlatform, setEditNewPlatform] = useState("");
+    const [customEditNewPlatform, setCustomEditNewPlatform] = useState("");
+
     const supabase = createClient();
 
     const fetchProjectIntel = async () => {
@@ -69,7 +100,53 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
             if (intelError) throw intelError;
             setProjects(intelData || []);
         } catch (e: any) {
-            console.error("Error loading project intelligence data:", e);
+        }
+    };
+
+    const handleSaveDeployments = async (projectId: string, list: DeploymentItem[]) => {
+        try {
+            const { error } = await supabase
+                .from("project_intelligence")
+                .update({ deployments: list })
+                .eq("id", projectId);
+            if (error) throw error;
+            setSuccessMsg("Deployments updated successfully!");
+            setIsEditingDeployments(null);
+            fetchProjectIntel();
+        } catch (e: any) {
+            setErrorMsg("Failed to save deployments: " + e.message);
+        }
+    };
+
+    const handleAcceptSuggestion = async (projectId: string, index: number) => {
+        const proj = projects.find(p => p.id === projectId);
+        if (!proj || !proj.deployments) return;
+        const updated = proj.deployments.map((d, idx) => 
+            idx === index ? { ...d, status: "accepted" } : d
+        );
+        try {
+            const { error } = await supabase
+                .from("project_intelligence")
+                .update({ deployments: updated })
+                .eq("id", projectId);
+            if (error) throw error;
+            fetchProjectIntel();
+        } catch (e: any) {
+        }
+    };
+
+    const handleRejectSuggestion = async (projectId: string, index: number) => {
+        const proj = projects.find(p => p.id === projectId);
+        if (!proj || !proj.deployments) return;
+        const updated = proj.deployments.filter((_, idx) => idx !== index);
+        try {
+            const { error } = await supabase
+                .from("project_intelligence")
+                .update({ deployments: updated })
+                .eq("id", projectId);
+            if (error) throw error;
+            fetchProjectIntel();
+        } catch (e: any) {
         }
     };
 
@@ -142,7 +219,8 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                     project_name: projectName,
                     context: context,
                     technologies: techStack,
-                    features: features.map(({ name, description, commits }) => ({ name, description, commits }))
+                    features: features.map(({ name, description, commits }) => ({ name, description, commits })),
+                    deployments: deployments
                 })
             });
 
@@ -153,6 +231,10 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                 setContext("");
                 setTechStack([]);
                 setFeatures([{ id: "1", name: "", description: "", commits: "" }]);
+                setDeployments([]);
+                setNewComponent("Frontend");
+                setNewPlatform("");
+                setCustomNewPlatform("");
                 setShowManualForm(false);
                 fetchProjectIntel();
             } else {
@@ -171,7 +253,6 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
             if (error) throw error;
             fetchProjectIntel();
         } catch (e: any) {
-            console.error("Delete failed:", e);
         }
     };
 
@@ -186,7 +267,6 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
             });
             if (error) throw error;
         } catch (e: any) {
-            console.error("GitHub link error:", e);
             setErrorMsg("Failed to connect GitHub: " + e.message);
         }
     };
@@ -380,6 +460,95 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                         </div>
 
                         <div>
+                            <label className="text-xs font-bold uppercase tracking-wider text-white/70 block mb-2">Deployments</label>
+                            
+                            {deployments.length > 0 && (
+                                <div className="space-y-2 mb-3 bg-zinc-950/60 border border-white/[0.04] p-3 rounded-xl">
+                                    {deployments.map((dep, idx) => (
+                                        <div key={idx} className="flex justify-between items-center bg-white/[0.02] border border-white/[0.05] rounded-lg px-3 py-2 text-xs">
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">
+                                                    {dep.component}
+                                                </span>
+                                                <span className="text-white/80 font-bold">{dep.platform}</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setDeployments(deployments.filter((_, i) => i !== idx))}
+                                                className="text-white/40 hover:text-red-400 p-1 transition-colors"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="flex flex-wrap md:flex-nowrap gap-2 items-start bg-zinc-950/40 border border-white/[0.04] p-3 rounded-xl">
+                                <div className="w-full md:w-1/3">
+                                    <label className="text-[10px] font-bold text-white/50 block mb-1 uppercase">Component</label>
+                                    <select
+                                        value={newComponent}
+                                        onChange={(e) => setNewComponent(e.target.value)}
+                                        className="w-full bg-zinc-900/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                                    >
+                                        <option value="Frontend">Frontend</option>
+                                        <option value="Backend">Backend</option>
+                                        <option value="Database">Database</option>
+                                        <option value="Full Stack">Full Stack</option>
+                                    </select>
+                                </div>
+                                <div className="w-full md:w-2/3">
+                                    <label className="text-[10px] font-bold text-white/50 block mb-1 uppercase">Platform</label>
+                                    <select
+                                        value={newPlatform}
+                                        onChange={(e) => {
+                                            setNewPlatform(e.target.value);
+                                            if (e.target.value !== "Other (Custom)") {
+                                                setCustomNewPlatform("");
+                                            }
+                                        }}
+                                        className="w-full bg-zinc-900/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                                    >
+                                        <option value="">-- Select Platform --</option>
+                                        {POPULAR_HOSTING_OPTIONS.filter(opt => opt !== "Other (Custom)").map(opt => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                        <option value="Other (Custom)">Other (Custom)</option>
+                                    </select>
+
+                                    {newPlatform === "Other (Custom)" && (
+                                        <input
+                                            type="text"
+                                            value={customNewPlatform}
+                                            onChange={(e) => setCustomNewPlatform(e.target.value)}
+                                            placeholder="Enter custom platform..."
+                                            className="w-full mt-1.5 bg-zinc-900/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                                        />
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const finalPlat = newPlatform === "Other (Custom)" ? customNewPlatform : newPlatform;
+                                        if (!finalPlat.trim()) return;
+                                        setDeployments([...deployments, { component: newComponent, platform: finalPlat, status: "accepted" }]);
+                                        setNewPlatform("");
+                                        setCustomNewPlatform("");
+                                    }}
+                                    className="self-end bg-primary hover:bg-primary/80 text-black font-extrabold px-3 py-1.5 rounded-lg text-[10px] uppercase shrink-0 transition-colors mt-4 md:mt-0"
+                                >
+                                    Add
+                                </button>
+                            </div>
+                            
+                            <p className="text-[10px] text-white/40 mt-2.5 flex items-center gap-1.5">
+                                <AlertCircle className="w-3.5 h-3.5 text-primary shrink-0" />
+                                <span>Add all components of your application (e.g. Next.js on Vercel, FastAPI on Render) to match job requirements.</span>
+                            </p>
+                        </div>
+
+                        <div>
                             <label className="text-xs font-bold uppercase tracking-wider text-white/70 block mb-2">Project Description (Context)</label>
                             <textarea
                                 value={context}
@@ -398,7 +567,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                 {techStack.map(tech => (
                                     <span key={tech} className="bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1">
                                         {tech}
-                                        <X className="w-3 h-3 cursor-pointer hover:text-white" onClick={(e) => { e.stopPropagation(); toggleTech(tech); }} />
+                                        <X className="w-3.5 h-3.5 cursor-pointer hover:text-white" onClick={(e) => { e.stopPropagation(); toggleTech(tech); }} />
                                     </span>
                                 ))}
                                 <input
@@ -565,7 +734,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                                 <p className="text-xs text-white/70 leading-relaxed">{cleanContext}</p>
                                             </div>
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] leading-relaxed pt-2 border-t border-white/[0.04]">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px] leading-relaxed pt-2 border-t border-white/[0.04]">
                                                 <div>
                                                     <span className="font-bold text-white/50 text-[9px] uppercase tracking-wider block mb-1.5">Technologies</span>
                                                     <div className="flex flex-wrap gap-1">
@@ -585,6 +754,164 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                                             </span>
                                                         ))}
                                                     </div>
+                                                </div>
+                                                <div>
+                                                    <span className="font-bold text-white/50 text-[9px] uppercase tracking-wider block mb-1.5">Deployments</span>
+                                                    {isEditingDeployments === proj.id ? (
+                                                        <div className="space-y-2 bg-zinc-950/60 border border-white/[0.04] p-2 rounded-xl">
+                                                            {editingDeploymentsList.map((dep, idx) => (
+                                                                <div key={idx} className="flex justify-between items-center bg-white/[0.02] border border-white/[0.05] rounded-lg px-2 py-1.5 text-[10px]">
+                                                                    <span className="bg-primary/10 text-primary border border-primary/20 text-[8px] font-bold uppercase px-1 py-0.5 rounded">
+                                                                        {dep.component}
+                                                                    </span>
+                                                                    <span className="text-white/80 font-bold">{dep.platform}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setEditingDeploymentsList(editingDeploymentsList.filter((_, i) => i !== idx))}
+                                                                        className="text-white/40 hover:text-red-400 p-0.5"
+                                                                    >
+                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                            
+                                                            <div className="space-y-1 pt-1.5 border-t border-white/[0.04]">
+                                                                <select
+                                                                    value={editNewComponent}
+                                                                    onChange={(e) => setEditNewComponent(e.target.value)}
+                                                                    className="w-full bg-zinc-900 border border-white/10 rounded-md px-2 py-1 text-[10px] text-white focus:outline-none"
+                                                                >
+                                                                    <option value="Frontend">Frontend</option>
+                                                                    <option value="Backend">Backend</option>
+                                                                    <option value="Database">Database</option>
+                                                                    <option value="Full Stack">Full Stack</option>
+                                                                </select>
+                                                                <select
+                                                                    value={editNewPlatform}
+                                                                    onChange={(e) => {
+                                                                        setEditNewPlatform(e.target.value);
+                                                                        if (e.target.value !== "Other (Custom)") {
+                                                                            setCustomEditNewPlatform("");
+                                                                        }
+                                                                    }}
+                                                                    className="w-full bg-zinc-900 border border-white/10 rounded-md px-2 py-1 text-[10px] text-white focus:outline-none"
+                                                                >
+                                                                    <option value="">-- Platform --</option>
+                                                                    {POPULAR_HOSTING_OPTIONS.filter(opt => opt !== "Other (Custom)").map(opt => (
+                                                                        <option key={opt} value={opt}>{opt}</option>
+                                                                    ))}
+                                                                    <option value="Other (Custom)">Other (Custom)</option>
+                                                                </select>
+                                                                {editNewPlatform === "Other (Custom)" && (
+                                                                    <input
+                                                                        type="text"
+                                                                        value={customEditNewPlatform}
+                                                                        onChange={(e) => setCustomEditNewPlatform(e.target.value)}
+                                                                        placeholder="Custom platform..."
+                                                                        className="w-full bg-zinc-900 border border-white/10 rounded-md px-2 py-1 text-[10px] text-white focus:outline-none"
+                                                                    />
+                                                                )}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const platVal = editNewPlatform === "Other (Custom)" ? customEditNewPlatform : editNewPlatform;
+                                                                        if (!platVal.trim()) return;
+                                                                        setEditingDeploymentsList([...editingDeploymentsList, { component: editNewComponent, platform: platVal, status: "accepted" }]);
+                                                                        setEditNewPlatform("");
+                                                                        setCustomEditNewPlatform("");
+                                                                    }}
+                                                                    className="w-full bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold py-1 rounded"
+                                                                >
+                                                                    + Add to list
+                                                                </button>
+                                                            </div>
+                                                            
+                                                            <div className="flex gap-2 pt-1.5">
+                                                                <button
+                                                                    onClick={() => handleSaveDeployments(proj.id, editingDeploymentsList)}
+                                                                    className="flex-1 bg-primary text-black text-[10px] font-extrabold py-1 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                                                >
+                                                                    Save All
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setIsEditingDeployments(null)}
+                                                                    className="flex-1 bg-white/5 text-white/60 text-[10px] font-bold py-1 rounded hover:bg-white/10 transition-all"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-1.5">
+                                                            {(!proj.deployments || proj.deployments.length === 0) ? (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="text-[10px] text-white/40 italic">None</span>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setIsEditingDeployments(proj.id);
+                                                                            setEditingDeploymentsList([]);
+                                                                            setEditNewComponent("Frontend");
+                                                                            setEditNewPlatform("");
+                                                                            setCustomEditNewPlatform("");
+                                                                        }}
+                                                                        className="text-[9px] text-primary font-bold hover:underline"
+                                                                    >
+                                                                        Add
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    {proj.deployments.map((dep, idx) => {
+                                                                        const isSuggested = dep.status === "suggested";
+                                                                        return (
+                                                                            <div key={idx} className={`p-1.5 rounded-lg border text-[10px] ${isSuggested ? 'bg-primary/5 border-primary/30 flex flex-col gap-1.5' : 'bg-white/[0.02] border-white/[0.04] flex items-center justify-between'}`}>
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <span className="bg-primary/10 text-primary border border-primary/20 text-[8px] font-bold uppercase px-1 py-0.5 rounded">
+                                                                                        {dep.component}
+                                                                                    </span>
+                                                                                    <span className="text-white/80 font-bold">{dep.platform}</span>
+                                                                                    {isSuggested && (
+                                                                                        <span className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-[8px] px-1 py-0.5 rounded font-bold uppercase ml-1 animate-pulse">
+                                                                                            Suggested
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                
+                                                                                {isSuggested ? (
+                                                                                    <div className="flex gap-1.5">
+                                                                                        <button
+                                                                                            onClick={() => handleAcceptSuggestion(proj.id, idx)}
+                                                                                            className="bg-primary text-black text-[8px] font-extrabold px-2 py-0.5 rounded hover:scale-105 active:scale-95 transition-all"
+                                                                                        >
+                                                                                            Accept
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => handleRejectSuggestion(proj.id, idx)}
+                                                                                            className="bg-white/10 text-white/80 text-[8px] font-bold px-2 py-0.5 rounded hover:bg-white/20 transition-all"
+                                                                                        >
+                                                                                            Reject
+                                                                                        </button>
+                                                                                    </div>
+                                                                                ) : null}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setIsEditingDeployments(proj.id);
+                                                                            setEditingDeploymentsList(proj.deployments || []);
+                                                                            setEditNewComponent("Frontend");
+                                                                            setEditNewPlatform("");
+                                                                            setCustomEditNewPlatform("");
+                                                                        }}
+                                                                        className="text-[9px] text-primary font-bold hover:underline block pt-1"
+                                                                    >
+                                                                        Edit Deployments
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
