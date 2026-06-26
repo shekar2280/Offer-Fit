@@ -11,6 +11,23 @@ export interface InterviewQuestion {
   intent: string;
 }
 
+export interface HistoryAnalysisItem {
+    id: string;
+    company_name: string;
+    position: string;
+    created_at: string;
+    analysis_result?: string;
+    customized_latex?: string;
+}
+
+export interface InfiniteHistoryData {
+    pages: {
+        data: HistoryAnalysisItem[];
+        nextCursor: string | null;
+    }[];
+    pageParams: (string | null)[];
+}
+
 export interface InterviewData {
   questions: (string | InterviewQuestion)[];
   preparation_focus?: string;
