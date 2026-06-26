@@ -208,11 +208,13 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
         setSuccessMsg("");
 
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
             const response = await fetch("http://127.0.0.1:8000/project-kb/ingest", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-api-key": REMOVED_KEY" "
+                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     user_id: user.id,
@@ -281,11 +283,13 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
             const githubIdentity = user?.identities?.find((id: any) => id.provider === 'github');
             const githubEmail = githubIdentity?.identity_data?.email || user?.email || "";
 
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
             const response = await fetch("http://127.0.0.1:8000/project-kb/github/sync", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-api-key": REMOVED_KEY" "
+                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     user_id: user.id,
@@ -318,11 +322,13 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
             const githubIdentity = user?.identities?.find((id: any) => id.provider === 'github');
             const githubEmail = githubIdentity?.identity_data?.email || user?.email || "";
 
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
             const response = await fetch("http://127.0.0.1:8000/project-kb/github/sync", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-api-key": REMOVED_KEY" "
+                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     user_id: user.id,

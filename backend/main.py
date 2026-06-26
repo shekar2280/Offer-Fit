@@ -18,6 +18,9 @@ from app.core.supabase import store_project_intelligence, get_project_intelligen
 from app.services.github import fetch_github_repo_readme, fetch_github_commits, fetch_github_languages, fetch_github_package_dependencies, fetch_github_prs, is_meaningful_commit
 from google import genai
 
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.core.supabase import get_user_supabase_client, Client
+
 async def verify_api_key(request: Request, x_api_key: Optional[str] = Header(None)):
     if request.url.path == "/health":
         return
@@ -27,7 +30,22 @@ async def verify_api_key(request: Request, x_api_key: Optional[str] = Header(Non
     if x_api_key != expected_key:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-app = FastAPI(title="Offer Fit AI API", dependencies=[Depends(verify_api_key)])
+security = HTTPBearer(auto_error=False)
+
+async def get_user_client_and_id(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> tuple:
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Missing authorization credentials")
+    token = credentials.credentials
+    try:
+        user_client = get_user_supabase_client(token)
+        user_response = user_client.auth.get_user(token)
+        if not user_response or not user_response.user:
+            raise HTTPException(status_code=401, detail="Invalid session token")
+        return user_client, user_response.user.id
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Unauthorized: {str(e)}")
+
+app = FastAPI(title="Offer Fit AI API")
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 allowed_origins = list(set([
@@ -116,7 +134,7 @@ class GitHubSyncRequest(BaseModel):
 async def health_check():
     return {"status": "ok"}
 
-@app.post("/analyze")
+@app.post("/analyze", dependencies=[Depends(verify_api_key)])
 async def analyze(req: AnalyzeRequest):
     try:
         result = await run_analysis_agent(
@@ -137,7 +155,7 @@ async def analyze(req: AnalyzeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/research")
+@app.post("/research", dependencies=[Depends(verify_api_key)])
 async def research(req: ResearchRequest):
     try:
         result = await run_research_agent(
@@ -150,7 +168,7 @@ async def research(req: ResearchRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/strategy")
+@app.post("/strategy", dependencies=[Depends(verify_api_key)])
 async def strategy(req: StrategyRequest):
     try:
         result = await run_strategy_agent(
@@ -164,7 +182,7 @@ async def strategy(req: StrategyRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/audit")
+@app.post("/audit", dependencies=[Depends(verify_api_key)])
 async def audit(req: AuditRequest):
     try:
         result = await run_resume_audit(
@@ -175,7 +193,7 @@ async def audit(req: AuditRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/judge")
+@app.post("/judge", dependencies=[Depends(verify_api_key)])
 async def judge(req: JudgeRequest):
     try:
         result = await run_analysis_judge(
@@ -187,7 +205,7 @@ async def judge(req: JudgeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/extract-pillars")
+@app.post("/extract-pillars", dependencies=[Depends(verify_api_key)])
 async def extract_pillars(req: PillarsRequest):
     try:
         result = await run_extract_pillars(jd=req.jd)
@@ -195,7 +213,7 @@ async def extract_pillars(req: PillarsRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/insights")
+@app.post("/insights", dependencies=[Depends(verify_api_key)])
 async def insights(req: InsightsRequest):
     try:
         prompt = f"""
@@ -243,8 +261,9 @@ Return exactly this shape:
         return { "atsScore": 0, "keywordDensity": 0, "matchedSkills": [], "missingSkills": [] }
 
 @app.post("/project-kb/ingest")
-async def ingest_project_kb(req: IngestKBRequest):
+async def ingest_project_kb(req: IngestKBRequest, auth: tuple = Depends(get_user_client_and_id)):
     try:
+        user_client, user_id = auth
         features_built = []
         evidence = []
         signals = ["custom"]
@@ -266,29 +285,31 @@ async def ingest_project_kb(req: IngestKBRequest):
                 evidence.append(combined_evidence)
 
         stored = await store_project_intelligence(
-            user_id=req.user_id,
+            user_id=user_id,
             project_name=req.project_name,
             context=req.context,
             features_built=features_built,
             tech_stack=req.technologies,
             evidence=evidence,
             signals=signals,
-            deployments=[d.dict() for d in req.deployments]
+            deployments=[d.dict() for d in req.deployments],
+            client=user_client
         )
         return {"success": True, "data": stored}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/project-kb/github/sync")
-async def sync_github_repo(req: GitHubSyncRequest):
+async def sync_github_repo(req: GitHubSyncRequest, auth: tuple = Depends(get_user_client_and_id)):
     try:
+        user_client, user_id = auth
         clean_url = req.repo_url.split(";")[0]
         repo_parts = clean_url.replace("https://github.com/", "").strip("/").split("/")
         if len(repo_parts) < 2:
             raise ValueError("Invalid GitHub repository format. Use owner/repo")
         owner, repo = repo_parts[0], repo_parts[1]
 
-        existing_projects = await get_project_intelligence(req.user_id)
+        existing_projects = await get_project_intelligence(user_id, client=user_client)
         existing = next((p for p in existing_projects if p.get("project_name") == repo), None)
 
         last_commit_sha = None
@@ -417,14 +438,15 @@ async def sync_github_repo(req: GitHubSyncRequest):
                 merged_deployments.append(det)
 
         stored = await store_project_intelligence(
-            user_id=req.user_id,
+            user_id=user_id,
             project_name=repo,
             context=f"[{meta_prefix}] {project_intel.context_summary}",
             features_built=project_intel.features,
             tech_stack=tech_stack,
             evidence=project_intel.evidence,
             signals=project_intel.signals,
-            deployments=merged_deployments
+            deployments=merged_deployments,
+            client=user_client
         )
         return {"success": True, "data": stored}
     except HTTPException as he:
@@ -433,9 +455,10 @@ async def sync_github_repo(req: GitHubSyncRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/project-kb")
-async def get_kb(user_id: str):
+async def get_kb(auth: tuple = Depends(get_user_client_and_id)):
     try:
-        projects = await get_project_intelligence(user_id)
+        user_client, user_id = auth
+        projects = await get_project_intelligence(user_id, client=user_client)
         return {"projects": projects}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
