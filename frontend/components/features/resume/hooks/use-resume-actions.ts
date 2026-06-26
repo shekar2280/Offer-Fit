@@ -77,7 +77,7 @@ export function useResumeActions({
             const supabase = createClient();
             const { error } = await supabase
                 .from("profiles")
-                .upsert({ id: user.id, latex_source: latexText, email: user.email }, { onConflict: 'id' });
+                .upsert({ id: user.id, resume_text: latexText, email: user.email }, { onConflict: 'id' });
             if (error) throw error;
             setHasExistingResume(true);
         } catch { toast.error("Failed to save to profile."); }
@@ -87,51 +87,20 @@ export function useResumeActions({
         setIsUploading(true);
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("parseMode", uploadMode);
         try {
             const res = await fetch("/api/parse", { method: "POST", body: formData });
             const data = await res.json();
             if (data.text) {
-                const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
-                const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.name.endsWith(".docx");
-
-                if (isPdf) {
-                    setExtractedText(data.text);
-                    if (user) {
-                        const supabase = createClient();
-                        await supabase.from("profiles").update({ resume_text: data.text }).eq("id", user.id);
-
-                        await fetch("/api/index", {
-                            method: "POST",
-                            body: JSON.stringify({ text: data.text }),
-                        });
-                    }
-                } else if (isDocx) {
-                    if (uploadMode === "customize") {
-                        setLatexText(data.text);
-                        if (user) {
-                            const supabase = createClient();
-                            await supabase.from("profiles").update({ latex_source: data.text }).eq("id", user.id);
-                        }
-                    } else {
-                        setExtractedText(data.text);
-                        setLatexText(data.text);
-                        if (user) {
-                            const supabase = createClient();
-                            await supabase.from("profiles").update({ resume_text: data.text, latex_source: data.text }).eq("id", user.id);
-
-                            await fetch("/api/index", {
-                                method: "POST",
-                                body: JSON.stringify({ text: data.text }),
-                            });
-                        }
-                    }
-                } else {
+                setExtractedText(data.text);
+                if (data.isLatex) {
                     setLatexText(data.text);
-                    if (user) {
-                        const supabase = createClient();
-                        await supabase.from("profiles").update({ latex_source: data.text }).eq("id", user.id);
-                    }
+                }
+                if (user) {
+                    await fetch("/api/index", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ text: data.text }),
+                    });
                 }
             }
         } catch {
@@ -189,7 +158,7 @@ export function useResumeActions({
                     .single();
 
                 if (error) {
-                    toast.error("Failed to initialize session. Please try again.");
+                    toast.error("Failed to save session. Please try again.");
                     setIsAnalyzing(false);
                     return;
                 }

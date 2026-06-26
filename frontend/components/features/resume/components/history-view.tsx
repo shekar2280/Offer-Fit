@@ -30,7 +30,8 @@ async function fetchHistoryPaged({ pageParam }: { pageParam: string | null }): P
     nextCursor: string | null;
 }> {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return { data: [], nextCursor: null };
 
     let query = supabase
@@ -63,7 +64,6 @@ async function fetchSingleAnalysis(id: string) {
 
 export function HistoryView() {
     const queryClient = useQueryClient();
-
 
     const {
         data,
@@ -271,7 +271,7 @@ export function HistoryView() {
 
                                         {!hasAnalysis && !hasCustomization && (
                                             <div className="px-5 py-4 rounded-2xl text-center bg-white/5 border border-white/5">
-                                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Processing...</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Loading...</span>
                                             </div>
                                         )}
                                     </div>

@@ -124,14 +124,14 @@ export function ResumeSetup({
     if (isUploading) {
         return renderLoadingState(
             `Reading ${mainTab === "customize" ? "Document" : "Resume"}...`,
-            "Extracting and processing text"
+            "Reading text"
         );
     }
 
     if (isSavingLatex) {
         return renderLoadingState(
-            "Saving LaTeX code...",
-            "Syncing with your profile baseline"
+            "Saving...",
+            "Updating profile"
         );
     }
 
@@ -156,7 +156,7 @@ export function ResumeSetup({
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 overflow-hidden transition-all duration-300">
+                        <div className="flex items-center gap-2 transition-all duration-300">
                             {hasCustomizeSource ? (
                                 isReplacingCustomize ? (
                                     <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-2 duration-300">
@@ -203,7 +203,7 @@ export function ResumeSetup({
                     </div>
                 )}
 
-                {(isPastingLatex || (!latexText && !hasDismissed)) && (
+                {isPastingLatex && (
                     <div className="relative rounded-3xl border border-primary/20 overflow-hidden transition-all duration-500 animate-in fade-in slide-in-from-top-2">
                         <div className="px-6 py-4 bg-[#050506]/90 border-b border-primary/10 flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -335,7 +335,7 @@ export function ResumeSetup({
                         </span>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 overflow-hidden transition-all duration-300">
+                <div className="flex items-center gap-2 transition-all duration-300">
                     {extractedText ? (
                         isReplacingAnalysis ? (
                             <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-2 duration-300">

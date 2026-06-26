@@ -9,6 +9,8 @@ import Image from "next/image";
 import logoImg from "./icon.png";
 import { User } from "@supabase/supabase-js";
 import { Space_Grotesk } from "next/font/google";
+import { OnboardingModal } from "@/components/features/resume/components/onboarding-modal";
+import { useQueryClient } from "@tanstack/react-query";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -20,8 +22,10 @@ export default function Home() {
   const { resetSession } = useAnalysis();
   const supabase = createClient();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     resetSession();
@@ -34,8 +38,18 @@ export default function Home() {
         if (error) throw error;
         if (!user) {
           router.push("/auth/login");
-        } else {
-          setUser(user);
+          return;
+        }
+        setUser(user);
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("resume_text")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!profile?.resume_text) {
+          setShowOnboarding(true);
         }
       } catch {
         router.push("/auth/login");
@@ -45,6 +59,16 @@ export default function Home() {
     };
     fetchUser();
   }, [supabase, router]);
+
+  const handleOnboardingComplete = (resumeText: string) => {
+    setShowOnboarding(false);
+    if (user) {
+      queryClient.setQueryData(["profile", user.id], (old: Record<string, unknown> | undefined) => ({
+        ...(old || {}),
+        resume_text: resumeText,
+      }));
+    }
+  };
 
   if (loading) {
     return (
@@ -75,6 +99,9 @@ export default function Home() {
 
   return (
     <main className="h-screen w-full bg-background text-foreground overflow-hidden">
+      {showOnboarding && user && (
+        <OnboardingModal userId={user.id} onComplete={handleOnboardingComplete} />
+      )}
       <Suspense fallback={<div className="h-screen w-full bg-background animate-pulse" />}>
         <DashboardShell user={user} />
       </Suspense>

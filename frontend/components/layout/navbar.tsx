@@ -56,7 +56,8 @@ export function Navbar({
     useEffect(() => {
         const fetchUsage = async () => {
             const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
             if (!user) return;
 
             const [{ data: usageData, error }, { data: profileData }] = await Promise.all([
@@ -82,7 +83,6 @@ export function Navbar({
         fetchUsage();
     }, [usage]);
 
-
     const getDailyCount = () => {
         if (!clientUsage) return null;
         if (clientUsage.last_request_at && isPastMidnightIST(clientUsage.last_request_at)) return 0;
@@ -93,7 +93,6 @@ export function Navbar({
     const dailyCount = getDailyCount();
     const remainingCredits = dailyCount !== null ? Math.max(0, userQuota - dailyCount) : null;
     const isOutOfCredits = mounted && remainingCredits === 0;
-
 
     return (
         <header className="w-full h-[68px] shrink-0 sticky top-0 z-50 bg-black/60 backdrop-blur-2xl border-b border-white/[0.06]">

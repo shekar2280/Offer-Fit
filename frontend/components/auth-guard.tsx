@@ -12,8 +12,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     queryKey: ["user"],
     queryFn: async () => {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.user || null;
     },
     staleTime: Infinity,
     gcTime: Infinity,
