@@ -31,6 +31,9 @@ export async function runMultiStepCustomization(
   );
   const executionPlan = strategyResult.data;
 
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+
   const draftResults = await runAnalysisAgent(
     companyName,
     position,
@@ -44,6 +47,7 @@ export async function runMultiStepCustomization(
     intel,
     executionPlan,
     jdPillars,
+    userId
   );
 
   const audit = await evaluateResumeAudit(draftResults.markdown, jd);

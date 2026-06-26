@@ -26,14 +26,12 @@ function makeSSE(controller: ReadableStreamDefaultController) {
       try {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       } catch (e) {
-        console.warn("Could not send SSE: controller may be closed.");
       }
     },
     close() {
       try {
         controller.close();
       } catch (e) {
-        // Ignore if already closed
       }
     },
   };
@@ -331,10 +329,6 @@ export async function POST(req: Request) {
                 });
               }
             } catch (judgeErr) {
-              console.warn(
-                "[JUDGE] Failed to run judge, using raw verdict:",
-                judgeErr,
-              );
             }
           }
         }
@@ -380,6 +374,8 @@ export async function POST(req: Request) {
               .from("analyses")
               .update({
                 customized_latex: markdown,
+                customized_json: parsedData.customized_json || null,
+                jd_intents: parsedData.jd_intents || null,
                 total_tokens: existingTokens + (usage?.totalTokenCount || 0),
                 estimated_cost: existingCost + (estimated_cost || 0),
                 intel_id: finalIntel?.id || null,
@@ -510,7 +506,6 @@ export async function POST(req: Request) {
               details: { mode, error: (error as Error).message },
             });
           } catch (refundErr) {
-            console.error("Failed to refund usage quota:", refundErr);
           }
         }
 
@@ -570,7 +565,6 @@ export async function POST(req: Request) {
             details: { mode, reason: reason?.toString() || "client abort" },
           });
         } catch (refundErr) {
-          console.error("Failed to refund usage quota on cancel:", refundErr);
         }
       }
     }

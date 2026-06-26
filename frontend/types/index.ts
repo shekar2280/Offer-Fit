@@ -68,6 +68,8 @@ export interface AnalysisResult {
   audit_report?: AuditData;
   judge_override?: boolean;
   judge_critique?: string;
+  customized_json?: any;
+  jd_intents?: any;
 }
 
 export interface AnalysisInsights extends AnalysisResult {
