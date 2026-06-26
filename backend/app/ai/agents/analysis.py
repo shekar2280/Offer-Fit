@@ -1,13 +1,20 @@
 import os
 import json
-import logging
+import httpx
+import re
 from google import genai
 from google.genai import types
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 from fastapi import HTTPException
-
-logger = logging.getLogger(__name__)
+from jinja2 import Environment, FileSystemLoader
+from app.core.constants import ModelPricing
+from app.core.utils import calculate_cost, extract_usage_metadata
+from app.ai.agents.extractor import run_resume_extractor
+from app.ai.agents.intents import run_jd_intent_extractor
+from app.ai.agents.scorer import run_project_scorer
+from app.ai.agents.writer import run_resume_writer
+from app.ai.agents.validator import run_resume_validator
 
 class WorkExperienceItem(BaseModel):
     company: str = Field(description="Name of the company/employer")
@@ -49,15 +56,10 @@ class CustomizedResumeSchema(BaseModel):
     experience: List[WorkExperienceItem] = Field(description="Work experience items customized to the target JD")
     projects: List[ProjectItem] = Field(description="Technical projects customized to the target JD")
     education: List[EducationItem] = Field(description="Education history")
-import re
-from jinja2 import Environment, FileSystemLoader
-from app.core.constants import ModelPricing
-from app.core.utils import calculate_cost, extract_usage_metadata
 
 DEFAULT_MODELS = [m.value["model"] for m in ModelPricing]
 
 def escape_latex(text: str) -> str:
-    """Escapes special LaTeX characters in a string."""
     if not isinstance(text, str):
         return text
 
@@ -78,7 +80,6 @@ def escape_latex(text: str) -> str:
     return regex.sub(lambda match: latex_special_chars[match.group()], text)
 
 def escape_json_data(data: Any) -> Any:
-    """Recursively escapes all string values in a JSON-like dictionary/list."""
     if isinstance(data, dict):
         return {key: escape_json_data(val) for key, val in data.items()}
     elif isinstance(data, list):
@@ -87,8 +88,146 @@ def escape_json_data(data: Any) -> Any:
         return escape_latex(data)
     return data
 
+def render_latex_section(section_name: str, data: dict) -> str:
+    env = Environment(
+        block_start_string="((*",
+        block_end_string="*))",
+        variable_start_string="(([",
+        variable_end_string="]))"
+    )
+    
+    if section_name == "skills":
+        tmpl = env.from_string(
+            "\\begin{itemize}[leftmargin=0.5em, label={}, noitemsep, topsep=2pt]\n"
+            "    ((* for skill_cat in skills *))\n"
+            "    \\item \\textbf{(([ skill_cat.category ])):} ((* for skill in skill_cat.skills *))(([ skill ]))((* if not loop.last *)), ((* endif *))((* endfor *))\n"
+            "    ((* endfor *))\n"
+            "\\end{itemize}"
+        )
+    elif section_name == "experience":
+        tmpl = env.from_string(
+            "((* for exp in experience *))\n"
+            "\\textbf{(([ exp.role ]))} \\hfill (([ exp.date_range ])) \\\\\n"
+            "\\textit{(([ exp.company ])) ((* if exp.location *)) -- (([ exp.location ]))((* endif *))}\n"
+            "\\begin{itemize}[noitemsep,topsep=2pt,leftmargin=1.5em]\n"
+            "    ((* for bullet in exp.highlights *))\n"
+            "    \\item (([ bullet ]))\n"
+            "    ((* endfor *))\n"
+            "\\end{itemize}\n"
+            "\\vspace{5pt}\n"
+            "((* endfor *))"
+        )
+    elif section_name == "projects":
+        tmpl = env.from_string(
+            "((* for proj in projects *))\n"
+            "\\textbf{(([ proj.name ]))} \\hfill \\textit{((* for tech in proj.technologies *))(([ tech ]))((* if not loop.last *)), ((* endif *))((* endfor *))}\n"
+            "\\begin{itemize}[noitemsep,topsep=2pt,leftmargin=1.5em]\n"
+            "    ((* for bullet in proj.highlights *))\n"
+            "    \\item (([ bullet ]))\n"
+            "    ((* endfor *))\n"
+            "\\end{itemize}\n"
+            "\\vspace{5pt}\n"
+            "((* endfor *))"
+        )
+    elif section_name == "summary":
+        tmpl = env.from_string("(([ summary ]))")
+    else:
+        return ""
+        
+    safe_data = escape_json_data(data)
+    return tmpl.render(**safe_data)
+
+def replace_comment_block(latex_content: str, block_name: str, new_content: str) -> Optional[str]:
+    pattern_str = r"(%\s*(?:\[" + block_name + r"\]|BEGIN\s+" + block_name + r").*?\n)(.*?)(%\s*(?:\[/" + block_name + r"\]|END\s+" + block_name + r"))"
+    pattern = re.compile(pattern_str, re.IGNORECASE | re.DOTALL)
+    if pattern.search(latex_content):
+        return pattern.sub(rf"\1{new_content}\n\3", latex_content, count=1)
+    return None
+
+def replace_section_by_header(latex_content: str, keywords: list, new_content: str) -> Optional[str]:
+    pattern_str = r"(\\section\*?\{[^{}]*(?:" + "|".join(keywords) + r")[^{}]*\})(.*?)(?=(?:\\section\*?\{|\\end\{document\}))"
+    pattern = re.compile(pattern_str, re.IGNORECASE | re.DOTALL)
+    
+    match = pattern.search(latex_content)
+    if match:
+        start_idx = match.start(2)
+        end_idx = match.end(2)
+        return latex_content[:start_idx] + f"\n{new_content}\n" + latex_content[end_idx:]
+    return None
+
+def merge_customized_sections_into_latex(original_latex: str, customized_resume: dict) -> str:
+    result = original_latex
+    
+    rendered_skills = render_latex_section("skills", {"skills": customized_resume.get("skills", [])})
+    
+    skills_replaced = replace_comment_block(result, "SKILLS", rendered_skills) or replace_comment_block(result, "TECHNICAL SKILLS", rendered_skills)
+    if skills_replaced:
+        result = skills_replaced
+    else:
+        skills_header_replaced = replace_section_by_header(result, ["skills", "technical skills"], rendered_skills)
+        if skills_header_replaced:
+            result = skills_header_replaced
+
+    for exp in customized_resume.get("experience", []):
+        company = exp.get("company", "")
+        pattern = re.compile(r'(\\textbf\{.*?' + re.escape(company) + r'.*?\}|\\textit\{.*?' + re.escape(company) + r'.*?\}|' + re.escape(company) + r')', re.IGNORECASE)
+        match = pattern.search(result)
+        if match:
+            start_pos = match.end()
+            itemize_start = result.find(r"\begin{itemize}", start_pos)
+            if itemize_start != -1 and itemize_start - start_pos < 500:
+                itemize_end = result.find(r"\end{itemize}", itemize_start)
+                if itemize_end != -1:
+                    new_bullets_str = "\\begin{itemize}[noitemsep,topsep=2pt,leftmargin=1.5em]\n"
+                    for b in exp.get("highlights", []):
+                        new_bullets_str += f"    \\item {b}\n"
+                    new_bullets_str += "    \\end{itemize}"
+                    result = result[:itemize_start] + new_bullets_str + result[itemize_end + len(r"\end{itemize}"):]
+
+    for proj in customized_resume.get("projects", []):
+        name = proj.get("name", "")
+        pattern = re.compile(r'(\\textbf\{.*?' + re.escape(name) + r'.*?\}|' + re.escape(name) + r')', re.IGNORECASE)
+        match = pattern.search(result)
+        if match:
+            start_pos = match.end()
+            textit_start = result.find(r"\textit{", start_pos)
+            itemize_start = result.find(r"\begin{itemize}", start_pos)
+            if textit_start != -1 and (itemize_start == -1 or textit_start < itemize_start):
+                brace_count = 1
+                pos = textit_start + len(r"\textit{")
+                while brace_count > 0 and pos < len(result):
+                    if result[pos] == "{":
+                        brace_count += 1
+                    elif result[pos] == "}":
+                        brace_count -= 1
+                    pos += 1
+                if brace_count == 0:
+                    new_tech_str = ", ".join(proj.get("technologies", []))
+                    result = result[:textit_start] + "\\textit{" + new_tech_str + "}" + result[pos:]
+                    itemize_start = result.find(r"\begin{itemize}", start_pos)
+
+            if itemize_start != -1:
+                itemize_end = result.find(r"\end{itemize}", itemize_start)
+                if itemize_end != -1:
+                    new_bullets_str = "\\begin{itemize}[noitemsep,topsep=2pt,leftmargin=1.5em]\n"
+                    for b in proj.get("highlights", []):
+                        new_bullets_str += f"    \\item {b}\n"
+                    new_bullets_str += "    \\end{itemize}"
+                    result = result[:itemize_start] + new_bullets_str + result[itemize_end + len(r"\end{itemize}"):]
+
+    if customized_resume.get("summary"):
+        rendered_summary = escape_latex(customized_resume.get("summary", ""))
+        summary_replaced = replace_comment_block(result, "SUMMARY", rendered_summary) or replace_comment_block(result, "PROFESSIONAL SUMMARY", rendered_summary)
+        if summary_replaced:
+            result = summary_replaced
+        else:
+            summary_header_replaced = replace_section_by_header(result, ["summary", "professional summary"], rendered_summary)
+            if summary_header_replaced:
+                result = summary_header_replaced
+
+    return result
+
 def render_latex_resume(resume_data: dict) -> str:
-    """Configures Jinja2 with custom delimiters and renders the resume template."""
     safe_data = escape_json_data(resume_data)
     
     contact_list = []
@@ -178,7 +317,6 @@ def build_analysis_prompt(
     jd_pillars: Optional[Dict[str, Any]] = None
 ) -> str:
     persona = get_dynamic_persona(position)
-    is_latex = "\\documentclass" in (context or "") or "\\begin{document}" in (context or "")
     
     intel_section = ""
     if intel:
@@ -298,8 +436,8 @@ STRATEGIST EXECUTION PLAN:
 CRITICAL INSTRUCTIONS:
 1. You MUST output RAW LaTeX code only. Do not wrap in markdown code blocks.
 2. STRICTLY follow the instructions in the STRATEGIST EXECUTION PLAN.
-3. For all experiences and projects, enhance the impact of the bullet points using the XYZ formula (Accomplished [X] as measured by [Y], by doing [Z]).
-4. STRICT SKILLS INTEGRITY: You are STRICTLY FORBIDDEN from adding any technical skills, tools, programming languages, or software to the resume that are not explicitly present in the candidate's original resume. Do NOT hallucinate. Focus on re-ordering and emphasizing existing skills based on the JD.
+3. XYZ FORMULA RELAXATION: If a metric exists in the original bullet, preserve it. If a metric does NOT exist, do NOT invent or hallucinate numbers. Instead, focus on architecture, ownership, and technical complexity.
+4. SKILL EVIDENCE RULE: A skill can only appear if it is present in the original resume OR directly inferable from project code (e.g., if a project uses FastAPI, the skill can contain FastAPI). Do NOT hallucinate skills that aren't evidenced.
 5. Do NOT hallucinate experiences that the candidate does not have. Only reframe and emphasize their existing experience.
 6. STRICT TEMPLATE PRESERVATION: You MUST preserve the EXACT LaTeX layout of the original resume. This means:
    - DO NOT remove or alter ANY `\vspace` commands.
@@ -307,9 +445,15 @@ CRITICAL INSTRUCTIONS:
    - DO NOT remove the empty blank lines between sections or items.
    - DO NOT change how the Skills section is formatted (keep the exact spacing and newlines).
    - ONLY change the actual English text inside the bullet points, the professional summary, and the skill lists. Leave all surrounding LaTeX syntax and spacing exactly as it was.
-7. 🛑 MATHEMATICAL LENGTH HEURISTIC: To ensure the LaTeX compiles to exactly one full page, the final output MUST contain exactly 12 project bullet points in total. Distribute these 12 bullets across the projects based on the Execution Plan (e.g., 4 projects with 3 bullets each, or 3 projects with 4 bullets each), but the grand total of project bullet points MUST equal exactly 12.
-8. 🔒 STRICT KEYWORD PRESERVATION — CRITICAL: Before finalizing any bullet point, cross-reference the original resume against the JD. If a word or phrase already exists in the original resume AND is also a keyword in the JD (e.g., "stakeholders", "offline-first", "optimistic updates", "Socket.io", "Docker"), you MUST include that exact word or phrase in the rewritten bullet point. You are FORBIDDEN from paraphrasing or deleting JD-matching keywords that already exist in the original resume. Losing an existing matched keyword is a critical failure.
-9. 📌 TITLE & COMPANY INJECTION — CRITICAL: The OBJECTIVE section at the top of the resume MUST explicitly contain the exact job title "{position}" and the exact company name "{company_name}" verbatim. Replace the placeholder text in the OBJECTIVE section with: "Seeking to contribute as a {{position}} at {{company_name}}, leveraging expertise in [most relevant skills from JD]." Use exact strings, do not paraphrase.
+7. LENGTH HEURISTIC: Maintain a one-page constraint. Prefer 2-4 bullets per project. Do not add bullets solely to satisfy count requirements.
+8. STRICT KEYWORD PRESERVATION — CRITICAL: Before finalizing any bullet point, cross-reference the original resume against the JD. If a word or phrase already exists in the original resume AND is also a keyword in the JD (e.g., "stakeholders", "offline-first", "optimistic updates", "Socket.io", "Docker"), you MUST include that exact word or phrase in the rewritten bullet point. You are FORBIDDEN from paraphrasing or deleting JD-matching keywords that already exist in the original resume. Losing an existing matched keyword is a critical failure.
+9. SUMMARY POLICY: Remove the Objective section by default. Only create a Summary if explicitly requested. If created, it must be maximum 2 lines, evidence-based, and contain no generic career statements.
+10. NO BULLETS UNDER CONTACT HEADER: Under NO circumstances should any bullet points (`\\begin{{highlights}}`, `\\item`, etc.) or list items be added inside or directly below the contact information header (the email, phone, links section) or within the OBJECTIVE/SUMMARY section. The OBJECTIVE/SUMMARY section must remain a single, clean paragraph inside a `\\begin{{onecolentry}} ... \\end{{onecolentry}}` block, without any lists, bullets, or itemizations.
+11. PROJECT PRIORITIZATION & SKILLS REORDERING: Rank and reorder projects by JD relevance (e.g., place strongest AI project first for an AI JD). Also reorganize skill categories and individual skills inside each category, placing the skills most relevant/requested by the target job description at the beginning of the list.
+12. STRONG VERBS MATCHING COMPLEXITY: Rewrite experience and project highlights using a professional tone. The verb MUST match the actual project complexity. For a CRUD app use: Built, Developed, Implemented. For Medium complexity use: Designed, Engineered. For Large scale use: Architected, Scaled. Avoid inflation where not warranted.
+13. TECHNOLOGY MAPPING: Allowed mapping: generalize upward (e.g., Gemini API -> LLM Integration, Semantic Search -> Retrieval). FORBIDDEN: Lateral replacement (e.g., React -> Angular, FastAPI -> Django). Never replace technologies.
+14. ATS SAFETY: A keyword may appear at most: once in the Skills section, once in a project bullet, and once in an experience bullet. Avoid repetition. Keyword stuffing lowers quality.
+15. INTERVIEW SURVIVABILITY TEST: Before outputting any modified bullet, ask yourself: "Can the candidate confidently explain this statement in a technical interview?" If NO, reject the modification. Every bullet must be defensible under detailed technical questioning.
 """
     return prompt
 
@@ -324,45 +468,39 @@ async def run_analysis_agent(
     user_name: Optional[str] = None,
     intel: Optional[Dict[str, Any]] = None,
     execution_plan: Optional[Dict[str, Any]] = None,
-    jd_pillars: Optional[Dict[str, Any]] = None
+    jd_pillars: Optional[Dict[str, Any]] = None,
+    user_id: Optional[str] = None
 ) -> Dict[str, Any]:
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     client = genai.Client(api_key=api_key) if api_key else genai.Client()
 
-    style_guide_text = ""
     if mode == "customize":
+        if not user_id:
+            user_id = "default_user"
+
+        original_resume = await run_resume_extractor(user_id)
+
+        if not any(original_resume.values()):
+            raise Exception("No resume chunks found. Please re-upload your resume from the Profile page before customizing.")
+
+        jd_intents = run_jd_intent_extractor(jd)
+        project_rankings = await run_project_scorer(user_id, jd_intents)
+
+        style_patterns = []
         try:
             supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
             supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
-
-            if not supabase_url or not supabase_key:
-                from dotenv import load_dotenv
-                for path in ["../frontend/.env.local", "frontend/.env.local"]:
-                    if os.path.exists(path):
-                        load_dotenv(path)
-                        supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-                        supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
-                        if supabase_url and supabase_key:
-                            break
-            
             if supabase_url and supabase_key:
-                target_skills = []
-                if execution_plan and "missing_skills" in execution_plan:
-                    target_skills = execution_plan["missing_skills"]
-
-                search_text = ", ".join(target_skills) if target_skills else jd
+                search_text = ", ".join(jd_intents.get("technical", {}).keys()) if jd_intents.get("technical") else jd
                 embedding_payload_text = f"Role: {position}. Target Skills: {search_text}"
 
                 embed_resp = client.models.embed_content(
                     model="gemini-embedding-2",
                     contents=embedding_payload_text,
-                    config=types.EmbedContentConfig(
-                        output_dimensionality=768
-                    )
+                    config=types.EmbedContentConfig(output_dimensionality=768)
                 )
                 query_vector = embed_resp.embeddings[0].values
 
-                import httpx
                 headers = {
                     "apikey": supabase_key,
                     "Authorization": f"Bearer {supabase_key}",
@@ -370,121 +508,146 @@ async def run_analysis_agent(
                 }
                 payload = {
                     "query_embedding": query_vector,
-                    "match_threshold": 0.65,
+                    "match_threshold": 0.50,
                     "match_count": 5
                 }
                 async with httpx.AsyncClient() as http_client:
                     res = await http_client.post(
-                        f"{supabase_url}/rest/v1/rpc/match_bullets",
+                        f"{supabase_url}/rest/v1/rpc/match_style_patterns",
                         json=payload,
                         headers=headers,
                         timeout=10.0
                     )
                     if res.status_code == 200:
                         data_list = res.json()
-                        if data_list:
-                            bullets_list = [row["bullet_point"] for row in data_list]
-                            style_guide_text = "\n".join(f"- {b}" for b in bullets_list)
-                            logger.info("RAG retrieved %d style-guide bullets for '%s'", len(bullets_list), position)
-                        else:
-                            logger.info("RAG: no matching bullets found for '%s' (threshold: 0.3)", position)
-                    else:
-                        logger.warning("RAG: Supabase REST returned %s", res.status_code)
-        except Exception as e:
-            logger.error("RAG vector retrieval failed: %s", e)
+                        style_patterns = [row["style_pattern"] for row in data_list if row.get("style_pattern")]
+        except Exception:
+            pass
 
+        if not style_patterns:
+            style_patterns = [
+                "Built and shipped X independently...",
+                "Deployed and maintained scalable systems...",
+                "Developed retrieval-augmented generation pipelines..."
+            ]
+
+        customized_resume = await run_resume_writer(
+            original_resume=original_resume,
+            project_rankings=project_rankings,
+            style_patterns=style_patterns,
+            jd_intents=jd_intents
+        )
+
+        validation_result = run_resume_validator(
+            customized_resume=customized_resume,
+            original_evidence=project_rankings,
+            original_resume=original_resume
+        )
+        is_valid = validation_result.get("is_valid", True)
+
+        attempts = 0
+        while not validation_result.get("is_valid", True) and attempts < 1:
+            attempts += 1
+            correction_instructions = (
+                f"Fix these issues: {validation_result.get('reconstruction_plan')}. "
+                f"Ensure NO unsupported technologies: {validation_result.get('unsupported_technologies')} "
+                f"or hallucinated metrics: {validation_result.get('hallucinated_metrics')} are used."
+            )
+            customized_resume = await run_resume_writer(
+                original_resume=original_resume,
+                project_rankings=project_rankings,
+                style_patterns=style_patterns + [correction_instructions],
+                jd_intents=jd_intents
+            )
+            validation_result = run_resume_validator(
+                customized_resume=customized_resume,
+                original_evidence=project_rankings,
+                original_resume=original_resume
+            )
+
+        customized_resume["name"] = original_resume.get("profile", {}).get("name", "Full Name")
+        customized_resume["contact_info"] = original_resume.get("profile", {}).get("contact_info", {})
+        customized_resume["education"] = original_resume.get("education", [])
+
+        original_latex = original_resume.get("latex_source", "")
+        if original_latex:
+            try:
+                rendered_latex = merge_customized_sections_into_latex(original_latex, customized_resume)
+            except Exception:
+                rendered_latex = render_latex_resume(customized_resume)
+        else:
+            rendered_latex = render_latex_resume(customized_resume)
+
+        return {
+            "markdown": rendered_latex,
+            "data": {
+                "customized_json": customized_resume,
+                "jd_intents": jd_intents,
+                "validation": validation_result
+            },
+            "personaLabel": get_persona_label(position),
+            "toolUsed": "groq-llama-3.3-70b-specdec",
+            "usage": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0
+            },
+            "estimated_cost": 0.0
+        }
     prompt = build_analysis_prompt(
         company_name, position, context, jd, location, job_type, mode, user_name, intel, execution_plan, jd_pillars
     )
-    
-    if mode == "customize" and style_guide_text:
-        prompt += f"\n=== STYLE GUIDE / FEW-SHOT EXAMPLES ===\nUse the exact tone, quantification depth, and structure of these successful action bullets to rewrite the candidate's achievements. DO NOT copy the bullets literally or fabricate experiences:\n{style_guide_text}\n======================================\n"
-    
+
     last_error = None
     for model_name in DEFAULT_MODELS:
         try:
-            if mode == "customize":
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction="You are a professional resume architect. Output raw LaTeX matching the execution plan exactly.",
-                        response_mime_type="text/plain",
-                    )
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction="You are an elite career strategist and ATS optimization expert. Maintain strict boundaries for JSON output."
                 )
-                text = response.text
-                usage = extract_usage_metadata(response)
-                cost = calculate_cost(usage["promptTokenCount"], usage["candidatesTokenCount"], model_name)
-
-                clean_text = text.strip()
-                if clean_text.startswith("```latex"):
-                    clean_text = clean_text[8:]
-                elif clean_text.startswith("```"):
-                    clean_text = clean_text[3:]
-                if clean_text.endswith("```"):
-                    clean_text = clean_text[:-3]
-                clean_text = clean_text.strip()
+            )
+            text = response.text
+            
+            usage = extract_usage_metadata(response)
+            cost = calculate_cost(usage["promptTokenCount"], usage["candidatesTokenCount"], model_name)
+            
+            markdown = text
+            data = {}
+            
+            json_start_marker = "===JSON_START==="
+            json_end_marker = "===JSON_END==="
+            
+            if json_start_marker in text and json_end_marker in text:
+                start_idx = text.find(json_start_marker)
+                end_idx = text.find(json_end_marker)
                 
-                rendered_latex = clean_text
-                data = {}
+                markdown = text[:start_idx].strip()
+                json_str = text[start_idx + len(json_start_marker):end_idx].strip()
                 
-                return {
-                    "markdown": rendered_latex,
-                    "data": data,
-                    "personaLabel": get_persona_label(position),
-                    "toolUsed": model_name,
-                    "usage": usage,
-                    "estimated_cost": cost
-                }
-            else:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction="You are an elite career strategist and ATS optimization expert. Maintain strict boundaries for JSON output."
-                    )
-                )
-                text = response.text
-                
-                usage = extract_usage_metadata(response)
-                cost = calculate_cost(usage["promptTokenCount"], usage["candidatesTokenCount"], model_name)
-                
-                markdown = text
-                data = {}
-                
-                json_start_marker = "===JSON_START==="
-                json_end_marker = "===JSON_END==="
-                
-                if json_start_marker in text and json_end_marker in text:
-                    start_idx = text.find(json_start_marker)
-                    end_idx = text.find(json_end_marker)
+                if json_str.startswith("```json"):
+                    json_str = json_str[7:]
+                if json_str.startswith("```"):
+                    json_str = json_str[3:]
+                if json_str.endswith("```"):
+                    json_str = json_str[:-3]
                     
-                    markdown = text[:start_idx].strip()
-                    json_str = text[start_idx + len(json_start_marker):end_idx].strip()
+                try:
+                    data = json.loads(json_str.strip())
+                except json.JSONDecodeError:
+                    pass
                     
-                    if json_str.startswith("```json"):
-                        json_str = json_str[7:]
-                    if json_str.startswith("```"):
-                        json_str = json_str[3:]
-                    if json_str.endswith("```"):
-                        json_str = json_str[:-3]
-                        
-                    try:
-                        data = json.loads(json_str.strip())
-                    except json.JSONDecodeError:
-                        pass
-                        
-                return {
-                    "markdown": markdown,
-                    "data": data,
-                    "personaLabel": get_persona_label(position),
-                    "toolUsed": model_name,
-                    "usage": usage,
-                    "estimated_cost": cost
-                }
+            return {
+                "markdown": markdown,
+                "data": data,
+                "personaLabel": get_persona_label(position),
+                "toolUsed": model_name,
+                "usage": usage,
+                "estimated_cost": cost
+            }
         except Exception as e:
             last_error = e
-            logger.warning("Generative model fallback failed for %s: %s", model_name, e)
             continue
             
     raise HTTPException(status_code=500, detail=f"All generative models failed. Last error: {str(last_error)}")
