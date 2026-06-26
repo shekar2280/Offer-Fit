@@ -4,14 +4,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import os
 import re
-import logging
 from dotenv import load_dotenv
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-)
-logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -101,12 +94,18 @@ class FeatureInput(BaseModel):
     description: str
     commits: str
 
+class DeploymentItem(BaseModel):
+    component: str
+    platform: str
+    status: Optional[str] = "accepted"
+
 class IngestKBRequest(BaseModel):
     user_id: str
     project_name: str
     context: str
     technologies: List[str]
     features: List[FeatureInput]
+    deployments: List[DeploymentItem] = []
 
 class GitHubSyncRequest(BaseModel):
     user_id: str
@@ -136,7 +135,6 @@ async def analyze(req: AnalyzeRequest):
         )
         return result
     except Exception as e:
-        logger.exception("POST /analyze failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/research")
@@ -150,7 +148,6 @@ async def research(req: ResearchRequest):
         )
         return result
     except Exception as e:
-        logger.exception("POST /research failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/strategy")
@@ -165,7 +162,6 @@ async def strategy(req: StrategyRequest):
         )
         return result
     except Exception as e:
-        logger.exception("POST /strategy failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/audit")
@@ -177,7 +173,6 @@ async def audit(req: AuditRequest):
         )
         return result
     except Exception as e:
-        logger.exception("POST /audit failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/judge")
@@ -190,7 +185,6 @@ async def judge(req: JudgeRequest):
         )
         return result
     except Exception as e:
-        logger.exception("POST /judge failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/extract-pillars")
@@ -199,7 +193,6 @@ async def extract_pillars(req: PillarsRequest):
         result = await run_extract_pillars(jd=req.jd)
         return result
     except Exception as e:
-        logger.exception("POST /extract-pillars failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/insights")
@@ -247,7 +240,6 @@ Return exactly this shape:
         data = json.loads(text.strip())
         return data
     except Exception as e:
-        logger.error("ATS insights generation failed: %s", e)
         return { "atsScore": 0, "keywordDensity": 0, "matchedSkills": [], "missingSkills": [] }
 
 @app.post("/project-kb/ingest")
@@ -280,11 +272,11 @@ async def ingest_project_kb(req: IngestKBRequest):
             features_built=features_built,
             tech_stack=req.technologies,
             evidence=evidence,
-            signals=signals
+            signals=signals,
+            deployments=[d.dict() for d in req.deployments]
         )
         return {"success": True, "data": stored}
     except Exception as e:
-        logger.exception("POST /project-kb/ingest failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/project-kb/github/sync")
@@ -358,13 +350,9 @@ async def sync_github_repo(req: GitHubSyncRequest):
         else:
             new_prs_raw = prs_raw
 
-        if not new_commits_raw and not new_prs_raw and existing:
-            return {"success": True, "data": existing}
-
         tech_stack = await fetch_github_languages(owner, repo)
-        package_frameworks = await fetch_github_package_dependencies(owner, repo)
+        package_frameworks, detected_deployments = await fetch_github_package_dependencies(owner, repo)
         
-        # Merge both tech lists uniquely
         tech_set = set(tech_stack)
         for fw in package_frameworks:
             tech_set.add(fw)
@@ -422,6 +410,12 @@ async def sync_github_repo(req: GitHubSyncRequest):
         if latest_pr_id:
             meta_prefix += f";pr:{latest_pr_id}"
 
+        existing_deployments = existing.get("deployments", []) if existing else []
+        merged_deployments = list(existing_deployments)
+        for det in detected_deployments:
+            if not any(d.get("component") == det["component"] and d.get("platform") == det["platform"] for d in merged_deployments):
+                merged_deployments.append(det)
+
         stored = await store_project_intelligence(
             user_id=req.user_id,
             project_name=repo,
@@ -429,13 +423,13 @@ async def sync_github_repo(req: GitHubSyncRequest):
             features_built=project_intel.features,
             tech_stack=tech_stack,
             evidence=project_intel.evidence,
-            signals=project_intel.signals
+            signals=project_intel.signals,
+            deployments=merged_deployments
         )
         return {"success": True, "data": stored}
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.exception("POST /project-kb/github/sync failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/project-kb")
@@ -444,7 +438,6 @@ async def get_kb(user_id: str):
         projects = await get_project_intelligence(user_id)
         return {"projects": projects}
     except Exception as e:
-        logger.exception("GET /project-kb failed:")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
