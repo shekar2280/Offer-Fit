@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import logoImg from "./icon.png";
 import { User } from "@supabase/supabase-js";
+import { CheckCircle2 } from "lucide-react";
 import { Space_Grotesk } from "next/font/google";
 import { OnboardingModal } from "@/components/features/resume/components/onboarding-modal";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,6 +27,25 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [welcomeToast, setWelcomeToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      const hasSeenWelcome = sessionStorage.getItem("offerfit_welcome_seen");
+      if (!hasSeenWelcome && user.created_at && user.last_sign_in_at) {
+        const createdAt = new Date(user.created_at).getTime();
+        const lastSignIn = new Date(user.last_sign_in_at).getTime();
+        
+        if (lastSignIn - createdAt < 60000) {
+          setWelcomeToast("Welcome to OfferFit!");
+        } else {
+          setWelcomeToast("Welcome back to OfferFit!");
+        }
+        sessionStorage.setItem("offerfit_welcome_seen", "true");
+        setTimeout(() => setWelcomeToast(null), 4000);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     resetSession();
@@ -105,6 +125,14 @@ export default function Home() {
       <Suspense fallback={<div className="h-screen w-full bg-background animate-pulse" />}>
         <DashboardShell user={user} />
       </Suspense>
+      {welcomeToast && (
+        <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-zinc-900 border border-primary/20 shadow-[0_0_30px_rgba(242,170,76,0.1)]">
+            <CheckCircle2 className="w-5 h-5 text-primary" />
+            <span className="text-sm font-medium text-white">{welcomeToast}</span>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

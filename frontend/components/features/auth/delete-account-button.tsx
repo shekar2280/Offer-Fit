@@ -9,10 +9,29 @@ export function DeleteAccountButton() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState("");
 
   const handleDelete = async () => {
     setLoading(true);
     const supabase = createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (feedback.trim() && user) {
+      try {
+        await fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: `[ACCOUNT DELETION] ${feedback}`,
+            email: user.email,
+            user_name: user.user_metadata?.full_name || "Unknown User"
+          })
+        });
+      } catch (e) {
+        // Ignore network errors on feedback, proceed to delete account
+      }
+    }
     const { error } = await supabase.rpc("delete_user_account");
     if (error) {
       alert("Failed to delete account: " + error.message);
@@ -49,14 +68,26 @@ export function DeleteAccountButton() {
               <div className="p-3.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.15)]">
                 <AlertTriangle className="w-6 h-6" />
               </div>
-              
+
               <h3 className="text-lg font-bold text-white tracking-wide">
                 Delete Account?
               </h3>
-              
+
               <p className="text-xs text-white/50 leading-relaxed font-light">
                 This action is permanent and cannot be undone. All your profile information, vector index chunks, personalized LaTeX resumes, and job analysis history will be deleted immediately.
               </p>
+            </div>
+
+            <div className="pt-2">
+              <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">
+                Why are you leaving? (Optional)
+              </label>
+              <textarea
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-red-500/50 focus:outline-none resize-none min-h-[80px]"
+                placeholder="Let us know how we can improve..."
+              />
             </div>
 
             <div className="flex flex-col gap-2 pt-2">
@@ -67,7 +98,7 @@ export function DeleteAccountButton() {
               >
                 {loading ? "Deleting Account..." : "Yes, Delete Account"}
               </button>
-              
+
               <button
                 onClick={() => setIsOpen(false)}
                 disabled={loading}
