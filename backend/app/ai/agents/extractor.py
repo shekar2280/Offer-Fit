@@ -8,13 +8,20 @@ async def run_resume_extractor(user_id: str) -> Dict[str, Any]:
 
     if supabase:
         try:
-            profile_resp = supabase.table("profiles").select(
-                "full_name, email, linkedin, portfolio_url, website, city_country, "
-                "university, field_of_study, graduation_year, latex_source"
-            ).eq("id", user_id).execute()
+            try:
+                profile_resp = supabase.table("profiles").select(
+                    "full_name, email, linkedin, portfolio_url, website, city_country, "
+                    "university, field_of_study, graduation_year, resume_text"
+                ).eq("id", user_id).execute()
+            except Exception:
+                profile_resp = supabase.table("profiles").select(
+                    "full_name, email, linkedin, portfolio_url, website, city_country, "
+                    "university, field_of_study, graduation_year, latex_source"
+                ).eq("id", user_id).execute()
 
             if profile_resp.data:
                 p = profile_resp.data[0]
+                resume_content = p.get("resume_text") or p.get("latex_source") or ""
                 profile_info = {
                     "name": p.get("full_name") or "Full Name",
                     "contact_info": {
@@ -25,7 +32,7 @@ async def run_resume_extractor(user_id: str) -> Dict[str, Any]:
                         "portfolio": p.get("portfolio_url") or p.get("website") or "",
                     },
                     "location": p.get("city_country") or "",
-                    "latex_source": p.get("latex_source") or ""
+                    "latex_source": resume_content
                 }
                 education_info = {
                     "institution": p.get("university") or "",
