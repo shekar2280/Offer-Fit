@@ -10,13 +10,11 @@ async def run_resume_extractor(user_id: str) -> Dict[str, Any]:
         try:
             try:
                 profile_resp = supabase.table("profiles").select(
-                    "full_name, email, linkedin, portfolio_url, website, city_country, "
-                    "university, field_of_study, graduation_year, resume_text"
+                    "full_name, email, resume_text"
                 ).eq("id", user_id).execute()
             except Exception:
                 profile_resp = supabase.table("profiles").select(
-                    "full_name, email, linkedin, portfolio_url, website, city_country, "
-                    "university, field_of_study, graduation_year, latex_source"
+                    "full_name, email, latex_source"
                 ).eq("id", user_id).execute()
 
             if profile_resp.data:
@@ -25,19 +23,14 @@ async def run_resume_extractor(user_id: str) -> Dict[str, Any]:
                 profile_info = {
                     "name": p.get("full_name") or "Full Name",
                     "contact_info": {
-                        "email":     p.get("email") or "",
-                        "phone":     "",
-                        "linkedin":  p.get("linkedin") or "",
-                        "github":    "",
-                        "portfolio": p.get("portfolio_url") or p.get("website") or "",
+                        "email": p.get("email") or "",
+                        "phone": "",
+                        "linkedin": "",
+                        "github": "",
+                        "portfolio": "",
+                        "location": ""
                     },
-                    "location": p.get("city_country") or "",
                     "latex_source": resume_content
-                }
-                education_info = {
-                    "institution": p.get("university") or "",
-                    "degree":      p.get("field_of_study") or "",
-                    "date_range":  p.get("graduation_year") or "",
                 }
         except Exception:
             pass

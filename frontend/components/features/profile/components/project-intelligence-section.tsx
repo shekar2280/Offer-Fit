@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/services/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { CheckCircle2, AlertCircle, Terminal, Plus, Trash2, X, ChevronDown, RefreshCw } from "lucide-react";
+import { UnlinkGithubButton } from "../../auth/unlink-github-button";
 
 const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -80,7 +81,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
     const [newComponent, setNewComponent] = useState("Frontend");
     const [newPlatform, setNewPlatform] = useState("");
     const [customNewPlatform, setCustomNewPlatform] = useState("");
-    
+
     const [isEditingDeployments, setIsEditingDeployments] = useState<string | null>(null);
     const [editingDeploymentsList, setEditingDeploymentsList] = useState<DeploymentItem[]>([]);
     const [editNewComponent, setEditNewComponent] = useState("Frontend");
@@ -121,7 +122,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
     const handleAcceptSuggestion = async (projectId: string, index: number) => {
         const proj = projects.find(p => p.id === projectId);
         if (!proj || !proj.deployments) return;
-        const updated = proj.deployments.map((d, idx) => 
+        const updated = proj.deployments.map((d, idx) =>
             idx === index ? { ...d, status: "accepted" } : d
         );
         try {
@@ -362,9 +363,12 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                 </div>
 
                 {isGithubLinked ? (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.05)] cursor-default">
-                        <GithubIcon className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Connected</span>
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.05)] cursor-default">
+                            <GithubIcon className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Connected</span>
+                        </div>
+                        <UnlinkGithubButton />
                     </div>
                 ) : (
                     <button
@@ -467,7 +471,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
 
                         <div>
                             <label className="text-xs font-bold uppercase tracking-wider text-white/70 block mb-2">Deployments</label>
-                            
+
                             {deployments.length > 0 && (
                                 <div className="space-y-2 mb-3 bg-zinc-950/60 border border-white/[0.04] p-3 rounded-xl">
                                     {deployments.map((dep, idx) => (
@@ -547,7 +551,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                     Add
                                 </button>
                             </div>
-                            
+
                             <p className="text-[10px] text-white/40 mt-2.5 flex items-center gap-1.5">
                                 <AlertCircle className="w-3.5 h-3.5 text-primary shrink-0" />
                                 <span>Add all components of your application (e.g. Next.js on Vercel, FastAPI on Render) to match job requirements.</span>
@@ -780,7 +784,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                                                     </button>
                                                                 </div>
                                                             ))}
-                                                            
+
                                                             <div className="space-y-1 pt-1.5 border-t border-white/[0.04]">
                                                                 <select
                                                                     value={editNewComponent}
@@ -831,7 +835,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                                                     + Add to list
                                                                 </button>
                                                             </div>
-                                                            
+
                                                             <div className="flex gap-2 pt-1.5">
                                                                 <button
                                                                     onClick={() => handleSaveDeployments(proj.id, editingDeploymentsList)}
@@ -882,7 +886,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                                                                         </span>
                                                                                     )}
                                                                                 </div>
-                                                                                
+
                                                                                 {isSuggested ? (
                                                                                     <div className="flex gap-1.5">
                                                                                         <button
