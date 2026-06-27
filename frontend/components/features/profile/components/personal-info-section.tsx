@@ -1,7 +1,7 @@
 "use client";
 
 import { ProfileData } from "../profile-form";
-import { User, Mail, Phone, Calendar, MapPin } from "lucide-react";
+import { User, Mail, FileText } from "lucide-react";
 
 interface PersonalInfoSectionProps {
     formData: ProfileData;
@@ -20,9 +20,6 @@ export function PersonalInfoSection({ formData, setFormData }: PersonalInfoSecti
                         <h2 className="text-2xl font-bold tracking-tight text-white font-heading">
                             Personal Information
                         </h2>
-                        <p className="text-white/40 text-xs font-light leading-relaxed">
-                            Foundational details used for resume headers and autofilling contact info.
-                        </p>
                     </div>
                 </div>
             </header>
@@ -34,12 +31,12 @@ export function PersonalInfoSection({ formData, setFormData }: PersonalInfoSecti
                     </label>
                     <div className="flex items-center gap-3">
                         <User className="w-4 h-4 text-white/20 group-focus-within:text-primary/50 transition-colors" />
-                        <input 
-                            id="full_name" 
-                            value={formData.full_name} 
-                            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} 
-                            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/20" 
-                            placeholder="e.g. Alexander Pierce" 
+                        <input
+                            id="full_name"
+                            value={formData.full_name}
+                            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/20"
+                            placeholder="e.g. Alexander Pierce"
                         />
                     </div>
                 </div>
@@ -50,33 +47,16 @@ export function PersonalInfoSection({ formData, setFormData }: PersonalInfoSecti
                     </label>
                     <div className="flex items-center gap-3">
                         <Mail className="w-4 h-4 text-white/20 group-focus-within:text-primary/50 transition-colors" />
-                        <input 
-                            id="email" 
-                            value={formData.email} 
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
-                            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/20" 
+                        <input
+                            id="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/20"
                             placeholder="alexander@example.com"
                         />
                     </div>
                 </div>
 
-
-
-                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all md:col-span-2">
-                    <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-primary transition-colors mb-1" htmlFor="city_country">
-                        Location (City / Country)
-                    </label>
-                    <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-white/20 group-focus-within:text-primary/50 transition-colors" />
-                        <input 
-                            id="city_country"
-                            value={formData.city_country} 
-                            onChange={(e) => setFormData({ ...formData, city_country: e.target.value })} 
-                            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/20" 
-                            placeholder="e.g. San Francisco, USA" 
-                        />
-                    </div>
-                </div>
             </div>
         </div>
     );
