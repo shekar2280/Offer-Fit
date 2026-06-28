@@ -40,7 +40,7 @@ export function DeleteAccountButton() {
       return;
     }
     await supabase.auth.signOut();
-    router.push("/auth/login");
+    window.location.href = "/auth/login";
   };
 
   return (

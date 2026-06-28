@@ -60,12 +60,13 @@ export function Navbar({
             const user = session?.user;
             if (!user) return;
 
-            const [{ data: usageData, error }, { data: profileData }] = await Promise.all([
-                supabase.from("user_usage").select("daily_count, last_request_at").eq("user_id", user.id).maybeSingle(),
-                supabase.from("profiles").select("plan_type").eq("id", user.id).maybeSingle(),
-            ]);
+            const { data: usageData, error } = await supabase
+                .from("user_usage")
+                .select("daily_count, last_request_at, plan_type")
+                .eq("user_id", user.id)
+                .maybeSingle();
 
-            if (profileData?.plan_type) setPlanType(profileData.plan_type as PlanType);
+            if (usageData?.plan_type) setPlanType(usageData.plan_type as PlanType);
 
             if (usage) {
                 setClientUsage(usage);

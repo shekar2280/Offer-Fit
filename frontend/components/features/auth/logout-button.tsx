@@ -11,7 +11,7 @@ export function LogoutButton() {
     sessionStorage.removeItem("offerfit_welcome_seen");
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/auth/login");
+    window.location.href = "/auth/login";
   };
 
   return (
