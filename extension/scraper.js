@@ -111,7 +111,7 @@ const ScraperEngine = {
       if (el) {
         const text = (el.innerText || el.textContent || "").trim();
         if (text.length > 50) {
-          description = this.cleanText(text);
+          description = this.focusDescription(this.cleanText(text));
           break;
         }
       }
@@ -237,7 +237,7 @@ const ScraperEngine = {
     for (const sel of descSelectors) {
       const el = document.querySelector(sel);
       if (el) {
-        description = this.cleanText(el.innerText || el.textContent || "");
+        description = this.focusDescription(this.cleanText(el.innerText || el.textContent || ""));
         if (description.length > 50) break;
       }
     }
@@ -295,7 +295,7 @@ const ScraperEngine = {
     for (const sel of descSelectors) {
       const el = document.querySelector(sel);
       if (el) {
-        description = this.cleanText(el.innerText || el.textContent || "");
+        description = this.focusDescription(this.cleanText(el.innerText || el.textContent || ""));
         if (description.length > 50) break;
       }
     }
@@ -354,7 +354,7 @@ const ScraperEngine = {
             jobType: Array.isArray(job.employmentType)
               ? job.employmentType.join(", ")
               : job.employmentType || "",
-            description: this.cleanDescription(job.description || ""),
+            description: this.focusDescription(this.cleanDescription(job.description || "")),
             yoeRequired,
             source: "JSON-LD",
           };
@@ -415,7 +415,7 @@ const ScraperEngine = {
       role: role.trim(),
       location: "",
       jobType: "",
-      description: this.cleanText(description.trim()),
+      description: this.focusDescription(this.cleanText(description.trim())),
       source: "Heuristic",
     };
   },
@@ -510,6 +510,56 @@ const ScraperEngine = {
     return isNaN(parsed) ? null : parsed;
   },
 
+  focusDescription(text) {
+    if (!text) return text;
+
+    const SECTION_STOP_PATTERNS = [
+      /^(about\s+(the\s+)?(company|us|organization|modulr|barclays|adobe|options)|life\s+at\s+|working\s+at\s+)/i,
+      /^(our\s+(mission|values?|culture|story|vision|commitment|benefits?|platform|product))/i,
+      /^(what\s+we\s+(offer|provide|give|believe)|why\s+(join|us|work\s+here))/i,
+      /^(benefits?|perks?|compensation|what\s+you('ll|will)\s+(get|receive|enjoy))/i,
+      /^(diversity|inclusion|equal\s+opportunity|equal\s+employment)/i,
+      /^(mod)?inclusion/i,
+      /^(company|employer)\s+(overview|background|profile|description)/i,
+      /^(who\s+we\s+are|what\s+we\s+do|our\s+founding|learning\s+opportunities|great\s+workspace|office|facilities|events|socials?)/i,
+      /^(funded\s+by|backed\s+by|our\s+investors)/i,
+    ];
+
+    const lines = text.split("\n");
+    const keptLines = [];
+    let inFluffSection = false;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        if (!inFluffSection) keptLines.push("");
+        continue;
+      }
+
+      const isFluffHeader = SECTION_STOP_PATTERNS.some((p) => p.test(trimmed));
+
+      if (isFluffHeader) {
+        inFluffSection = true;
+        continue;
+      }
+
+      const isJobHeader = /(responsibilities|qualifications?|requirements?|what\s+you('ll|will)\s+(do|bring|work)|your\s+role|the\s+role|duties|skills?|looking\s+for|experience|expectations|accountabilities|your\s+impact|meet\s+the\s+team)/i.test(trimmed);
+
+      if (isJobHeader) {
+        inFluffSection = false;
+      }
+
+      if (!inFluffSection) {
+        keptLines.push(trimmed);
+      }
+    }
+
+    return keptLines
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  },
+
   cleanText(text) {
     const noisePatterns = [
       /^(Share|Show more options|Save|Apply|Easy Apply|Follow|Message|I'm interested|Show more|show more)\s*$/gim,
@@ -540,6 +590,11 @@ const ScraperEngine = {
       /^\(3rd\)|^3rd$/gim,
       /^Report this job$/gim,
       /^Set alert$/gim,
+      /^View LinkedIn profile$/gim,
+      /^\d+ connection.? on LinkedIn.*$/gim,
+      /^See who.*hired for this role$/gim,
+      /^Similar jobs$/gim,
+      /^You might also like.*$/gim,
     ];
 
     let cleaned = text;
