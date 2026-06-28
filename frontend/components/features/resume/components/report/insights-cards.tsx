@@ -32,8 +32,7 @@ const MetricCard = ({ label, value, unit, color, progress, subtitle, compact }: 
             <div className="flex justify-between items-start gap-4">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 shrink-0">{label}</span>
                 <div className="flex items-baseline gap-1 min-w-0">
-                    <span className={`font-black text-white leading-none tracking-tighter truncate ${
-                        isLongValue ? 'text-lg sm:text-xl' : (compact ? 'text-2xl' : 'text-3xl')
+                    <span className={`font-black text-white leading-none tracking-tighter truncate ${isLongValue ? 'text-lg sm:text-xl' : (compact ? 'text-2xl' : 'text-3xl')
                         }`}>
                         {value}
                     </span>
@@ -83,14 +82,14 @@ export function ScoreMetrics({ insights, compact }: { insights: AnalysisResult, 
 
 export function SalaryInsight({ data, compact }: { data?: SalaryInsightType & { location?: string }, compact?: boolean }) {
     if (!data) return null;
-    
+
     let displayValue = data.range.split(' ')[0];
     let displayUnit = data.range.includes('LPA') ? 'LPA INR' : data.currency;
 
     const lowerRange = data.range.toLowerCase();
     const hasNumbers = /\d/.test(data.range);
     const hasCurrencySymbols = /\$|€|£|₹/.test(data.range);
-    
+
     if (lowerRange.includes("not available") || lowerRange.includes("n/a") || (!hasNumbers && !hasCurrencySymbols)) {
         displayValue = "N/A";
         displayUnit = "";
@@ -185,8 +184,8 @@ export function CompanyIntelligence({ score, traits = [], content, companyName, 
                         ) : (
                             <h4 className="text-lg font-black uppercase tracking-[0.4em] text-white leading-tight">{companyName || 'Confidential'}</h4>
                         )}
-                        <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest leading-none">
-                            Corporate Intelligence {intel?.is_startup ? '· Startup' : ''}
+                        <p className="text-[10px] font-mono text-white/80 uppercase tracking-widest leading-none">
+                            {intel?.is_startup ? 'Startup' : ''}
                         </p>
                     </div>
                 </div>

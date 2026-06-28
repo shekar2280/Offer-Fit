@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { createClient } from "@/services/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-
 import { User } from "@supabase/supabase-js";
 
+function isLatexSource(text: string): boolean {
+  return text.includes("\\documentclass") || text.includes("\\begin{document}");
+}
+
 export function useResumeProfile(user: User | null) {
-  const [latexOverride, setLatexOverride] = useState<string | null>(null);
-  const [extractedOverride, setExtractedOverride] = useState<string | null>(null);
+  const [resumeOverride, setResumeOverride] = useState<string | null>(null);
   const [hasExistingResumeOverride, setHasExistingResumeOverride] = useState<boolean | null>(null);
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
@@ -16,7 +18,7 @@ export function useResumeProfile(user: User | null) {
       const supabase = createClient();
       const response = await supabase
         .from("profiles")
-        .select("resume_text, latex_source")
+        .select("resume_text")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -36,22 +38,26 @@ export function useResumeProfile(user: User | null) {
     enabled: !!user,
   });
 
-  const latexText = latexOverride ?? profile?.latex_source ?? "";
-  const extractedText = extractedOverride ?? profile?.resume_text ?? null;
+  const resumeText = resumeOverride ?? profile?.resume_text ?? null;
   const hasExistingResume = hasExistingResumeOverride ?? !!(profile?.resume_text);
 
-  const masterLatex = profile?.latex_source ?? "";
-  const masterExtractedText = profile?.resume_text ?? null;
+  const isLatex = isLatexSource(resumeText || "");
+
+  const providers = user?.app_metadata?.providers || [];
+  const identities = user?.identities || [];
+  const isGithubLinked = providers.includes("github") || identities.some((id: any) => id.provider === "github");
 
   return {
-    extractedText,
-    setExtractedText: setExtractedOverride,
-    latexText,
-    setLatexText: setLatexOverride,
+    extractedText: resumeText,
+    setExtractedText: setResumeOverride,
+    latexText: isLatex ? resumeText : null,
+    setLatexText: setResumeOverride,
     hasExistingResume,
     setHasExistingResume: setHasExistingResumeOverride,
-    masterLatex,
-    masterExtractedText,
+    masterLatex: isLatex ? resumeText : null,
+    masterExtractedText: resumeText,
+    isLatex,
     isLoadingProfile,
+    hasGithubConnected: isGithubLinked || !!profile?.github_username,
   };
 }

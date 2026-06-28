@@ -1,13 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Hiring Data Sync",
+  "name": "OfferFit",
   "version": "1.0",
   "description": "Premium AI-powered job extraction for 100+ platforms.",
   "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": [
-    "https://offerfit-backend.onrender.com/*",
-    "https://offerfit.vercel.app/*"
-  ],
+  "host_permissions": ["https://offerfit.vercel.app/*"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"

@@ -4,8 +4,27 @@ import { logSystemEvent } from "@/services/supabase/logger";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
+function stripLatex(text: string): string {
+  const isLatex = text.includes("\\documentclass") || text.includes("\\begin{document}");
+  if (!isLatex) return text;
+  return text
+    .replace(/\\documentclass(\[.*?\])?\{.*?\}/g, "")
+    .replace(/\\usepackage(\[.*?\])?\{.*?\}/g, "")
+    .replace(/\\begin\{document\}|\\end\{document\}/g, "")
+    .replace(/\\begin\{[^}]+\}|\\end\{[^}]+\}/g, "\n")
+    .replace(/\\(?:section|subsection|subsubsection|textbf|textit|emph|href|url|textcolor|colorbox)\{([^}]*)\}/g, "$1")
+    .replace(/\\(?:item|resumeItem)\s*/g, "\n- ")
+    .replace(/\\[a-zA-Z]+\*?(\[[^\]]*\])?\{([^}]*)\}/g, "$2")
+    .replace(/\\[a-zA-Z]+\*?(\[[^\]]*\])?/g, " ")
+    .replace(/\{|\}/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export async function generateChunks(text: string): Promise<string[]> {
-  const sections = text.split(/\n(?=[A-Z\s&/-]{4,}\n)/g);
+  const cleanText = stripLatex(text);
+  const sections = cleanText.split(/\n(?=[A-Z\s&/-]{4,}\n)/g);
 
   const noiseKeywords = [
     "education",

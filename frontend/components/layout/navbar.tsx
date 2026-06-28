@@ -56,15 +56,17 @@ export function Navbar({
     useEffect(() => {
         const fetchUsage = async () => {
             const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
             if (!user) return;
 
-            const [{ data: usageData, error }, { data: profileData }] = await Promise.all([
-                supabase.from("user_usage").select("daily_count, last_request_at").eq("user_id", user.id).maybeSingle(),
-                supabase.from("profiles").select("plan_type").eq("id", user.id).maybeSingle(),
-            ]);
+            const { data: usageData, error } = await supabase
+                .from("user_usage")
+                .select("daily_count, last_request_at, plan_type")
+                .eq("user_id", user.id)
+                .maybeSingle();
 
-            if (profileData?.plan_type) setPlanType(profileData.plan_type as PlanType);
+            if (usageData?.plan_type) setPlanType(usageData.plan_type as PlanType);
 
             if (usage) {
                 setClientUsage(usage);
@@ -82,7 +84,6 @@ export function Navbar({
         fetchUsage();
     }, [usage]);
 
-
     const getDailyCount = () => {
         if (!clientUsage) return null;
         if (clientUsage.last_request_at && isPastMidnightIST(clientUsage.last_request_at)) return 0;
@@ -93,7 +94,6 @@ export function Navbar({
     const dailyCount = getDailyCount();
     const remainingCredits = dailyCount !== null ? Math.max(0, userQuota - dailyCount) : null;
     const isOutOfCredits = mounted && remainingCredits === 0;
-
 
     return (
         <header className="w-full h-[68px] shrink-0 sticky top-0 z-50 bg-black/60 backdrop-blur-2xl border-b border-white/[0.06]">
@@ -119,7 +119,7 @@ export function Navbar({
                             className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden transition-shadow duration-300 group-hover:shadow-[0_0_16px_4px_rgba(242,170,76,0.3)]"
                             style={{ background: "linear-gradient(135deg, #101820, #1e2a3a)", border: "1px solid rgba(242,170,76,0.2)" }}
                         >
-                            <Image src={logoIcon} alt="Offer Fit" width={20} height={20} className="object-contain" />
+                            <Image src={logoIcon} alt="Offer Fit" width={20} height={20} priority className="object-contain" />
                         </div>
                         <span className={`${spaceGrotesk.className} text-lg font-bold tracking-[0.08em] text-white select-none`}>
                             OFFER<span className="text-[#f2aa4c] font-light">FIT</span>

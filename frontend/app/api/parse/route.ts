@@ -7,7 +7,6 @@ import { logSystemEvent } from "@/services/supabase/logger";
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File;
-  const parseMode = formData.get("parseMode") || "analysis";
 
   if (!file) {
     return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -15,22 +14,24 @@ export async function POST(req: NextRequest) {
 
   try {
     const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
-    const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.name.endsWith(".docx");
+    const isDocx =
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.name.endsWith(".docx");
     let text = "";
-    
+
     if (isPdf) {
-        const arrayBuffer = await file.arrayBuffer();
-        const parsedResult = await extractText(arrayBuffer);
-        text = Array.isArray(parsedResult.text)
-            ? parsedResult.text.join("\n")
-            : parsedResult.text;
+      const arrayBuffer = await file.arrayBuffer();
+      const parsedResult = await extractText(arrayBuffer);
+      text = Array.isArray(parsedResult.text)
+        ? parsedResult.text.join("\n")
+        : parsedResult.text;
     } else if (isDocx) {
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const parsedResult = await mammoth.extractRawText({ buffer });
-        text = parsedResult.value;
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const parsedResult = await mammoth.extractRawText({ buffer });
+      text = parsedResult.value;
     } else {
-        text = await file.text();
+      text = await file.text();
     }
 
     const supabase = await createClient();
@@ -42,40 +43,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const profileUpdate: Record<string, unknown> = { 
-        id: user.id,
-        updated_at: new Date().toISOString() 
-    };
-
-    if (isPdf) {
-        profileUpdate.resume_text = text;
-    } else if (isDocx) {
-        if (parseMode === "customize") {
-            profileUpdate.latex_source = text;
-        } else {
-            profileUpdate.resume_text = text;
-            profileUpdate.latex_source = text;
-        }
-    } else {
-        profileUpdate.latex_source = text;
-    }
-
-    await supabase.from("profiles").upsert(profileUpdate);
+    await supabase
+      .from("profiles")
+      .upsert({ id: user.id, resume_text: text, updated_at: new Date().toISOString() });
 
     return NextResponse.json({
-      text: text,
-      isLatex: !isPdf && !isDocx
+      text,
+      isLatex: !isPdf && !isDocx,
     });
   } catch (error: unknown) {
     await logSystemEvent({
       level: "ERROR",
       source: "API_PARSE",
       message: "File parsing failed",
-      details: { error: (error as Error).message, fileName: file.name, fileType: file.type }
+      details: { error: (error as Error).message, fileName: file.name, fileType: file.type },
     });
-    return NextResponse.json(
-      { error: "Failed to parse file" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to parse file" }, { status: 500 });
   }
 }

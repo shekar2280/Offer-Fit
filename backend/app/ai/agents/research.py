@@ -66,6 +66,9 @@ LOCATION: {location or "Global"}
 2. **India Enforcement**: If Location is "India", use ₹ (Rupees) and "LPA" (e.g., 15 LPA). USD is strictly FORBIDDEN.
 3. **USA Enforcement**: If Location is "USA", use $ (USD) and "Yearly" (e.g., $120,000 - $150,000).
 
+### MONETIZED SCHEME / COURSE PLATFORM CHECK:
+If the search results reveal this entity is a course selling platform, training program, unpaid bootcamp, or monetized internship scheme masquerading as a normal tech company or actual job opportunity, you MUST call this out prominently in "values_culture" and "company_cheat_sheet". Specify that it requires payment, acts as a course funnel, or is not a traditional engineering organization.
+
 RAW SEARCH DATA:
 {search_results}
 
@@ -98,7 +101,8 @@ async def run_research_agent(
     search_queries = [
         f"{company_name} engineering tech stack and backend tools 2024 2025",
         f"{company_name} company values engineering culture mission",
-        f"{company_name} {position} salary range {location or 'India'}"
+        f"{company_name} {position} salary range {location or 'India'}",
+        f"{company_name} reviews course selling platform scam pay money internship"
     ]
     
     search_tasks = [perform_search(q, tavily_api_key) for q in search_queries]

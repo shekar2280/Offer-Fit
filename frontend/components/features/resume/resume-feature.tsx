@@ -50,8 +50,8 @@ export function ResumeFeature({
         queryKey: ["user"],
         queryFn: async () => {
             const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            return user;
+            const { data: { session } } = await supabase.auth.getSession();
+            return session?.user || null;
         },
         staleTime: Infinity,
         gcTime: Infinity,
@@ -62,11 +62,12 @@ export function ResumeFeature({
         queryFn: async () => {
             if (!user) return null;
             const supabase = createClient();
-            const [{ data: usageData }, { data: profileData }] = await Promise.all([
-                supabase.from("user_usage").select("daily_count, last_request_at").eq("user_id", user.id).single(),
-                supabase.from("profiles").select("plan_type").eq("id", user.id).maybeSingle(),
-            ]);
-            return { ...usageData, plan_type: (profileData?.plan_type as PlanType) || "free" };
+            const { data: usageData } = await supabase
+                .from("user_usage")
+                .select("daily_count, last_request_at, plan_type")
+                .eq("user_id", user.id)
+                .single();
+            return { ...usageData, plan_type: (usageData?.plan_type as PlanType) || "free" };
         },
         enabled: !!user,
         staleTime: 1000 * 30,
@@ -76,7 +77,8 @@ export function ResumeFeature({
         extractedText, setExtractedText,
         latexText, setLatexText,
         hasExistingResume, setHasExistingResume,
-        isLoadingProfile
+        isLoadingProfile,
+        hasGithubConnected
     } = useResumeProfile(user ?? null);
 
     const {
@@ -152,8 +154,6 @@ export function ResumeFeature({
             setExtractedText(null);
         }
     }, [selectedId, globalState.id, globalState.jd, globalState.companyName, setServerError]);
-
-
 
     useEffect(() => {
         const el = scrollContainerRef.current;
@@ -300,11 +300,12 @@ export function ResumeFeature({
                                 latexText={latexText}
                                 setLatexText={setLatexText}
                                 extractedText={extractedText}
+                                setExtractedText={setExtractedText}
+                                hasGithubConnected={hasGithubConnected}
                                 handleFile={handleFile}
                                 isUploading={isUploading}
                                 isAnalyzing={isAnalyzing}
                                 hasExistingResume={hasExistingResume}
-                                setExtractedText={setExtractedText}
                                 setHasExistingResume={setHasExistingResume}
                                 analyzeResume={analyzeResume}
                                 selectedId={analysisState.currentAnalysisId}

@@ -135,13 +135,13 @@ export async function POST(req: Request) {
         }
 
         if (user) {
-          const { data: profileData } = await supabase
-            .from("profiles")
+          const { data: usageData } = await supabase
+            .from("user_usage")
             .select("plan_type")
-            .eq("id", user.id)
+            .eq("user_id", user.id)
             .maybeSingle();
 
-          const plan: PlanType = (profileData?.plan_type as PlanType) || "free";
+          const plan: PlanType = (usageData?.plan_type as PlanType) || "free";
           const userQuota = PLAN_QUOTAS[plan];
           const resetMs = getMidnightISTResetMs();
           const resetHours = Math.ceil(resetMs / 1000 / 60 / 60);

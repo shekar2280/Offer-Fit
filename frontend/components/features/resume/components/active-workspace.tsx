@@ -32,7 +32,7 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
         isOverQuota = false,
     } = props;
 
-    const isSubmitDisabled = isAnalyzing || isUploading || isOverQuota || (mainTab === "customize" ? !(latexText || extractedText) : !extractedText) || !jobDescription || !companyName || !position;
+    const isSubmitDisabled = isAnalyzing || isUploading || isOverQuota || (mainTab === "customize" ? !latexText : !extractedText) || !jobDescription || !companyName || !position;
 
     return (
         <div className="w-full flex flex-col relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -62,6 +62,7 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                             selectedId={selectedId}
                             saveBaselineLatex={saveBaselineLatex}
                             isLoadingProfile={props.isLoadingProfile}
+                            hasGithubConnected={props.hasGithubConnected}
                         />
 
                         <JobDetails
@@ -91,7 +92,7 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                                 <div className={`absolute inset-0 bg-gradient-to-r ${isOverQuota ? "from-red-500 to-red-600" : "from-primary to-primary/80"} transition-all duration-700`} />
                                 <div className={`absolute inset-0 flex items-center justify-center gap-3 ${isOverQuota ? "text-white" : "text-black"} z-10 transition-colors duration-500`}>
                                     {isAnalyzing
-                                        ? "Processing..."
+                                        ? "Loading..."
                                         : isOverQuota
                                             ? "Daily Quota Reached"
                                             : mainTab === "customize"

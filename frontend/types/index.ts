@@ -1,5 +1,30 @@
 import React from "react";
 
+export interface DeploymentItem {
+    component: string;
+    platform: string;
+    status?: string;
+}
+
+export interface ProjectIntel {
+    id: string;
+    project_name: string;
+    context: string;
+    features_built: string[];
+    tech_stack: string[];
+    signals: string[];
+    evidence: string[];
+    deployments?: DeploymentItem[];
+}
+
+export interface FeatureInput {
+    id: string;
+    name: string;
+    description: string;
+    commits: string;
+}
+
+
 export interface SalaryInsight {
   range: string;
   currency: string;
@@ -9,6 +34,23 @@ export interface SalaryInsight {
 export interface InterviewQuestion {
   q: string;
   intent: string;
+}
+
+export interface HistoryAnalysisItem {
+    id: string;
+    company_name: string;
+    position: string;
+    created_at: string;
+    analysis_result?: string;
+    customized_latex?: string;
+}
+
+export interface InfiniteHistoryData {
+    pages: {
+        data: HistoryAnalysisItem[];
+        nextCursor: string | null;
+    }[];
+    pageParams: (string | null)[];
 }
 
 export interface InterviewData {
@@ -148,6 +190,7 @@ export interface ActiveWorkspaceProps {
     companyInputRef?: React.RefObject<HTMLInputElement | null>;
     isOverQuota?: boolean;
     isLoadingProfile?: boolean;
+    hasGithubConnected?: boolean;
 }
 
 export interface DiffLine {
@@ -179,4 +222,5 @@ export interface ResumeSetupProps {
     selectedId: string | null;
     saveBaselineLatex?: () => Promise<void>;
     isLoadingProfile?: boolean;
+    hasGithubConnected?: boolean;
 }

@@ -67,34 +67,24 @@ export function ReportToolbar({
                         className={`min-w-[200px] h-10 px-6 rounded-full border transition-all backdrop-blur-md group/mode flex items-center justify-center ${
                             mode === "analysis" && !hasLatexSource
                                 ? "border-white/5 bg-zinc-900/40 text-white/20 cursor-not-allowed opacity-50"
-                                : (mode === "analysis"
-                                    ? (hasCustomization
-                                        ? "border-primary/40 bg-primary/10 hover:bg-primary/20 shadow-[0_0_20px_-5px_rgba(242,170,76,0.2)]"
-                                        : (verdict === "REJECT"
-                                            ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
-                                            : "border-white/20 bg-black hover:bg-white/5")
-                                      )
-                                    : "border-primary/40 bg-primary/10 hover:bg-primary/20"
-                                  )
+                                : (mode === "analysis" && verdict === "REJECT" && !hasCustomization
+                                    ? "border-red-500/30 bg-red-600/20 hover:bg-red-600/30 shadow-[0_0_20px_-5px_rgba(239,68,68,0.2)]"
+                                    : "border-primary/40 bg-black hover:bg-primary/10 shadow-[0_0_20px_-5px_rgba(242,170,76,0.2)]")
                         }`}
                     >
                         <span className={`text-[10px] font-black uppercase tracking-[0.25em] transition-colors duration-300 ${
                             mode === "analysis" && !hasLatexSource
                                 ? "text-white/20"
-                                : (mode === "analysis"
-                                    ? (hasCustomization ? "text-primary" : (verdict === "REJECT" ? "text-destructive" : "text-white"))
-                                    : "text-primary"
-                                  )
+                                : (mode === "analysis" && verdict === "REJECT" && !hasCustomization
+                                    ? "text-red-500"
+                                    : "text-primary")
                         }`}>
                             {mode === "analysis"
-                                ? (hasCustomization 
-                                    ? "View Tailored Resume" 
-                                    : (!hasLatexSource 
-                                        ? "Customize (LaTeX Required)" 
-                                        : (verdict === "REJECT" 
-                                            ? "⚠️ Customize (High Risk)" 
-                                            : "Customize Resume"
-                                          )
+                                ? (hasCustomization
+                                    ? "View Tailored Resume"
+                                    : (!hasLatexSource
+                                        ? "Customize (LaTeX Required)"
+                                        : "Customize Resume"
                                       )
                                   )
                                 : (hasAnalysis ? "View Analysis Report" : "Analyze Resume")
