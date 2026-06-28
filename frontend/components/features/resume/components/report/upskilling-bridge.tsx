@@ -12,7 +12,7 @@ export function UpskillingBridgeSection({
     hasLatexSource = false,
     onSwitchMode
 }: UpskillingBridgeSectionProps) {
-    
+
     const getUpskillingTopic = (skill: string) => {
         const s = skill.toLowerCase();
         if (s.includes("aws") || s.includes("cloud") || s.includes("azure") || s.includes("gcp") || s.includes("kubernetes") || s.includes("docker") || s.includes("devops")) {
@@ -37,7 +37,7 @@ export function UpskillingBridgeSection({
         <div className="relative animate-in fade-in slide-in-from-bottom-8 duration-1000">
             <div className="relative overflow-hidden border border-destructive/30 bg-black/40 backdrop-blur-2xl rounded-[2.5rem] p-8 transition-none">
                 <div className="absolute -top-32 -right-32 w-96 h-96 bg-destructive/5 blur-[120px] pointer-events-none rounded-full" />
-                
+
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-white/5">
                     <div className="space-y-2">
                         <div className="inline-flex items-center gap-3 px-3 py-1 rounded-full bg-destructive/10 border border-destructive/20 text-destructive">
@@ -56,9 +56,9 @@ export function UpskillingBridgeSection({
                         {hasLatexSource ? (
                             <button
                                 onClick={() => onSwitchMode("customize")}
-                                className="w-full sm:w-auto px-8 h-12 rounded-2xl bg-destructive text-white text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-destructive/20 flex items-center justify-center gap-3"
+                                className="w-full sm:w-auto px-8 h-12 rounded-2xl bg-destructive text-white text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-destructive/20 flex items-center justify-center gap-3"
                             >
-                                ⚠️ Customize Resume (High Risk)
+                                ⚠️ Customize Resume
                                 <ArrowRight className="w-4 h-4" />
                             </button>
                         ) : (

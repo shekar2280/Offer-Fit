@@ -10,6 +10,7 @@ import {
     Cpu,
     Sparkles,
     CheckCircle2,
+    Check,
     Binary,
     Zap,
     AlertTriangle,
@@ -53,18 +54,26 @@ export function MatchHeader({
     const steps = mode === "customize"
         ? [
             { label: "Reading", icon: FileText },
+            { label: "Parsing JD", icon: Search },
             { label: "Researching", icon: Globe },
+            { label: "Keywords", icon: Binary },
+            { label: "Analyzing", icon: Activity },
             { label: "Tailoring", icon: Sliders },
             { label: "Injecting", icon: Cpu },
             { label: "Optimizing", icon: Zap },
+            { label: "Formatting", icon: Sparkles },
             { label: "Finalizing", icon: CheckCircle2 }
         ]
         : [
             { label: "Loading", icon: FileText },
+            { label: "Fetching JD", icon: Globe },
             { label: "Researching", icon: Search },
             { label: "Scanning", icon: Cpu },
             { label: "Matching", icon: Sparkles },
             { label: "Computing", icon: Binary },
+            { label: "Red Flags", icon: AlertTriangle },
+            { label: "Interview", icon: Activity },
+            { label: "Strategy", icon: Sliders },
             { label: "Finalizing", icon: CheckCircle2 }
         ];
 
@@ -73,7 +82,7 @@ export function MatchHeader({
         setCurrentStep(0);
         const interval = setInterval(() => {
             setCurrentStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
-        }, 2500);
+        }, 1800);
         return () => clearInterval(interval);
     }, [isAnalyzing, steps.length, mode]);
 
@@ -196,33 +205,33 @@ export function MatchHeader({
                     </div>
 
                     <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
-                        {isAnalyzing && !insights ? (
+                        {isAnalyzing || !insights ? (
                             <div className="h-10 w-32 bg-white/5 animate-pulse rounded-full" />
                         ) : (
                             <div className="flex items-center gap-3">
                                 <span className="text-[9px] font-mono uppercase tracking-[0.4em] text-white/20 shrink-0">
-                                    {mode === "customize" ? "Custom Status" : "Verdict:"}
+                                    {mode === "customize" ? "Status" : "Verdict:"}
                                 </span>
                                 <div className={`relative flex items-center gap-2 px-5 py-2 rounded-xl border backdrop-blur-2xl transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_20px_rgba(242,170,76,0.15)] shadow-xl text-xs ${mode === "customize" ? 'bg-primary/20 border-primary/30' : bgColorClass}`}>
                                     <div className="absolute inset-0 bg-white/5 rounded-xl opacity-0 hover:opacity-100 transition-opacity" />
-                                    {(() => {
-                                        if (mode === "customize") {
-                                            return <CheckCircle2 className="w-3.5 h-3.5 text-primary animate-pulse" />;
-                                        }
-                                        const VerdictIcon = verdict === "STRETCH"
-                                            ? Sparkles
-                                            : (verdict === "PASS" || verdict === "REJECT")
-                                                ? AlertTriangle
-                                                : Zap;
-                                        return <VerdictIcon className={`w-3.5 h-3.5 ${verdictColorClass} animate-pulse`} />;
-                                    })()}
+                                    {mode === "customize" ? (
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                                    ) : (
+                                        (() => {
+                                            const VerdictIcon = verdict === "STRETCH"
+                                                ? Sparkles
+                                                : (verdict === "PASS" || verdict === "REJECT")
+                                                    ? AlertTriangle
+                                                    : Zap;
+                                            return <VerdictIcon className={`w-3.5 h-3.5 ${verdictColorClass}`} />;
+                                        })()
+                                    )}
                                     <span className={`font-black uppercase tracking-[0.25em] drop-shadow-sm ${mode === "customize" ? 'text-primary' : verdictColorClass}`}>
                                         {mode === "customize" ? "Tailored" : verdict}
                                     </span>
                                 </div>
                             </div>
                         )}
-
                     </div>
 
                     {!isAnalyzing && insights?.tool_used && insights.tool_used.length > 0 && (
@@ -303,17 +312,14 @@ export function MatchHeader({
                             ) : (
                                 <>
                                     {mode === "customize" ? (
-                                        <>
-                                            <motion.div
-                                                initial={{ opacity: 0, scale: 0.8 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                transition={{ duration: 0.8, ease: "easeOut" }}
-                                                className="text-primary drop-shadow-[0_0_12px_rgba(242,170,76,0.6)] mb-1 flex items-center justify-center"
-                                            >
-                                                <Sparkles className="w-10 h-10 stroke-[1.5]" />
-                                            </motion.div>
-                                            <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-white/40 mt-1">Ready</span>
-                                        </>
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ duration: 0.8, ease: "easeOut" }}
+                                            className="text-primary drop-shadow-[0_0_16px_rgba(242,170,76,0.4)] flex items-center justify-center"
+                                        >
+                                            <Check className="w-20 h-20 stroke-[1.5]" />
+                                        </motion.div>
                                     ) : (
                                         <>
                                             <motion.span
