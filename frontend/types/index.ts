@@ -1,5 +1,30 @@
 import React from "react";
 
+export interface DeploymentItem {
+    component: string;
+    platform: string;
+    status?: string;
+}
+
+export interface ProjectIntel {
+    id: string;
+    project_name: string;
+    context: string;
+    features_built: string[];
+    tech_stack: string[];
+    signals: string[];
+    evidence: string[];
+    deployments?: DeploymentItem[];
+}
+
+export interface FeatureInput {
+    id: string;
+    name: string;
+    description: string;
+    commits: string;
+}
+
+
 export interface SalaryInsight {
   range: string;
   currency: string;
