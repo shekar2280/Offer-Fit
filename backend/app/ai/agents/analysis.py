@@ -174,15 +174,23 @@ def merge_customized_sections_into_latex(original_latex: str, customized_resume:
         match = pattern.search(result)
         if match:
             start_pos = match.end()
-            itemize_start = result.find(r"\begin{itemize}", start_pos)
-            if itemize_start != -1 and itemize_start - start_pos < 500:
-                itemize_end = result.find(r"\end{itemize}", itemize_start)
-                if itemize_end != -1:
-                    new_bullets_str = "\\begin{itemize}[noitemsep,topsep=2pt,leftmargin=1.5em]\n"
-                    for b in exp.get("highlights", []):
-                        new_bullets_str += f"    \\item {b}\n"
-                    new_bullets_str += "    \\end{itemize}"
-                    result = result[:itemize_start] + new_bullets_str + result[itemize_end + len(r"\end{itemize}"):]
+            item_pos = result.find(r"\item", start_pos)
+            if item_pos != -1 and item_pos - start_pos < 600:
+                begin_idx = result.rfind(r"\begin{", start_pos, item_pos)
+                if begin_idx != -1:
+                    env_match = re.match(r'\\begin\{([a-zA-Z0-9\*]+)\}', result[begin_idx:])
+                    if env_match:
+                        env_name = env_match.group(1)
+                        content_start = begin_idx + len(env_match.group(0))
+                        itemize_end = result.find(rf"\end{{{env_name}}}", item_pos)
+                        if itemize_end != -1:
+                            item_match = re.search(r'(\\[a-zA-Z0-9\*]+(?:\s*\[.*?\])?)', result[content_start:itemize_end])
+                            item_cmd = item_match.group(1) if item_match else "\\item"
+                            
+                            new_bullets_str = "\n"
+                            for b in exp.get("highlights", []):
+                                new_bullets_str += f"    {item_cmd} {b}\n"
+                            result = result[:content_start] + new_bullets_str + result[itemize_end:]
 
     for proj in customized_resume.get("projects", []):
         name = proj.get("name", "")
@@ -191,7 +199,22 @@ def merge_customized_sections_into_latex(original_latex: str, customized_resume:
         if match:
             start_pos = match.end()
             textit_start = result.find(r"\textit{", start_pos)
-            itemize_start = result.find(r"\begin{itemize}", start_pos)
+            
+            item_pos = result.find(r"\item", start_pos)
+            itemize_start = -1
+            env_name = None
+            content_start = -1
+            itemize_end = -1
+            if item_pos != -1 and item_pos - start_pos < 600:
+                begin_idx = result.rfind(r"\begin{", start_pos, item_pos)
+                if begin_idx != -1:
+                    env_match = re.match(r'\\begin\{([a-zA-Z0-9\*]+)\}', result[begin_idx:])
+                    if env_match:
+                        env_name = env_match.group(1)
+                        itemize_start = begin_idx
+                        content_start = begin_idx + len(env_match.group(0))
+                        itemize_end = result.find(rf"\end{{{env_name}}}", item_pos)
+
             if textit_start != -1 and (itemize_start == -1 or textit_start < itemize_start):
                 brace_count = 1
                 pos = textit_start + len(r"\textit{")
@@ -204,16 +227,30 @@ def merge_customized_sections_into_latex(original_latex: str, customized_resume:
                 if brace_count == 0:
                     new_tech_str = ", ".join(proj.get("technologies", []))
                     result = result[:textit_start] + "\\textit{" + new_tech_str + "}" + result[pos:]
-                    itemize_start = result.find(r"\begin{itemize}", start_pos)
+                    
+                    item_pos = result.find(r"\item", start_pos)
+                    itemize_start = -1
+                    env_name = None
+                    content_start = -1
+                    itemize_end = -1
+                    if item_pos != -1 and item_pos - start_pos < 600:
+                        begin_idx = result.rfind(r"\begin{", start_pos, item_pos)
+                        if begin_idx != -1:
+                            env_match = re.match(r'\\begin\{([a-zA-Z0-9\*]+)\}', result[begin_idx:])
+                            if env_match:
+                                env_name = env_match.group(1)
+                                itemize_start = begin_idx
+                                content_start = begin_idx + len(env_match.group(0))
+                                itemize_end = result.find(rf"\end{{{env_name}}}", item_pos)
 
-            if itemize_start != -1:
-                itemize_end = result.find(r"\end{itemize}", itemize_start)
-                if itemize_end != -1:
-                    new_bullets_str = "\\begin{itemize}[noitemsep,topsep=2pt,leftmargin=1.5em]\n"
-                    for b in proj.get("highlights", []):
-                        new_bullets_str += f"    \\item {b}\n"
-                    new_bullets_str += "    \\end{itemize}"
-                    result = result[:itemize_start] + new_bullets_str + result[itemize_end + len(r"\end{itemize}"):]
+            if itemize_start != -1 and itemize_end != -1 and content_start != -1:
+                item_match = re.search(r'(\\[a-zA-Z0-9\*]+(?:\s*\[.*?\])?)', result[content_start:itemize_end])
+                item_cmd = item_match.group(1) if item_match else "\\item"
+                
+                new_bullets_str = "\n"
+                for b in proj.get("highlights", []):
+                    new_bullets_str += f"    {item_cmd} {b}\n"
+                result = result[:content_start] + new_bullets_str + result[itemize_end:]
 
     if customized_resume.get("summary"):
         rendered_summary = escape_latex(customized_resume.get("summary", ""))
@@ -374,6 +411,7 @@ SCORING CRITERIA (MANDATORY — apply in order):
 3. **Seniority & System Design (Weighted Heavier Than Buzzwords)**: For Senior+ roles, weight evidence of architectural ownership, scale (user counts, latency metrics, system complexity), and team leadership 2x higher than framework keyword matches. A candidate who built and owns a production system at scale outscores a keyword-stuffed resume.
 4. **Technical Depth**: Distinguish between "heard of" and "delivered with". Look for quantifiable outcomes (latency %, user scale, uptime SLAs).
 5. **Generalist Bonus**: A strong full-stack candidate with proven delivery across multiple JD-relevant areas should NOT be penalized for missing one niche secondary tool. Score their aggregate delivery, not individual checkbox compliance.
+6. **Monetization / Course Platform Fraud Check**: Analyze if the company is actually a course selling platform, unpaid training funnel, or pay-for-experience program rather than a real software engineering role. If there are signs (e.g. course selling, whatsapp-only onboarding, "open collaboration" bootcamps requiring payment/enrolling), you MUST flag this under the `red_flags` JSON property (e.g., "monetized internship funnel / course-selling platform") and write a clear warning in the candidate report.
 
 VERDICT DEFINITIONS:
 - **APPLY (80-100)**: Candidate meets or exceeds ALL mandatory requirements and core tech stack. Minor gaps in secondary skills only.
