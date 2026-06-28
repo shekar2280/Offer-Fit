@@ -28,10 +28,8 @@ def run_project_kb_parser(
     existing_features: Optional[List[str]] = None,
     existing_evidence: Optional[List[str]] = None
 ) -> ProjectIntelOutput:
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if not groq_api_key:
-        logger.error("GROQ_API_KEY is not set.")
-        return ProjectIntelOutput(context_summary=context[:1000], features=existing_features or [], evidence=existing_evidence or [], signals=[])
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    client = genai.Client(api_key=api_key) if api_key else genai.Client()
 
     prompt = f"""
 You are an expert technical intelligence parser. 
@@ -71,32 +69,56 @@ You MUST return your output as a valid JSON object matching the following struct
 }}
 """
 
+    content = None
+    last_err = None
+    models_to_try = ["gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-3-flash", "gemini-2.5-flash", "groq-llama-3.3-70b"]
+    
+    for model_name in models_to_try:
+        try:
+            if model_name == "groq-llama-3.3-70b":
+                groq_api_key = os.getenv("GROQ_API_KEY")
+                if not groq_api_key:
+                    raise Exception("GROQ_API_KEY is not configured")
+                import httpx
+                headers = {
+                    "Authorization": f"Bearer {groq_api_key}",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                    "response_format": {"type": "json_object"},
+                    "temperature": 0.0
+                }
+                with httpx.Client() as client_http:
+                    response = client_http.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers, timeout=30.0)
+                if response.status_code != 200:
+                    raise Exception(f"Groq API call failed: {response.text}")
+                res_data = response.json()
+                content = res_data["choices"][0]["message"]["content"]
+            else:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.0
+                    )
+                )
+                content = response.text
+            break
+        except Exception as e:
+            last_err = e
+            continue
+
+    if not content:
+        logger.error(f"All models failed for project KB. Last error: {last_err}")
+        return ProjectIntelOutput(context_summary=context[:1000], features=existing_features or [], evidence=existing_evidence or [], signals=[])
+
     try:
-        import httpx
-        headers = {
-            "Authorization": f"Bearer {groq_api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "llama-3.3-70b-versatile",
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.0
-        }
-        
-        with httpx.Client() as client:
-            response = client.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers, timeout=30.0)
-            
-        if response.status_code != 200:
-            logger.error(f"Groq API returned error status {response.status_code}: {response.text}")
-            return ProjectIntelOutput(context_summary=context[:1000], features=existing_features or [], evidence=existing_evidence or [], signals=[])
-            
-        res_data = response.json()
-        content = res_data["choices"][0]["message"]["content"]
         parsed_data = json.loads(content.strip())
-        
         return ProjectIntelOutput(
             context_summary=parsed_data.get("context_summary", context[:1000]),
             features=parsed_data.get("features", []),
@@ -104,5 +126,5 @@ You MUST return your output as a valid JSON object matching the following struct
             signals=parsed_data.get("signals", [])
         )
     except Exception as e:
-        logger.error(f"Error parsing project KB with Groq: {e}")
+        logger.error(f"Error parsing project KB JSON: {e}")
         return ProjectIntelOutput(context_summary=context[:1000], features=existing_features or [], evidence=existing_evidence or [], signals=[])

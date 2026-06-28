@@ -637,19 +637,53 @@ async def run_analysis_agent(
     )
 
     last_error = None
-    for model_name in DEFAULT_MODELS:
+    models_to_try = DEFAULT_MODELS + ["groq-llama-3.3-70b"]
+    for model_name in models_to_try:
         try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction="You are an elite career strategist and ATS optimization expert. Maintain strict boundaries for JSON output."
+            if model_name == "groq-llama-3.3-70b":
+                groq_api_key = os.getenv("GROQ_API_KEY")
+                if not groq_api_key:
+                    raise Exception("GROQ_API_KEY is not configured")
+                headers = {
+                    "Authorization": f"Bearer {groq_api_key}",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [
+                        {"role": "system", "content": "You are an elite career strategist and ATS optimization expert. Maintain strict boundaries for JSON output."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "response_format": {"type": "json_object"},
+                    "temperature": 0.0
+                }
+                with httpx.Client() as client_http:
+                    res = client_http.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        json=payload,
+                        headers=headers,
+                        timeout=45.0
+                    )
+                    if res.status_code != 200:
+                        raise Exception(f"Groq API call failed: {res.text}")
+                    text = res.json()["choices"][0]["message"]["content"]
+                    usage = {
+                        "promptTokenCount": 0,
+                        "candidatesTokenCount": 0,
+                        "totalTokenCount": 0
+                    }
+                    cost = 0.0
+            else:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction="You are an elite career strategist and ATS optimization expert. Maintain strict boundaries for JSON output."
+                    )
                 )
-            )
-            text = response.text
-            
-            usage = extract_usage_metadata(response)
-            cost = calculate_cost(usage["promptTokenCount"], usage["candidatesTokenCount"], model_name)
+                text = response.text
+                usage = extract_usage_metadata(response)
+                cost = calculate_cost(usage["promptTokenCount"], usage["candidatesTokenCount"], model_name)
             
             markdown = text
             data = {}
