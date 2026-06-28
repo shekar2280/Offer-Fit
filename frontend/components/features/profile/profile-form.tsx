@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Terminal, MessageSquare, CheckCircle2, AlertCircle } from "lucide-react";
 import { createClient } from "@/services/supabase/client";
 import { PersonalInfoSection } from "./components/personal-info-section";
@@ -15,13 +15,50 @@ import logoImg from "../../../app/icon.png";
 export interface ProfileData {
     full_name?: string;
     email?: string;
+    phone_number?: string;
+    city_country?: string;
+    website?: string;
+    dob?: string;
+    headline?: string;
+    portfolio_url?: string;
+    linkedin?: string;
+    primary_skills?: string;
+    years_experience?: string | number;
+    university?: string;
+    field_of_study?: string;
+    graduation_year?: string;
+    work_authorization?: string;
+    nationality?: string;
+    hire_pitch?: string;
+    resume_text?: string;
+    latex_source?: string;
 }
 
 export function ProfileForm({ initialData, user }: { initialData?: ProfileData, user: SupabaseUser }) {
     const [section, setSection] = useState("personal");
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get("tab");
+            if (tab && ["personal", "projects", "feedback"].includes(tab)) {
+                setSection(tab);
+            }
+        }
+    }, []);
+
+    const handleSectionChange = (sectionId: string) => {
+        setSection(sectionId);
+        if (typeof window !== "undefined") {
+            const newUrl = `${window.location.pathname}?tab=${sectionId}`;
+            window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, "", newUrl);
+        }
+    };
+
     const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
     const [formData, setFormData] = useState<ProfileData>({
+        ...initialData,
         full_name: initialData?.full_name || "",
         email: initialData?.email || user?.email || "",
     });
@@ -106,7 +143,7 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
                             return (
                                 <button
                                     key={s.id}
-                                    onClick={() => setSection(s.id)}
+                                    onClick={() => handleSectionChange(s.id)}
                                     className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-[13px] font-medium transition-all duration-300 group relative overflow-hidden ${isActive
                                         ? "text-white bg-white/[0.04] border border-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
                                         : "text-white/40 hover:text-white/80 border border-transparent hover:bg-white/[0.02]"

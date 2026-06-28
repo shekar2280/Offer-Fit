@@ -79,12 +79,14 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
 
     const [deployments, setDeployments] = useState<DeploymentItem[]>([]);
     const [newComponent, setNewComponent] = useState("Frontend");
+    const [customNewComponent, setCustomNewComponent] = useState("");
     const [newPlatform, setNewPlatform] = useState("");
     const [customNewPlatform, setCustomNewPlatform] = useState("");
 
     const [isEditingDeployments, setIsEditingDeployments] = useState<string | null>(null);
     const [editingDeploymentsList, setEditingDeploymentsList] = useState<DeploymentItem[]>([]);
     const [editNewComponent, setEditNewComponent] = useState("Frontend");
+    const [customEditNewComponent, setCustomEditNewComponent] = useState("");
     const [editNewPlatform, setEditNewPlatform] = useState("");
     const [customEditNewPlatform, setCustomEditNewPlatform] = useState("");
 
@@ -265,7 +267,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                 provider: 'github',
                 options: {
                     scopes: 'repo read:user',
-                    redirectTo: `${window.location.origin}/profile`
+                    redirectTo: `${window.location.origin}/profile?tab=projects`
                 }
             });
             if (error) throw error;
@@ -373,10 +375,10 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                 ) : (
                     <button
                         onClick={handleGithubConnect}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700 hover:border-zinc-500 shadow-md shadow-black/20 hover:shadow-black/40 hover:translate-y-[-1px] active:translate-y-0 transition-all duration-200"
+                        className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700 hover:border-zinc-500 shadow-md shadow-black/20 hover:shadow-black/40 hover:translate-y-[-1px] active:translate-y-0 transition-all duration-200 whitespace-nowrap"
                     >
-                        <GithubIcon className="w-4 h-4 text-white" />
-                        Connect GitHub
+                        <GithubIcon className="w-4 h-4 text-white shrink-0" />
+                        <span>Connect GitHub</span>
                     </button>
                 )}
             </div>
@@ -416,12 +418,12 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                     value={repoUrl}
                                     onChange={(e) => setRepoUrl(e.target.value)}
                                     placeholder="owner/repo"
-                                    className="flex-1 bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:border-primary/50 focus:outline-none"
+                                    className="flex-1 bg-zinc-900/50 border border-orange-500/20 rounded-xl px-4 py-2.5 text-xs text-white focus:border-orange-500/50 focus:outline-none"
                                 />
                                 <button
                                     onClick={handleGithubSync}
                                     disabled={syncingRepo !== null || !repoUrl.trim()}
-                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-5 py-2.5 rounded-xl text-xs flex items-center justify-center min-w-[120px] transition-colors disabled:opacity-50"
+                                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl text-xs flex items-center justify-center min-w-[120px] transition-colors disabled:opacity-50"
                                 >
                                     {syncingRepo === "global" ? (
                                         <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
@@ -446,8 +448,8 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                     </button>
                 </div>
             ) : (
-                <div className="bg-zinc-950/40 border border-white/[0.04] rounded-2xl p-6 space-y-6 animate-in fade-in duration-200">
-                    <div className="flex justify-between items-center pb-4 border-b border-white/[0.04]">
+                <div className="bg-zinc-950/40 border border-primary/20 rounded-2xl p-6 space-y-6 animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center pb-4 border-b border-primary/20">
                         <h3 className="text-sm font-bold uppercase tracking-wider text-white/80">Add Project Manually</h3>
                         <button
                             onClick={() => setShowManualForm(false)}
@@ -464,7 +466,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                 type="text"
                                 value={projectName}
                                 onChange={(e) => setProjectName(e.target.value)}
-                                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:border-primary/50 focus:outline-none"
+                                className="w-full bg-zinc-900/50 border border-primary/20 hover:border-primary/45 rounded-xl px-4 py-2.5 text-xs text-white focus:border-primary/70 focus:outline-none"
                                 placeholder="e.g. Offer Fit"
                             />
                         </div>
@@ -494,19 +496,35 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                 </div>
                             )}
 
-                            <div className="flex flex-wrap md:flex-nowrap gap-2 items-start bg-zinc-950/40 border border-white/[0.04] p-3 rounded-xl">
+                            <div className="flex flex-wrap md:flex-nowrap gap-2 items-start bg-zinc-950/40 border border-primary/20 p-3 rounded-xl">
                                 <div className="w-full md:w-1/3">
                                     <label className="text-[10px] font-bold text-white/50 block mb-1 uppercase">Component</label>
                                     <select
                                         value={newComponent}
-                                        onChange={(e) => setNewComponent(e.target.value)}
-                                        className="w-full bg-zinc-900/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                                        onChange={(e) => {
+                                            setNewComponent(e.target.value);
+                                            if (e.target.value !== "Other (Custom)") {
+                                                setCustomNewComponent("");
+                                            }
+                                        }}
+                                        className="w-full bg-zinc-900/50 border border-primary/20 hover:border-primary/45 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-primary/70 focus:outline-none"
                                     >
                                         <option value="Frontend">Frontend</option>
                                         <option value="Backend">Backend</option>
                                         <option value="Database">Database</option>
                                         <option value="Full Stack">Full Stack</option>
+                                        <option value="Other (Custom)">Other (Custom)</option>
                                     </select>
+
+                                    {newComponent === "Other (Custom)" && (
+                                        <input
+                                            type="text"
+                                            value={customNewComponent}
+                                            onChange={(e) => setCustomNewComponent(e.target.value)}
+                                            placeholder="e.g. Messaging..."
+                                            className="w-full mt-1.5 bg-zinc-900/50 border border-primary/20 hover:border-primary/45 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-primary/70 focus:outline-none"
+                                        />
+                                    )}
                                 </div>
                                 <div className="w-full md:w-2/3">
                                     <label className="text-[10px] font-bold text-white/50 block mb-1 uppercase">Platform</label>
@@ -518,9 +536,9 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                                 setCustomNewPlatform("");
                                             }
                                         }}
-                                        className="w-full bg-zinc-900/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                                        className="w-full bg-zinc-900/50 border border-primary/20 hover:border-primary/45 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-primary/70 focus:outline-none"
                                     >
-                                        <option value="">-- Select Platform --</option>
+                                        <option value="">Select Platform</option>
                                         {POPULAR_HOSTING_OPTIONS.filter(opt => opt !== "Other (Custom)").map(opt => (
                                             <option key={opt} value={opt}>{opt}</option>
                                         ))}
@@ -533,18 +551,21 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                             value={customNewPlatform}
                                             onChange={(e) => setCustomNewPlatform(e.target.value)}
                                             placeholder="Enter custom platform..."
-                                            className="w-full mt-1.5 bg-zinc-900/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                                            className="w-full mt-1.5 bg-zinc-900/50 border border-primary/20 hover:border-primary/45 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-primary/70 focus:outline-none"
                                         />
                                     )}
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => {
+                                        const finalComp = newComponent === "Other (Custom)" ? customNewComponent : newComponent;
                                         const finalPlat = newPlatform === "Other (Custom)" ? customNewPlatform : newPlatform;
-                                        if (!finalPlat.trim()) return;
-                                        setDeployments([...deployments, { component: newComponent, platform: finalPlat, status: "accepted" }]);
+                                        if (!finalPlat.trim() || !finalComp.trim()) return;
+                                        setDeployments([...deployments, { component: finalComp, platform: finalPlat, status: "accepted" }]);
                                         setNewPlatform("");
                                         setCustomNewPlatform("");
+                                        setNewComponent("Frontend");
+                                        setCustomNewComponent("");
                                     }}
                                     className="self-end bg-primary hover:bg-primary/80 text-black font-extrabold px-3 py-1.5 rounded-lg text-[10px] uppercase shrink-0 transition-colors mt-4 md:mt-0"
                                 >
@@ -563,7 +584,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                             <textarea
                                 value={context}
                                 onChange={(e) => setContext(e.target.value)}
-                                className="w-full h-24 bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-primary/50 focus:outline-none resize-none"
+                                className="w-full h-24 bg-zinc-900/50 border border-primary/20 hover:border-primary/45 rounded-xl px-4 py-3 text-xs text-white focus:border-primary/75 focus:outline-none resize-none"
                                 placeholder="What does this project do? Who is it for? What problem does it solve?"
                             />
                         </div>
@@ -571,7 +592,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                         <div className="relative" ref={techDropdownRef}>
                             <label className="text-xs font-bold uppercase tracking-wider text-white/70 block mb-2">Technologies Used</label>
                             <div
-                                className="w-full min-h-[42px] bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-2 flex flex-wrap gap-2 items-center cursor-text"
+                                className="w-full min-h-[42px] bg-zinc-900/50 border border-primary/20 hover:border-primary/45 rounded-xl px-4 py-2 flex flex-wrap gap-2 items-center cursor-text focus-within:border-primary/75"
                                 onClick={() => setTechDropdownOpen(true)}
                             >
                                 {techStack.map(tech => (
@@ -593,7 +614,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                             </div>
 
                             {techDropdownOpen && (
-                                <div className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto bg-[#0a0a0c] border border-white/10 rounded-xl shadow-2xl p-2 grid grid-cols-2 gap-1">
+                                <div className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto bg-[#0a0a0c] border border-primary/20 rounded-xl shadow-2xl p-2 grid grid-cols-2 gap-1">
                                     {COMMON_TECH_STACK.map(tech => {
                                         const isSelected = techStack.includes(tech);
                                         return (
@@ -622,7 +643,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
 
                         <div className="space-y-4">
                             {features.map((feature, idx) => (
-                                <div key={feature.id} className="bg-zinc-950/60 border border-white/[0.04] rounded-xl p-4 relative group">
+                                <div key={feature.id} className="bg-zinc-950/60 border border-primary/20 hover:border-primary/45 rounded-xl p-4 relative group">
                                     {features.length > 1 && (
                                         <button onClick={() => removeFeature(feature.id)} className="absolute top-4 right-4 text-white/20 hover:text-red-400 transition-colors">
                                             <Trash2 className="w-4 h-4" />
@@ -634,20 +655,20 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                             value={feature.name}
                                             onChange={(e) => updateFeature(feature.id, "name", e.target.value)}
                                             placeholder={`Feature ${idx + 1} Name (e.g. Resume Parser)`}
-                                            className="w-full bg-transparent border-b border-white/10 px-2 py-1.5 text-xs text-white focus:border-primary/50 focus:outline-none"
+                                            className="w-full bg-transparent border-b border-primary/20 hover:border-primary/45 px-2 py-1.5 text-xs text-white focus:border-primary/75 focus:outline-none"
                                         />
                                         <input
                                             type="text"
                                             value={feature.description}
                                             onChange={(e) => updateFeature(feature.id, "description", e.target.value)}
                                             placeholder="Briefly describe what this feature does..."
-                                            className="w-full bg-transparent border-b border-white/10 px-2 py-1.5 text-xs text-white focus:border-primary/50 focus:outline-none"
+                                            className="w-full bg-transparent border-b border-primary/20 hover:border-primary/45 px-2 py-1.5 text-xs text-white focus:border-primary/75 focus:outline-none"
                                         />
                                         <textarea
                                             value={feature.commits}
                                             onChange={(e) => updateFeature(feature.id, "commits", e.target.value)}
                                             placeholder="Provide additional details or notes about this feature (e.g. tools used, metrics, key accomplishments)"
-                                            className="w-full h-20 bg-zinc-900/30 border border-white/10 rounded-lg px-3 py-2 text-xs text-white/70 focus:border-primary/50 focus:outline-none resize-none"
+                                            className="w-full h-20 bg-zinc-900/30 border border-primary/20 hover:border-primary/45 rounded-lg px-3 py-2 text-xs text-white/70 focus:border-primary/75 focus:outline-none resize-none"
                                         />
                                     </div>
                                 </div>
@@ -788,14 +809,29 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                                             <div className="space-y-1 pt-1.5 border-t border-white/[0.04]">
                                                                 <select
                                                                     value={editNewComponent}
-                                                                    onChange={(e) => setEditNewComponent(e.target.value)}
+                                                                    onChange={(e) => {
+                                                                        setEditNewComponent(e.target.value);
+                                                                        if (e.target.value !== "Other (Custom)") {
+                                                                            setCustomEditNewComponent("");
+                                                                        }
+                                                                    }}
                                                                     className="w-full bg-zinc-900 border border-white/10 rounded-md px-2 py-1 text-[10px] text-white focus:outline-none"
                                                                 >
                                                                     <option value="Frontend">Frontend</option>
                                                                     <option value="Backend">Backend</option>
                                                                     <option value="Database">Database</option>
                                                                     <option value="Full Stack">Full Stack</option>
+                                                                    <option value="Other (Custom)">Other (Custom)</option>
                                                                 </select>
+                                                                {editNewComponent === "Other (Custom)" && (
+                                                                    <input
+                                                                        type="text"
+                                                                        value={customEditNewComponent}
+                                                                        onChange={(e) => setCustomEditNewComponent(e.target.value)}
+                                                                        placeholder="e.g. Messaging..."
+                                                                        className="w-full bg-zinc-900 border border-white/10 rounded-md px-2 py-1 text-[10px] text-white focus:outline-none"
+                                                                    />
+                                                                )}
                                                                 <select
                                                                     value={editNewPlatform}
                                                                     onChange={(e) => {
@@ -806,7 +842,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                                                     }}
                                                                     className="w-full bg-zinc-900 border border-white/10 rounded-md px-2 py-1 text-[10px] text-white focus:outline-none"
                                                                 >
-                                                                    <option value="">-- Platform --</option>
+                                                                    <option value="">Platform</option>
                                                                     {POPULAR_HOSTING_OPTIONS.filter(opt => opt !== "Other (Custom)").map(opt => (
                                                                         <option key={opt} value={opt}>{opt}</option>
                                                                     ))}
@@ -824,11 +860,14 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {
+                                                                        const compVal = editNewComponent === "Other (Custom)" ? customEditNewComponent : editNewComponent;
                                                                         const platVal = editNewPlatform === "Other (Custom)" ? customEditNewPlatform : editNewPlatform;
-                                                                        if (!platVal.trim()) return;
-                                                                        setEditingDeploymentsList([...editingDeploymentsList, { component: editNewComponent, platform: platVal, status: "accepted" }]);
+                                                                        if (!platVal.trim() || !compVal.trim()) return;
+                                                                        setEditingDeploymentsList([...editingDeploymentsList, { component: compVal, platform: platVal, status: "accepted" }]);
                                                                         setEditNewPlatform("");
                                                                         setCustomEditNewPlatform("");
+                                                                        setEditNewComponent("Frontend");
+                                                                        setCustomEditNewComponent("");
                                                                     }}
                                                                     className="w-full bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold py-1 rounded"
                                                                 >
@@ -838,7 +877,15 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
 
                                                             <div className="flex gap-2 pt-1.5">
                                                                 <button
-                                                                    onClick={() => handleSaveDeployments(proj.id, editingDeploymentsList)}
+                                                                    onClick={() => {
+                                                                        const compVal = editNewComponent === "Other (Custom)" ? customEditNewComponent : editNewComponent;
+                                                                        const platVal = editNewPlatform === "Other (Custom)" ? customEditNewPlatform : editNewPlatform;
+                                                                        let finalDeployments = [...editingDeploymentsList];
+                                                                        if (platVal.trim() && compVal.trim()) {
+                                                                            finalDeployments.push({ component: compVal, platform: platVal, status: "accepted" });
+                                                                        }
+                                                                        handleSaveDeployments(proj.id, finalDeployments);
+                                                                    }}
                                                                     className="flex-1 bg-primary text-black text-[10px] font-extrabold py-1 rounded hover:scale-[1.02] active:scale-[0.98] transition-all"
                                                                 >
                                                                     Save All

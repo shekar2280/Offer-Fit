@@ -165,6 +165,7 @@ export interface ActiveWorkspaceProps {
     companyInputRef?: React.RefObject<HTMLInputElement | null>;
     isOverQuota?: boolean;
     isLoadingProfile?: boolean;
+    hasGithubConnected?: boolean;
 }
 
 export interface DiffLine {
@@ -196,4 +197,5 @@ export interface ResumeSetupProps {
     selectedId: string | null;
     saveBaselineLatex?: () => Promise<void>;
     isLoadingProfile?: boolean;
+    hasGithubConnected?: boolean;
 }

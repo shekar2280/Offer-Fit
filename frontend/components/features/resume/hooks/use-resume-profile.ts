@@ -18,7 +18,7 @@ export function useResumeProfile(user: User | null) {
       const supabase = createClient();
       const response = await supabase
         .from("profiles")
-        .select("resume_text")
+        .select("resume_text, github_username")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -54,5 +54,6 @@ export function useResumeProfile(user: User | null) {
     masterExtractedText: resumeText,
     isLatex,
     isLoadingProfile,
+    hasGithubConnected: !!profile?.github_username,
   };
 }

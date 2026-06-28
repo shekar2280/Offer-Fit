@@ -28,7 +28,7 @@ export function ProfessionalSection({ formData, setFormData }: ProfessionalSecti
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all md:col-span-2">
+                <div className="group bg-zinc-950/40 border border-primary/20 hover:border-primary/45 focus-within:border-primary/70 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all md:col-span-2">
                     <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-primary transition-colors mb-1" htmlFor="headline">
                         Headline / Current Role
                     </label>
@@ -44,7 +44,7 @@ export function ProfessionalSection({ formData, setFormData }: ProfessionalSecti
                     </div>
                 </div>
 
-                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all">
+                <div className="group bg-zinc-950/40 border border-primary/20 hover:border-primary/45 focus-within:border-primary/70 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all">
                     <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-primary transition-colors mb-1" htmlFor="years_experience">
                         Years of Experience
                     </label>
@@ -61,7 +61,7 @@ export function ProfessionalSection({ formData, setFormData }: ProfessionalSecti
                     </div>
                 </div>
 
-                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all">
+                <div className="group bg-zinc-950/40 border border-primary/20 hover:border-primary/45 focus-within:border-primary/70 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all">
                     <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-primary transition-colors mb-1" htmlFor="linkedin">
                         LinkedIn URL
                     </label>
@@ -77,7 +77,7 @@ export function ProfessionalSection({ formData, setFormData }: ProfessionalSecti
                     </div>
                 </div>
 
-                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all">
+                <div className="group bg-zinc-950/40 border border-primary/20 hover:border-primary/45 focus-within:border-primary/70 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all">
                     <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-primary transition-colors mb-1" htmlFor="portfolio_url">
                         Portfolio / GitHub URL
                     </label>
@@ -93,7 +93,7 @@ export function ProfessionalSection({ formData, setFormData }: ProfessionalSecti
                     </div>
                 </div>
 
-                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all">
+                <div className="group bg-zinc-950/40 border border-primary/20 hover:border-primary/45 focus-within:border-primary/70 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-3.5 transition-all">
                     <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-primary transition-colors mb-1" htmlFor="website">
                         Personal Website
                     </label>
@@ -109,7 +109,7 @@ export function ProfessionalSection({ formData, setFormData }: ProfessionalSecti
                     </div>
                 </div>
 
-                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-4 transition-all md:col-span-2">
+                <div className="group bg-zinc-950/40 border border-primary/20 hover:border-primary/45 focus-within:border-primary/70 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-4 transition-all md:col-span-2">
                     <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-white/40 group-focus-within:text-primary transition-colors mb-2">
                         Primary Skills
                     </label>

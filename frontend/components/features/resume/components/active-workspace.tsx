@@ -62,6 +62,7 @@ export function ActiveWorkspace(props: ActiveWorkspaceProps) {
                             selectedId={selectedId}
                             saveBaselineLatex={saveBaselineLatex}
                             isLoadingProfile={props.isLoadingProfile}
+                            hasGithubConnected={props.hasGithubConnected}
                         />
 
                         <JobDetails

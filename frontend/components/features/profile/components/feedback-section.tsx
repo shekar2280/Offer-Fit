@@ -58,7 +58,7 @@ export function FeedbackSection({ userEmail, userName }: { userEmail?: string, u
             </header>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <div className="group bg-zinc-950/40 border border-white/[0.08] hover:border-white/[0.16] focus-within:border-primary/60 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-4 transition-all">
+                <div className="group bg-zinc-950/40 border border-primary/20 hover:border-primary/45 focus-within:border-primary/70 focus-within:shadow-[0_0_30px_rgba(242,170,76,0.08)] rounded-2xl px-5 py-4 transition-all">
                     <textarea
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}

@@ -17,6 +17,7 @@ export function ResumeSetup({
     selectedId,
     saveBaselineLatex,
     isLoadingProfile,
+    hasGithubConnected,
 }: ResumeSetupProps) {
     const [isReplacingAnalysis, setIsReplacingAnalysis] = useState(false);
     const [isPastingLatex, setIsPastingLatex] = useState(false);
@@ -138,6 +139,18 @@ export function ResumeSetup({
     if (mainTab === "customize") {
         return (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {!hasGithubConnected && (
+                    <div className="flex items-start gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 text-primary">
+                        <Info className="w-5 h-5 shrink-0 mt-0.5" />
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-bold uppercase tracking-wider">Connect GitHub for Better Context</span>
+                            <span className="text-[11px] text-primary/70 leading-relaxed">
+                                For the best resume customization results, we recommend linking your GitHub account. 
+                                <a href="/profile?tab=projects" className="underline font-bold text-primary ml-1 hover:text-white transition-colors">Connect it in your profile</a>.
+                            </span>
+                        </div>
+                    </div>
+                )}
                 {!isPastingLatex && (
                     <div className={`relative flex items-center justify-between w-full px-8 py-6 rounded-3xl border transition-all duration-700 ${hasCustomizeSource ? "bg-primary/[0.03] border-primary/20 shadow-[0_0_40px_rgba(242,170,76,0.05)]" : "bg-primary/[0.02] border-primary/30 shadow-[0_0_30px_rgba(242,170,76,0.03)]"}`}>
                         <div className="flex items-center gap-4">
