@@ -10,6 +10,7 @@ import { LogoutButton } from "../auth/logout-button";
 import { DeleteAccountButton } from "../auth/delete-account-button";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import Image from "next/image";
+import Link from "next/link";
 import logoImg from "../../../app/icon.png";
 
 export interface ProfileData {
@@ -77,7 +78,7 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
     const handleSave = async () => {
         setLoading(true);
         const supabase = createClient();
-        
+
         const { error } = await supabase
             .from('profiles')
             .upsert({
@@ -116,17 +117,18 @@ export function ProfileForm({ initialData, user }: { initialData?: ProfileData, 
             <aside className="w-80 h-full border-r border-white/[0.04] bg-[#070708] flex flex-col justify-between shrink-0 p-6">
                 <div className="space-y-8">
                     <div className="flex items-center gap-4 pb-5 mb-2 border-b border-white/[0.04]">
-                        <div className="relative group shrink-0">
-                            <div className="relative w-11 h-11 rounded-full bg-primary/5 border border-primary/20 flex items-center justify-center overflow-hidden p-2.5 transition-all duration-300 shadow-[0_0_12px_rgba(242,170,76,0.1)] group-hover:shadow-[0_0_20px_rgba(242,170,76,0.2)]">
-                                <Image 
-                                    src={logoImg} 
-                                    alt="OfferFit Logo" 
-                                    width={24} 
-                                    height={24} 
-                                    className="object-contain w-full h-full drop-shadow-[0_0_8px_rgba(242,170,76,0.8)] opacity-90"
+                        <Link href="/" className="relative group shrink-0">
+                            <div className="relative w-10 h-10 flex items-center justify-center">
+                                <Image
+                                    src={logoImg}
+                                    alt="OfferFit Logo"
+                                    width={28}
+                                    height={28}
+                                    priority
+                                    className="object-contain w-full h-full drop-shadow-[0_0_6px_rgba(242,170,76,0.6)] opacity-95 transition-transform duration-300 group-hover:scale-105"
                                 />
                             </div>
-                        </div>
+                        </Link>
                         <div className="overflow-hidden flex flex-col justify-center">
                             <h3 className="text-[13px] font-semibold text-white tracking-wide truncate">
                                 {formData.full_name || "Your Profile"}

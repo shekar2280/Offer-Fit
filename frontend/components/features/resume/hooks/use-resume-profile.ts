@@ -18,7 +18,7 @@ export function useResumeProfile(user: User | null) {
       const supabase = createClient();
       const response = await supabase
         .from("profiles")
-        .select("resume_text, github_username")
+        .select("resume_text")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -43,6 +43,10 @@ export function useResumeProfile(user: User | null) {
 
   const isLatex = isLatexSource(resumeText || "");
 
+  const providers = user?.app_metadata?.providers || [];
+  const identities = user?.identities || [];
+  const isGithubLinked = providers.includes("github") || identities.some((id: any) => id.provider === "github");
+
   return {
     extractedText: resumeText,
     setExtractedText: setResumeOverride,
@@ -54,6 +58,6 @@ export function useResumeProfile(user: User | null) {
     masterExtractedText: resumeText,
     isLatex,
     isLoadingProfile,
-    hasGithubConnected: !!profile?.github_username,
+    hasGithubConnected: isGithubLinked || !!profile?.github_username,
   };
 }

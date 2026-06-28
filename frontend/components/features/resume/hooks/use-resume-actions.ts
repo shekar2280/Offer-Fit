@@ -85,6 +85,7 @@ export function useResumeActions({
         );
       if (error) throw error;
       setHasExistingResume(true);
+      await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
     } catch {
       toast.error("Failed to save to profile.");
     }
@@ -111,6 +112,7 @@ export function useResumeActions({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text: data.text }),
           });
+          await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
         }
       }
     } catch {

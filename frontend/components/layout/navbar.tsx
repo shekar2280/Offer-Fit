@@ -119,7 +119,7 @@ export function Navbar({
                             className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden transition-shadow duration-300 group-hover:shadow-[0_0_16px_4px_rgba(242,170,76,0.3)]"
                             style={{ background: "linear-gradient(135deg, #101820, #1e2a3a)", border: "1px solid rgba(242,170,76,0.2)" }}
                         >
-                            <Image src={logoIcon} alt="Offer Fit" width={20} height={20} className="object-contain" />
+                            <Image src={logoIcon} alt="Offer Fit" width={20} height={20} priority className="object-contain" />
                         </div>
                         <span className={`${spaceGrotesk.className} text-lg font-bold tracking-[0.08em] text-white select-none`}>
                             OFFER<span className="text-[#f2aa4c] font-light">FIT</span>
