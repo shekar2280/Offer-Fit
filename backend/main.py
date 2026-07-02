@@ -243,7 +243,7 @@ Return exactly this shape:
 """
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         client = genai.Client(api_key=api_key) if api_key else genai.Client()
-        response = client.models.generate_content(
+        response = await client.aio.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt
         )
@@ -413,7 +413,7 @@ async def sync_github_repo(req: GitHubSyncRequest, auth: tuple = Depends(get_use
                 "commits": prs_str
             })
 
-        project_intel = run_project_kb_parser(
+        project_intel = await run_project_kb_parser(
             project_name=repo,
             context=readme[:2000],
             technologies=tech_stack,
