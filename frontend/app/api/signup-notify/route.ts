@@ -6,33 +6,38 @@ export async function POST(req: Request) {
   const { email, user_name } = await req.json();
 
   if (!email) {
-    return NextResponse.json({ success: false, error: "Email is required" }, { status: 400 });
+    return NextResponse.json(
+      { success: false, error: "Email is required" },
+      { status: 400 },
+    );
   }
 
-  // Compute MD5 hash of email
-  const hashed_email = crypto.createHash("md5").update(email.toLowerCase().trim()).digest("hex");
+  const hashed_email = crypto
+    .createHash("md5")
+    .update(email.toLowerCase().trim())
+    .digest("hex");
 
   const supabaseAdmin = createAdminClient();
 
-  // Try to insert the user into historical_users
   const { error: dbError } = await supabaseAdmin
     .from("historical_users")
     .insert({ hashed_email });
 
   if (dbError) {
-    // If it fails with duplicate key (code 23505), this means they have signed up before.
-    // In that case, we silently return success without sending the discord alert.
     if (dbError.code === "23505") {
-      return NextResponse.json({ success: true, message: "User already registered historically" });
+      return NextResponse.json({
+        success: true,
+        message: "User already registered historically",
+      });
     }
-    
-    // For other DB errors, log and return error
+
     console.error("Database error inserting historical user:", dbError);
-    return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: dbError.message },
+      { status: 500 },
+    );
   }
 
-  // If insert was successful, they are a brand new historical user!
-  // Send Discord Webhook
   const DISCORD_SIGNUP_WEBHOOK_URL = process.env.DISCORD_SIGNUP_WEBHOOK_URL;
 
   if (!DISCORD_SIGNUP_WEBHOOK_URL) {
@@ -46,10 +51,10 @@ export async function POST(req: Request) {
     embeds: [
       {
         title: "🎉 New Signup: OfferFit",
-        color: 3066993, // Green
+        color: 3066993,
         fields: [
           { name: "User", value: user_name || "Unknown", inline: true },
-          { name: "Email", value: email || "No email", inline: true }
+          { name: "Email", value: email || "No email", inline: true },
         ],
         timestamp: new Date().toISOString(),
       },
@@ -66,5 +71,8 @@ export async function POST(req: Request) {
     console.error("Failed to notify discord:", webhookError);
   }
 
-  return NextResponse.json({ success: true, message: "New user recorded and notified" });
+  return NextResponse.json({
+    success: true,
+    message: "New user recorded and notified",
+  });
 }

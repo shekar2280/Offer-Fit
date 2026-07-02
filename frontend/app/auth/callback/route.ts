@@ -10,11 +10,9 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && data?.user) {
-      
-      // Check if user is newly created (within last 60 seconds) for Discord webhook (OAuth signups)
       const now = new Date();
       const createdAt = new Date(data.user.created_at);
-      const isNewUser = (now.getTime() - createdAt.getTime()) < 60000;
+      const isNewUser = now.getTime() - createdAt.getTime() < 60000;
 
       if (isNewUser && data.user.email) {
         try {
@@ -23,7 +21,7 @@ export async function GET(request: Request) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               email: data.user.email,
-              user_name: data.user.user_metadata?.full_name || "Unknown"
+              user_name: data.user.user_metadata?.full_name || "Unknown",
             }),
           });
         } catch (e) {
@@ -35,5 +33,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/auth/error?error=Could not exchange auth code for session`);
+  return NextResponse.redirect(
+    `${origin}/auth/error?error=Could not exchange auth code for session`,
+  );
 }
