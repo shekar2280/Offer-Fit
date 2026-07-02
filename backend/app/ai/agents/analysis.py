@@ -2,6 +2,7 @@ import os
 import json
 import httpx
 import re
+import asyncio
 from google import genai
 from google.genai import types
 from typing import Optional, Dict, Any, List
@@ -155,6 +156,10 @@ def replace_section_by_header(latex_content: str, keywords: list, new_content: s
         return latex_content[:start_idx] + f"\n{new_content}\n" + latex_content[end_idx:]
     return None
 
+def escape_for_latex_matching(text: str) -> str:
+    escaped = re.escape(text)
+    return re.sub(r'\\([&%$#_{}~^\\])', r'\\?\1', escaped)
+
 def merge_customized_sections_into_latex(original_latex: str, customized_resume: dict) -> str:
     result = original_latex
     
@@ -170,7 +175,8 @@ def merge_customized_sections_into_latex(original_latex: str, customized_resume:
 
     for exp in customized_resume.get("experience", []):
         company = exp.get("company", "")
-        pattern = re.compile(r'(\\textbf\{.*?' + re.escape(company) + r'.*?\}|\\textit\{.*?' + re.escape(company) + r'.*?\}|' + re.escape(company) + r')', re.IGNORECASE)
+        safe_company = escape_for_latex_matching(company)
+        pattern = re.compile(r'(\\textbf\{.*?' + safe_company + r'.*?\}|\\textit\{.*?' + safe_company + r'.*?\}|' + safe_company + r')', re.IGNORECASE)
         match = pattern.search(result)
         if match:
             start_pos = match.end()
@@ -194,7 +200,8 @@ def merge_customized_sections_into_latex(original_latex: str, customized_resume:
 
     for proj in customized_resume.get("projects", []):
         name = proj.get("name", "")
-        pattern = re.compile(r'(\\textbf\{.*?' + re.escape(name) + r'.*?\}|' + re.escape(name) + r')', re.IGNORECASE)
+        safe_name = escape_for_latex_matching(name)
+        pattern = re.compile(r'(\\textbf\{.*?' + safe_name + r'.*?\}|' + safe_name + r')', re.IGNORECASE)
         match = pattern.search(result)
         if match:
             start_pos = match.end()
@@ -521,7 +528,7 @@ async def run_analysis_agent(
         if not any(original_resume.values()):
             raise Exception("No resume chunks found. Please re-upload your resume from the Profile page before customizing.")
 
-        jd_intents = run_jd_intent_extractor(jd)
+        jd_intents = await run_jd_intent_extractor(jd)
         project_rankings = await run_project_scorer(user_id, jd_intents)
 
         style_patterns = []
@@ -532,7 +539,7 @@ async def run_analysis_agent(
                 search_text = ", ".join(jd_intents.get("technical", {}).keys()) if jd_intents.get("technical") else jd
                 embedding_payload_text = f"Role: {position}. Target Skills: {search_text}"
 
-                embed_resp = client.models.embed_content(
+                embed_resp = await client.aio.models.embed_content(
                     model="gemini-embedding-2",
                     contents=embedding_payload_text,
                     config=types.EmbedContentConfig(output_dimensionality=768)
@@ -573,31 +580,37 @@ async def run_analysis_agent(
             original_resume=original_resume,
             project_rankings=project_rankings,
             style_patterns=style_patterns,
-            jd_intents=jd_intents
+            jd_intents=jd_intents,
+            position=position,
+            company_name=company_name
         )
 
-        validation_result = run_resume_validator(
+        validation_result = await run_resume_validator(
             customized_resume=customized_resume,
             original_evidence=project_rankings,
             original_resume=original_resume
         )
         is_valid = validation_result.get("is_valid", True)
 
+        MAX_VALIDATION_ATTEMPTS = 2
         attempts = 0
-        while not validation_result.get("is_valid", True) and attempts < 1:
+        while not validation_result.get("is_valid", True) and attempts < MAX_VALIDATION_ATTEMPTS:
             attempts += 1
             correction_instructions = (
-                f"Fix these issues: {validation_result.get('reconstruction_plan')}. "
-                f"Ensure NO unsupported technologies: {validation_result.get('unsupported_technologies')} "
-                f"or hallucinated metrics: {validation_result.get('hallucinated_metrics')} are used."
+                f"CORRECTION REQUIRED — previous output failed validation.\n"
+                f"Remove these unsupported technologies: {validation_result.get('unsupported_technologies', [])}.\n"
+                f"Remove these hallucinated metrics: {validation_result.get('hallucinated_metrics', [])}.\n"
+                f"Apply these fixes: {validation_result.get('reconstruction_plan', '')}."
             )
             customized_resume = await run_resume_writer(
                 original_resume=original_resume,
                 project_rankings=project_rankings,
                 style_patterns=style_patterns + [correction_instructions],
-                jd_intents=jd_intents
+                jd_intents=jd_intents,
+                position=position,
+                company_name=company_name
             )
-            validation_result = run_resume_validator(
+            validation_result = await run_resume_validator(
                 customized_resume=customized_resume,
                 original_evidence=project_rankings,
                 original_resume=original_resume
@@ -608,10 +621,12 @@ async def run_analysis_agent(
         customized_resume["education"] = original_resume.get("education", [])
 
         original_latex = original_resume.get("latex_source", "")
+        merge_error = None
         if original_latex:
             try:
                 rendered_latex = merge_customized_sections_into_latex(original_latex, customized_resume)
-            except Exception:
+            except Exception as e:
+                merge_error = str(e)
                 rendered_latex = render_latex_resume(customized_resume)
         else:
             rendered_latex = render_latex_resume(customized_resume)
@@ -621,7 +636,8 @@ async def run_analysis_agent(
             "data": {
                 "customized_json": customized_resume,
                 "jd_intents": jd_intents,
-                "validation": validation_result
+                "validation": validation_result,
+                "merge_warning": merge_error
             },
             "personaLabel": get_persona_label(position),
             "toolUsed": "groq-llama-3.3-70b-specdec",
@@ -674,7 +690,7 @@ async def run_analysis_agent(
                     }
                     cost = 0.0
             else:
-                response = client.models.generate_content(
+                response = await client.aio.models.generate_content(
                     model=model_name,
                     contents=prompt,
                     config=types.GenerateContentConfig(

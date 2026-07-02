@@ -72,7 +72,7 @@ async def run_strategy_agent(
 
     for model_name in DEFAULT_MODELS:
         try:
-            response = client.models.generate_content(
+            response = await client.aio.models.generate_content(
                 model=model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(

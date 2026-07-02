@@ -14,7 +14,7 @@ class JDIntentsSchema(BaseModel):
         description="Map of engineering concepts/craftsmanship (e.g., 'testing', 'ci/cd', 'maintainability', 'security') to weight (1-10)"
     )
 
-def run_jd_intent_extractor(jd: str) -> Dict[str, Any]:
+async def run_jd_intent_extractor(jd: str) -> Dict[str, Any]:
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     from google import genai
     from google.genai import types
@@ -64,8 +64,8 @@ Job Description:
                     "response_format": {"type": "json_object"},
                     "temperature": 0.0
                 }
-                with httpx.Client() as client:
-                    res = client.post(
+                async with httpx.AsyncClient() as client:
+                    res = await client.post(
                         "https://api.groq.com/openai/v1/chat/completions",
                         json=payload,
                         headers=headers,
@@ -75,7 +75,7 @@ Job Description:
                         raise Exception(f"Groq API call failed: {res.text}")
                     response_text = res.json()["choices"][0]["message"]["content"]
             else:
-                response = client.models.generate_content(
+                response = await client.aio.models.generate_content(
                     model=model_name,
                     contents=prompt,
                     config=types.GenerateContentConfig(

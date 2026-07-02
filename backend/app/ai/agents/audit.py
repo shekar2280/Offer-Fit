@@ -117,7 +117,7 @@ async def run_resume_audit(original_resume: str, tailored_resume: str) -> Dict[s
 
     for model_name in DEFAULT_MODELS:
         try:
-            response = client.models.generate_content(
+            response = await client.aio.models.generate_content(
                 model=model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(
@@ -178,7 +178,7 @@ async def run_analysis_judge(resume: str, jd: str, analysis: str) -> Dict[str, A
 
     for model_name in DEFAULT_MODELS:
         try:
-            response = client.models.generate_content(
+            response = await client.aio.models.generate_content(
                 model=model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(
