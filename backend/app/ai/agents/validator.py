@@ -22,7 +22,7 @@ class ValidationResultSchema(BaseModel):
         description="Factual instructions on how to revise the invalid bullets to eliminate the hallucinations"
     )
 
-def run_resume_validator(
+async def run_resume_validator(
     customized_resume: Dict[str, Any],
     original_evidence: List[Dict[str, Any]],
     original_resume: Dict[str, Any]
@@ -73,8 +73,8 @@ Return the audit results as a valid JSON object matching the ValidationResultSch
                     "response_format": {"type": "json_object"},
                     "temperature": 0.0
                 }
-                with httpx.Client() as client:
-                    res = client.post(
+                async with httpx.AsyncClient() as client:
+                    res = await client.post(
                         "https://api.groq.com/openai/v1/chat/completions",
                         json=payload,
                         headers=headers,
@@ -84,7 +84,7 @@ Return the audit results as a valid JSON object matching the ValidationResultSch
                         raise Exception(f"Groq API call failed: {res.text}")
                     response_text = res.json()["choices"][0]["message"]["content"]
             else:
-                response = client.models.generate_content(
+                response = await client.aio.models.generate_content(
                     model=model_name,
                     contents=prompt,
                     config=types.GenerateContentConfig(

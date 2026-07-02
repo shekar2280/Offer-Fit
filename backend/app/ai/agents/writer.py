@@ -58,6 +58,20 @@ def sanitize_hallucinated_technologies(text: str, allowed_skills_lower: set) -> 
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned
 
+def extract_json_array(text: str) -> list:
+    try:
+        return json.loads(text.strip())
+    except json.JSONDecodeError:
+        pass
+    start = text.find('[')
+    end = text.rfind(']')
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(text[start:end+1])
+        except json.JSONDecodeError:
+            pass
+    return []
+
 async def call_groq_llama(prompt: str, system_message: str = "You are a professional resume rewriter.") -> str:
     groq_api_key = os.getenv("GROQ_API_KEY")
     if not groq_api_key:
@@ -91,7 +105,9 @@ async def run_resume_writer(
     original_resume: Dict[str, Any],
     project_rankings: List[Dict[str, Any]],
     style_patterns: List[str],
-    jd_intents: Dict[str, Any]
+    jd_intents: Dict[str, Any],
+    position: str = "Software Engineer",
+    company_name: str = "Target Company"
 ) -> Dict[str, Any]:
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     gemini_client = genai.Client(api_key=api_key) if api_key else genai.Client()
@@ -140,7 +156,7 @@ async def run_resume_writer(
                         raise Exception(f"Groq API call failed: {res.text}")
                     struct_resp_text = res.json()["choices"][0]["message"]["content"]
             else:
-                struct_resp = gemini_client.models.generate_content(
+                struct_resp = await gemini_client.aio.models.generate_content(
                     model=model_name,
                     contents=struct_prompt,
                     config=types.GenerateContentConfig(
@@ -158,7 +174,7 @@ async def run_resume_writer(
     if not struct_resp_text:
         raise last_err
 
-    structured_resume = RawStructuredResume.parse_raw(struct_resp_text.strip())
+    structured_resume = RawStructuredResume.model_validate_json(struct_resp_text.strip())
 
     verified_skills = set(structured_resume.skills)
     for rank in project_rankings:
@@ -174,10 +190,25 @@ async def run_resume_writer(
     allowed_skills_lower = {s.lower() for s in verified_skills}
 
     skills_prompt = f"""
-    You are a resume skills organizer. Categorize, filter, and reorder the verified skills list to highlight skills relevant to the target JD.
+    You are a resume skills organizer. Categorize and reorder the verified skills list to highlight skills relevant to the target JD.
     
+    CRITICAL INSTRUCTIONS:
+    1. DO NOT filter out or delete non-matching skills. Retain all verified skills in their respective categories.
+    2. Prioritize and reorder: Within each category, place the technologies/skills that match or are highly relevant to the JD intents first (at the front of the list), followed by the candidate's other verified skills.
+    3. Ensure the categories remain rich and fully represent the candidate's overall profile.
+
+    OUTPUT FORMAT — respond ONLY with a JSON object like:
+    {{
+      "skills": [
+        {{"category": "Languages", "skills": ["<JD-matched first>", ...]}},
+        {{"category": "Frameworks", "skills": [...]}},
+        ...
+      ]
+    }}
+    The FIRST skill in each category list MUST be the one most explicitly mentioned in the JD intents.
+
     VERIFIED SKILLS (IMMUTABLE - you are FORBIDDEN from adding any skill not in this list):
-    {json.dumps(list(verified_skills), indent=2)}
+    {json.dumps(sorted(list(verified_skills)), indent=2)}
 
     JD INTENTS:
     {json.dumps(jd_intents, indent=2)}
@@ -214,7 +245,7 @@ async def run_resume_writer(
                         raise Exception(f"Groq API call failed: {res.text}")
                     skills_resp_text = res.json()["choices"][0]["message"]["content"]
             else:
-                skills_resp = gemini_client.models.generate_content(
+                skills_resp = await gemini_client.aio.models.generate_content(
                     model=model_name,
                     contents=skills_prompt,
                     config=types.GenerateContentConfig(
@@ -278,14 +309,7 @@ async def run_resume_writer(
             prompt=job_prompt,
             system_message="You are a professional resume rewriter. You always output a raw JSON array of strings containing rewritten bullets."
         )
-        try:
-            array_match = re.search(r'\[\s*".*?"\s*\]', job_resp.replace('\n', ' '), re.DOTALL)
-            if array_match:
-                bullets = json.loads(array_match.group(0))
-            else:
-                bullets = json.loads(job_resp.strip())
-        except Exception:
-            bullets = job.highlights
+        bullets = extract_json_array(job_resp) or job.highlights
 
         cleaned_bullets = [sanitize_hallucinated_technologies(b, allowed_skills_lower) for b in bullets]
         optimized_experience.append({
@@ -335,17 +359,11 @@ async def run_resume_writer(
             prompt=proj_prompt,
             system_message="You are a professional resume rewriter. You always output a raw JSON array of strings containing rewritten bullets."
         )
-        try:
-            array_match = re.search(r'\[\s*".*?"\s*\]', proj_resp.replace('\n', ' '), re.DOTALL)
-            if array_match:
-                bullets = json.loads(array_match.group(0))
-            else:
-                bullets = json.loads(proj_resp.strip())
-        except Exception:
-            bullets = proj_evidence[:3]
+        orig_project_bullets = next((p.highlights for p in structured_resume.projects if p.name == proj_name), [])
+        bullets = extract_json_array(proj_resp) or orig_project_bullets or proj_evidence[:3]
 
         cleaned_bullets = [sanitize_hallucinated_technologies(b, allowed_skills_lower) for b in bullets]
-        generic_tech = {"html", "css", "javascript", "js", "dockerfile", "shell", "pydantic", "tex", "vercel", "render"}
+        generic_tech = {"html", "css", "js", "dockerfile", "shell", "pydantic", "tex"}
         filtered_tech = [t for t in proj_tech if t.lower() in allowed_skills_lower and t.lower() not in generic_tech]
         optimized_projects.append({
             "name": proj_name,
@@ -354,18 +372,20 @@ async def run_resume_writer(
         })
 
     summary_prompt = f"""
-    Write a powerful 3-4 sentence professional summary tailored to the target JD.
-    
-    CANDIDATE PROFILE HIGHLIGHTS:
-    - Verified Skills: {list(verified_skills)}
-    - Key Projects: {[p['name'] for p in optimized_projects]}
+    Write a 3-sentence professional summary for a candidate applying to {position} at {company_name}.
 
-    JD INTENTS:
-    {json.dumps(jd_intents, indent=2)}
+    Sentence 1: Years of experience + primary stack from verified skills.
+    Sentence 2: One specific project achievement relevant to JD (use project names: {[p['name'] for p in optimized_projects]}).
+    Sentence 3: One clear value proposition aligned to the JD's core impact area.
 
-    CRITICAL CONSTRAINTS:
-    1. Only mention technologies and accomplishments present in the candidate profile highlights above. Do not speculate.
-    2. Write a single flat paragraph summary.
+    CANDIDATE VERIFIED SKILLS: {list(verified_skills)}
+    JD INTENTS: {json.dumps(jd_intents, indent=2)}
+
+    RULES:
+    - Maximum 3 sentences. No more.
+    - Do NOT use: "passionate", "motivated", "results-driven", "dynamic", "synergy".
+    - Only mention verified skills. No speculation.
+    - Do NOT start with "I".
     """
     summary_text = await call_groq_llama(
         prompt=summary_prompt,

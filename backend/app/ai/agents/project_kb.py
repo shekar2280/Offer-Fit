@@ -20,7 +20,7 @@ class ProjectIntelOutput(BaseModel):
     evidence: List[str]
     signals: List[str]
 
-def run_project_kb_parser(
+async def run_project_kb_parser(
     project_name: str,
     context: str,
     technologies: List[str],
@@ -92,14 +92,14 @@ You MUST return your output as a valid JSON object matching the following struct
                     "response_format": {"type": "json_object"},
                     "temperature": 0.0
                 }
-                with httpx.Client() as client_http:
-                    response = client_http.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers, timeout=30.0)
+                async with httpx.AsyncClient() as client_http:
+                    response = await client_http.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers, timeout=30.0)
                 if response.status_code != 200:
                     raise Exception(f"Groq API call failed: {response.text}")
                 res_data = response.json()
                 content = res_data["choices"][0]["message"]["content"]
             else:
-                response = client.models.generate_content(
+                response = await client.aio.models.generate_content(
                     model=model_name,
                     contents=prompt,
                     config=types.GenerateContentConfig(

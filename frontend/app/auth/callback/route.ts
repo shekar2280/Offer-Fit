@@ -8,11 +8,32 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data?.user) {
+      const now = new Date();
+      const createdAt = new Date(data.user.created_at);
+      const isNewUser = now.getTime() - createdAt.getTime() < 60000;
+
+      if (isNewUser && data.user.email) {
+        try {
+          await fetch(`${origin}/api/signup-notify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: data.user.email,
+              user_name: data.user.user_metadata?.full_name || "Unknown",
+            }),
+          });
+        } catch (e) {
+          console.error("Failed to call signup-notify API", e);
+        }
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
-  return NextResponse.redirect(`${origin}/auth/error?error=Could not exchange auth code for session`);
+  return NextResponse.redirect(
+    `${origin}/auth/error?error=Could not exchange auth code for session`,
+  );
 }

@@ -100,7 +100,7 @@ User's Projects:
                         raise Exception(f"Groq API call failed: {res.text}")
                     response_text = res.json()["choices"][0]["message"]["content"]
             else:
-                response = client.models.generate_content(
+                response = await client.aio.models.generate_content(
                     model=model_name,
                     contents=prompt,
                     config=types.GenerateContentConfig(
