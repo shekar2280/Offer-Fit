@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
   "name": "OfferFit",
-  "version": "1.0",
+  "version": "1.1.0",
   "description": "Premium AI-powered job extraction for 100+ platforms.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": ["https://offerfit.vercel.app/*"],
+  "background": { "service_worker": "background.js" },
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
@@ -16,7 +17,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://offerfit.vercel.app/*", "http://localhost:3000/*", "https://*.linkedin.com/jobs/*", "https://wellfound.com/jobs/*", "https://www.ycombinator.com/*", "https://*.greenhouse.io/*", "https://jobs.lever.co/*", "https://jobs.ashbyhq.com/*", "https://*.myworkdayjobs.com/*", "https://*.indeed.com/*", "https://*.naukri.com/*", "https://*.smartrecruiters.com/*"],
       "js": ["scraper.js", "content.js"]
     }
   ]

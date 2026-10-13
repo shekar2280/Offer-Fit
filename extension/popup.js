@@ -12,18 +12,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  chrome.tabs.sendMessage(
-    currentTabId,
-    { action: "extractJobData" },
-    (response) => {
-      if (chrome.runtime.lastError || !response || (!response.role && !response.company)) {
-        showNoJobState();
-        return;
-      }
-      scrapedJob = response;
-      showJobState();
+  async function extractFromActiveTab() {
+    try { return await chrome.tabs.sendMessage(currentTabId, { action: "extractJobData" }); }
+    catch {
+      try {
+        await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ["scraper.js", "content.js"] });
+        return await chrome.tabs.sendMessage(currentTabId, { action: "extractJobData" });
+      } catch { return null; }
     }
-  );
+  }
+  const response = await extractFromActiveTab();
+  if (!response || (!response.role && !response.company)) showNoJobState();
+  else { scrapedJob = response; showJobState(); }
 
   function showNoJobState() {
     document.getElementById("no-job").style.display = "block";
@@ -63,9 +63,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         role: scrapedJob.role || "",
         location: scrapedJob.location || "",
         jobType: scrapedJob.jobType || "",
-        jd: scrapedJob.description || "",
       });
-      chrome.storage.local.set({ pendingJobTransfer: scrapedJob }, () => {
+      chrome.storage.local.set({ pendingJobTransfer: { ...scrapedJob, capturedAt: Date.now() } }, () => {
         chrome.tabs.create({ url: `${baseUrl}?${params.toString()}` });
       });
     };
@@ -77,10 +76,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         role: scrapedJob.role || "",
         location: scrapedJob.location || "",
         jobType: scrapedJob.jobType || "",
-        jd: scrapedJob.description || "",
       });
-      chrome.storage.local.set({ pendingJobTransfer: scrapedJob }, () => {
+      chrome.storage.local.set({ pendingJobTransfer: { ...scrapedJob, capturedAt: Date.now() } }, () => {
         chrome.tabs.create({ url: `${baseUrl}?${params.toString()}` });
+      });
+    };
+    document.getElementById("track-btn").onclick = () => {
+      chrome.storage.local.set({ pendingJobTransfer: { ...scrapedJob, capturedAt: Date.now() } }, () => chrome.tabs.create({ url: `${FRONTEND_URL}/hub?view=applications` }));
+    };
+    document.getElementById("fill-btn").onclick = async () => {
+      const stored = await chrome.storage.local.get(["offerfitContact"]);
+      const profile = stored.offerfitContact?.profile;
+      if (!profile) { document.getElementById("fill-status").textContent = "Sync your profile from OfferFit Settings first."; return; }
+      const preview = [`Name: ${profile.fullName || "—"}`, `Email: ${profile.email || "—"}`, `Phone: ${profile.phone || "—"}`, `LinkedIn: ${profile.linkedin || "—"}`, `Portfolio: ${profile.portfolio || "—"}`].join("\n");
+      if (!window.confirm(`Fill empty contact fields with these details?\n\n${preview}\n\nReview before submitting. Eligibility and file uploads remain manual.`)) return;
+      chrome.tabs.sendMessage(currentTabId, { action: "autofillContact" }, response => {
+        document.getElementById("fill-status").textContent = chrome.runtime.lastError ? "Could not access this page. Reload and retry." : response?.error || `${response?.filled || 0} empty contact fields filled. Review your form.`;
       });
     };
   }
