@@ -8,7 +8,7 @@
 
 _AI-driven career intelligence and resume optimization engine — score your resume, close skill gaps, and land elite roles._
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.4-black?logo=next.js&logoColor=white)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Gemini](https://img.shields.io/badge/Google%20Gemini-AI-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-Auth%20%26%20DB-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
@@ -80,7 +80,7 @@ For detailed information on the dataset traps and to run the test suite yourself
 ### Frontend
 | Technology | Purpose |
 |---|---|
-| **Next.js 15** (App Router) | Framework, SSR, routing |
+| **Next.js 16.4** (App Router) | Framework, SSR, routing |
 | **React 19** | UI library |
 | **TypeScript 5** | Type safety |
 | **Tailwind CSS 3** | Styling |
@@ -116,7 +116,7 @@ For detailed information on the dataset traps and to run the test suite yourself
 
 ```
 resume-analyzer/
-├── frontend/                    # Next.js 15 application
+├── frontend/                    # Next.js 16.4 application
 │   ├── app/
 │   │   ├── analyze/             # Resume analysis workflow
 │   │   ├── customize/           # Resume customization workflow
@@ -239,6 +239,10 @@ The app will be available at `http://localhost:3000`.
 ---
 
 ### 4. Database Setup
+
+The application tracker also requires the additive migration at [`supabase/migrations/202610080001_job_hub.sql`](supabase/migrations/202610080001_job_hub.sql). Apply it once after the base schema; do not rerun the legacy setup over an existing production database. Follow the [Hub deployment guide](docs/job-hub-deployment.md) and check the schema with [`supabase/verify_job_hub.sql`](supabase/verify_job_hub.sql).
+
+The dashboard uses Overview, Analyze & tailor, Applications, and History navigation. See the [portfolio project roadmap](docs/portfolio-project-roadmap.md) for the architecture decision, phased scope, and hiring demo acceptance criteria.
 
 Run the SQL setup script in your Supabase project's SQL editor:
 
