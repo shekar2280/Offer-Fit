@@ -10,6 +10,7 @@ import { TransitionShell } from "@/components/layout/transition-shell";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.OFFERFIT_APP_URL || "https://offerfit.vercel.app"),
   title: "OfferFit",
   description: "Advanced career intelligence and resume optimization engine.",
 };

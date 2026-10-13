@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, Archive, User, Sparkles } from "lucide-react";
+import { Menu, Archive, User, Sparkles, BriefcaseBusiness } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import logoIcon from "@/assets/icon.png";
@@ -10,6 +10,7 @@ import { PLAN_QUOTAS, PlanType, isPastMidnightIST } from "@/config/constants";
 
 import { createClient } from "@/services/supabase/client";
 import { Space_Grotesk } from "next/font/google";
+import { WorkspaceNav } from "./workspace-nav";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -96,6 +97,7 @@ export function Navbar({
     const isOutOfCredits = mounted && remainingCredits === 0;
 
     return (
+        <>
         <header className="w-full h-[68px] shrink-0 sticky top-0 z-50 bg-black/60 backdrop-blur-2xl border-b border-white/[0.06]">
             <div
                 className="absolute inset-x-0 top-0 h-px"
@@ -128,6 +130,9 @@ export function Navbar({
                 </div>
 
                 <div className="flex items-center gap-2.5 flex-none">
+                    <Link href="/hub" title="Daily job workspace" aria-label="Daily job workspace" className="flex items-center justify-center w-8 h-8 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07]">
+                        <BriefcaseBusiness className="w-4 h-4 text-primary" />
+                    </Link>
                     <div className={`flex items-center gap-1.5 shadow-[inset_0_0_12px_rgba(255,255,255,0.02)] rounded-full px-3.5 py-1.5 transition-all duration-500 ${isOutOfCredits
                         ? "bg-rose-950/40 border border-rose-500/30 shadow-[0_0_20px_rgba(239,68,68,0.1)] hover:bg-rose-950/60 hover:border-rose-500/50"
                         : "bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.05] hover:border-white/[0.15]"
@@ -169,5 +174,7 @@ export function Navbar({
                 </div>
             </div>
         </header>
+        <WorkspaceNav />
+        </>
     );
 }

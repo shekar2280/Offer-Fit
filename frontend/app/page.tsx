@@ -118,7 +118,7 @@ export default function Home() {
   }
 
   return (
-    <main className="h-screen w-full bg-background text-foreground overflow-hidden">
+    <main className="min-h-screen w-full bg-background text-foreground">
       {showOnboarding && user && (
         <OnboardingModal userId={user.id} onComplete={handleOnboardingComplete} />
       )}
