@@ -1,0 +1,202 @@
+[
+  {
+    "name": "Amazon",
+    "url": "https://www.amazon.jobs/en/locations/india",
+    "error": "Unverified response 404: Amazon.jobs"
+  },
+  {
+    "name": "SAP",
+    "url": "https://jobs.sap.com/",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "ServiceNow",
+    "url": "https://careers.servicenow.com/",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "PayPal",
+    "url": "https://careers.pypl.com/",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "Uber",
+    "url": "https://www.uber.com/us/en/careers/",
+    "error": "Unverified response 406: "
+  },
+  {
+    "name": "Ericsson",
+    "url": "https://www.ericsson.com/en/careers",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "Cognizant",
+    "url": "https://careers.cognizant.com/",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "EPAM",
+    "url": "https://www.epam.com/careers",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "Icertis",
+    "url": "https://www.icertis.com/careers/",
+    "error": "Unverified response 301: "
+  },
+  {
+    "name": "Krutrim",
+    "url": "https://www.olakrutrim.com/careers",
+    "error": "Unverified response 404: Krutrim Cloud"
+  },
+  {
+    "name": "Skyroot Aerospace",
+    "url": "https://skyroot.in/careers.html",
+    "error": "Unverified response 404: Not Found"
+  },
+  {
+    "name": "Yellow.ai",
+    "url": "https://yellow.ai/careers/",
+    "error": "Unverified response 404: Page not found - Yellow.ai"
+  },
+  {
+    "name": "Qure.ai",
+    "url": "https://www.qure.ai/careers",
+    "error": "Unverified response 404: 404: This page could not be found"
+  },
+  {
+    "name": "Urban Company",
+    "url": "https://careers.urbancompany.com/",
+    "error": "Unverified response 200: Urban Company"
+  },
+  {
+    "name": "Delhivery",
+    "url": "https://www.delhivery.com/careers/",
+    "error": "Unverified response 200: Logistics, Parcel Delivery &amp; Supply Chain Solutions - Delhivery"
+  },
+  {
+    "name": "Shiprocket",
+    "url": "https://www.shiprocket.in/careers/",
+    "error": "Unverified response 404: Page not found - Shiprocket"
+  },
+  {
+    "name": "Nykaa",
+    "url": "https://www.nykaa.com/careers",
+    "error": "Unsupported career destination"
+  },
+  {
+    "name": "Games24x7",
+    "url": "https://www.games24x7.com/careers",
+    "error": "Unverified response 404: Not Found"
+  },
+  {
+    "name": "Physics Wallah",
+    "url": "https://www.pw.live/careers",
+    "error": "Unverified response 404: "
+  },
+  {
+    "name": "Naukri / Info Edge",
+    "url": "https://www.infoedge.in/careers.asp",
+    "error": "Unverified response 404: Error"
+  },
+  {
+    "name": "Smallcase",
+    "url": "https://www.smallcase.com/careers/",
+    "error": "Unverified response 404: "
+  },
+  {
+    "name": "Nutanix",
+    "url": "https://www.nutanix.com/company/careers",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "Grafana Labs",
+    "url": "https://grafana.com/about/careers/",
+    "error": "Unverified response 404: 404 Page not found | Grafana Labs\n"
+  },
+  {
+    "name": "Canva",
+    "url": "https://www.lifeatcanva.com/",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "Confluent",
+    "url": "https://careers.confluent.io/",
+    "error": "Unverified response 429: Vercel Security Checkpoint"
+  },
+  {
+    "name": "Murf AI",
+    "url": "https://murf.ai/careers",
+    "error": "Unverified response 404: Not Found"
+  },
+  {
+    "name": "Sprinto",
+    "url": "https://sprinto.com/careers/",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "Rocketlane",
+    "url": "https://www.rocketlane.com/careers",
+    "error": "Unverified response 404: Not Found"
+  },
+  {
+    "name": "DevRev",
+    "url": "https://devrev.ai/careers",
+    "error": "Unverified response 429: Vercel Security Checkpoint"
+  },
+  {
+    "name": "Atomicwork",
+    "url": "https://www.atomicwork.com/careers",
+    "error": "Unverified response 404: Page not found | Atomicwork"
+  },
+  {
+    "name": "Dunzo",
+    "url": "https://www.dunzo.com/careers",
+    "error": "fetch failed"
+  },
+  {
+    "name": "Ather Energy",
+    "url": "https://www.atherenergy.com/careers",
+    "error": "Unverified response 403: Attention Required! | Cloudflare"
+  },
+  {
+    "name": "Ditto",
+    "url": "https://joinditto.in/careers/",
+    "error": "Unverified response 404: Ditto Insurance: Buy the best insurance plan for you today through our expert advisors!"
+  },
+  {
+    "name": "Fyle",
+    "url": "https://www.fylehq.com/careers",
+    "error": "Redirected to a generic page without a verified careers destination"
+  },
+  {
+    "name": "LeadSquared",
+    "url": "https://www.leadsquared.com/careers/",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "Netcore",
+    "url": "https://netcorecloud.com/careers/",
+    "error": "Unverified response 403: Just a moment..."
+  },
+  {
+    "name": "WebEngage",
+    "url": "https://webengage.com/careers/",
+    "error": "Unverified response 404: Page Not Found - WebEngage"
+  },
+  {
+    "name": "Unstop",
+    "url": "https://unstop.com/careers",
+    "error": "Unverified response 200: Unstop - Competitions, Quizzes, Hackathons, Scholarships and Internships for Students and\n      Corp"
+  },
+  {
+    "name": "Gojek",
+    "url": "https://www.gojek.io/careers",
+    "error": "Unverified response 429: Vercel Security Checkpoint"
+  },
+  {
+    "name": "Agoda",
+    "url": "https://careersatagoda.com/",
+    "error": "Unverified response 403: Just a moment..."
+  }
+]
