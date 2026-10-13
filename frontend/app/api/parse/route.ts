@@ -1,63 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractText } from "unpdf";
-import mammoth from "mammoth";
 import { createClient } from "@/services/supabase/server";
-import { logSystemEvent } from "@/services/supabase/logger";
+import { dbCheck, failure, HubError } from "@/lib/hub/server";
+import { parseResumeUpload } from "@/lib/hub/uploads";
 
 export async function POST(req: NextRequest) {
-  const formData = await req.formData();
-  const file = formData.get("file") as File;
-
-  if (!file) {
-    return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-  }
-
   try {
-    const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
-    const isDocx =
-      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-      file.name.endsWith(".docx");
-    let text = "";
-
-    if (isPdf) {
-      const arrayBuffer = await file.arrayBuffer();
-      const parsedResult = await extractText(arrayBuffer);
-      text = Array.isArray(parsedResult.text)
-        ? parsedResult.text.join("\n")
-        : parsedResult.text;
-    } else if (isDocx) {
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const parsedResult = await mammoth.extractRawText({ buffer });
-      text = parsedResult.value;
-    } else {
-      text = await file.text();
-    }
-
+    const expectedOrigin=new URL(process.env.OFFERFIT_APP_URL||req.url).origin;
+    if(req.headers.get("origin")&&req.headers.get("origin")!==expectedOrigin)throw new HubError("Invalid request origin.",403);
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      throw new HubError("Unauthorized", 401);
     }
-
-    await supabase
+    const { text, ext } = await parseResumeUpload(req);
+    const { error } = await supabase
       .from("profiles")
       .upsert({ id: user.id, resume_text: text, updated_at: new Date().toISOString() });
+    dbCheck(error);
 
     return NextResponse.json({
       text,
-      isLatex: !isPdf && !isDocx,
+      isLatex: ext === "tex" || text.includes("\\documentclass"),
     });
   } catch (error: unknown) {
-    await logSystemEvent({
-      level: "ERROR",
-      source: "API_PARSE",
-      message: "File parsing failed",
-      details: { error: (error as Error).message, fileName: file.name, fileType: file.type },
-    });
-    return NextResponse.json({ error: "Failed to parse file" }, { status: 500 });
+    return failure(error);
   }
 }

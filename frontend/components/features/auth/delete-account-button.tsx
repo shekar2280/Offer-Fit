@@ -32,6 +32,10 @@ export function DeleteAccountButton() {
         // Ignore network errors on feedback, proceed to delete account
       }
     }
+    try {
+      const response=await fetch("/api/hub/account-cleanup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({confirmation:"DELETE MY ACCOUNT"})});
+      const result=await response.json();if(!response.ok)throw new Error(result.error||"Could not clean up private job data.");
+    }catch(error){alert(error instanceof Error?error.message:"Account cleanup failed. Please retry.");setLoading(false);return;}
     const { error } = await supabase.rpc("delete_user_account");
     if (error) {
       alert("Failed to delete account: " + error.message);
@@ -74,7 +78,7 @@ export function DeleteAccountButton() {
               </h3>
 
               <p className="text-xs text-white/50 leading-relaxed font-light">
-                This action is permanent and cannot be undone. All your profile information, vector index chunks, personalized LaTeX resumes, and job analysis history will be deleted immediately.
+                Your job tracker, private resume files, drafts, check-ins, and integration credentials will be permanently removed, and Gmail access revoked. The existing account recovery policy may retain your profile and analysis history for 15 days.
               </p>
             </div>
 

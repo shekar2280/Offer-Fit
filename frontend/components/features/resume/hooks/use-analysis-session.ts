@@ -43,7 +43,7 @@ export function useAnalysisSession() {
     let interval: ReturnType<typeof setInterval>;
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.source !== window) return;
+      if (event.source !== window || event.origin !== window.location.origin) return;
       if (
         event.data?.type === "FROM_EXTENSION" &&
         event.data?.action === "JOB_DATA_RESPONSE"
@@ -60,7 +60,7 @@ export function useAnalysisSession() {
           setAnalysisData(update);
           window.postMessage(
             { type: "FROM_WEB_APP", action: "ACK_JOB_DATA" },
-            "*",
+            window.location.origin,
           );
 
           if (interval) clearInterval(interval);
@@ -73,7 +73,7 @@ export function useAnalysisSession() {
     const requestData = () => {
       window.postMessage(
         { type: "FROM_WEB_APP", action: "REQUEST_JOB_DATA" },
-        "*",
+        window.location.origin,
       );
     };
     requestData();

@@ -68,7 +68,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
         setSuccessMsg("");
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch("http://127.0.0.1:8000/project-kb/ingest", {
+            const response = await fetch("/api/project-kb/ingest", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
                 body: JSON.stringify({
@@ -92,7 +92,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
                 setErrorMsg(result.detail || "Save failed. Please check the backend connection.");
             }
         } catch {
-            setErrorMsg("Network error. Make sure backend is running on http://127.0.0.1:8000");
+            setErrorMsg("Project service unavailable. Check the backend deployment configuration.");
         } finally {
             setUploading(false);
         }
@@ -126,7 +126,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
             const githubIdentity = user?.identities?.find((id: any) => id.provider === "github");
             const githubEmail = githubIdentity?.identity_data?.email || user?.email || "";
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch("http://127.0.0.1:8000/project-kb/github/sync", {
+            const response = await fetch("/api/project-kb/github/sync", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
                 body: JSON.stringify({ user_id: user.id, repo_url: repoUrl.trim(), github_email: githubEmail }),
@@ -153,7 +153,7 @@ export function ProjectIntelligenceSection({ user }: { user: SupabaseUser }) {
             const githubIdentity = user?.identities?.find((id: any) => id.provider === "github");
             const githubEmail = githubIdentity?.identity_data?.email || user?.email || "";
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch("http://127.0.0.1:8000/project-kb/github/sync", {
+            const response = await fetch("/api/project-kb/github/sync", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
                 body: JSON.stringify({ user_id: user.id, repo_url: repoPath, github_email: githubEmail }),

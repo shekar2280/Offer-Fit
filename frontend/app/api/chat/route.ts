@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     process.env.BENCHMARK_SECRET ||
     ""
   ).trim();
-  const isTestMode = testSecret !== "" && testSecret === serverSecret;
+  const isTestMode = process.env.NODE_ENV !== "production" && testSecret !== "" && testSecret === serverSecret;
 
   let user: any = null;
   let charged = false;

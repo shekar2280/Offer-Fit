@@ -7,13 +7,6 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  const testSecret = (request.headers.get("x-test-secret") || request.nextUrl.searchParams.get("testSecret") || "").trim();
-  const serverSecret = (process.env.BENCHMARK_SECRET || "").trim();
-
-  if (testSecret !== "" && testSecret === serverSecret) {
-    return supabaseResponse;
-  }
-
   if (!hasEnvVars) {
     return supabaseResponse;
   }
@@ -51,7 +44,8 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/analyze") || 
     path.startsWith("/customize") || 
     path.startsWith("/history") || 
-    path.startsWith("/profile");
+    path.startsWith("/profile") ||
+    path.startsWith("/hub");
 
   if (!user && isProtectedPath) {
     const url = request.nextUrl.clone();
