@@ -485,8 +485,8 @@ CRITICAL INSTRUCTIONS:
 4. SKILL EVIDENCE RULE: A skill can only appear if it is present in the original resume OR directly inferable from project code (e.g., if a project uses FastAPI, the skill can contain FastAPI). Do NOT hallucinate skills that aren't evidenced.
 5. Do NOT hallucinate experiences that the candidate does not have. Only reframe and emphasize their existing experience.
 6. STRICT TEMPLATE PRESERVATION: You MUST preserve the EXACT LaTeX layout of the original resume. This means:
-   - DO NOT remove or alter ANY `\vspace` commands.
-   - DO NOT remove or alter ANY `\href` links (e.g., GitHub URLs).
+   - DO NOT remove or alter ANY `\\vspace` commands.
+   - DO NOT remove or alter ANY `\\href` links (e.g., GitHub URLs).
    - DO NOT remove the empty blank lines between sections or items.
    - DO NOT change how the Skills section is formatted (keep the exact spacing and newlines).
    - ONLY change the actual English text inside the bullet points, the professional summary, and the skill lists. Leave all surrounding LaTeX syntax and spacing exactly as it was.
@@ -640,7 +640,7 @@ async def run_analysis_agent(
                 "merge_warning": merge_error
             },
             "personaLabel": get_persona_label(position),
-            "toolUsed": "groq-llama-3.3-70b-specdec",
+            "toolUsed": "groq-gpt-oss-120b",
             "usage": {
                 "promptTokenCount": 0,
                 "candidatesTokenCount": 0,
@@ -653,10 +653,10 @@ async def run_analysis_agent(
     )
 
     last_error = None
-    models_to_try = DEFAULT_MODELS + ["groq-llama-3.3-70b"]
+    models_to_try = DEFAULT_MODELS + ["groq-gpt-oss-120b"]
     for model_name in models_to_try:
         try:
-            if model_name == "groq-llama-3.3-70b":
+            if model_name == "groq-gpt-oss-120b":
                 groq_api_key = os.getenv("GROQ_API_KEY")
                 if not groq_api_key:
                     raise Exception("GROQ_API_KEY is not configured")
@@ -665,7 +665,7 @@ async def run_analysis_agent(
                     "Content-Type": "application/json"
                 }
                 payload = {
-                    "model": "llama-3.3-70b-versatile",
+                    "model": "openai/gpt-oss-120b",
                     "messages": [
                         {"role": "system", "content": "You are an elite career strategist and ATS optimization expert. Maintain strict boundaries for JSON output."},
                         {"role": "user", "content": prompt}

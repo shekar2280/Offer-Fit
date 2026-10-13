@@ -42,8 +42,8 @@ async def get_user_client_and_id(credentials: Optional[HTTPAuthorizationCredenti
         if not user_response or not user_response.user:
             raise HTTPException(status_code=401, detail="Invalid session token")
         return user_client, user_response.user.id
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Unauthorized: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
 
 app = FastAPI(title="Offer Fit AI API")
 

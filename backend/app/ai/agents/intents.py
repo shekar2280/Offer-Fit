@@ -44,9 +44,9 @@ Job Description:
 
     response_text = None
     last_err = None
-    for model_name in ["gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-3-flash", "gemini-2.5-flash", "groq-llama-3.3-70b"]:
+    for model_name in ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite", "groq-gpt-oss-120b"]:
         try:
-            if model_name == "groq-llama-3.3-70b":
+            if model_name == "groq-gpt-oss-120b":
                 groq_api_key = os.getenv("GROQ_API_KEY")
                 if not groq_api_key:
                     raise Exception("GROQ_API_KEY is not configured")
@@ -56,7 +56,7 @@ Job Description:
                     "Content-Type": "application/json"
                 }
                 payload = {
-                    "model": "llama-3.3-70b-versatile",
+                    "model": "openai/gpt-oss-120b",
                     "messages": [
                         {"role": "system", "content": "You are a professional recruiting assistant. Output only valid JSON matching the schema."},
                         {"role": "user", "content": prompt}

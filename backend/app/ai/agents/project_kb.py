@@ -71,11 +71,11 @@ You MUST return your output as a valid JSON object matching the following struct
 
     content = None
     last_err = None
-    models_to_try = ["gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-3-flash", "gemini-2.5-flash", "groq-llama-3.3-70b"]
+    models_to_try = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite", "groq-gpt-oss-120b"]
     
     for model_name in models_to_try:
         try:
-            if model_name == "groq-llama-3.3-70b":
+            if model_name == "groq-gpt-oss-120b":
                 groq_api_key = os.getenv("GROQ_API_KEY")
                 if not groq_api_key:
                     raise Exception("GROQ_API_KEY is not configured")
@@ -85,7 +85,7 @@ You MUST return your output as a valid JSON object matching the following struct
                     "Content-Type": "application/json"
                 }
                 payload = {
-                    "model": "llama-3.3-70b-versatile",
+                    "model": "openai/gpt-oss-120b",
                     "messages": [
                         {"role": "user", "content": prompt}
                     ],

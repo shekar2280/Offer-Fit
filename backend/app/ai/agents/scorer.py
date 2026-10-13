@@ -65,13 +65,13 @@ User's Projects:
 {json.dumps(projects_input, indent=2)}
 """
 
-    models = ["gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-3-flash", "gemini-2.5-flash", "groq-llama-3.3-70b"]
+    models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite", "groq-gpt-oss-120b"]
     response_text = None
     last_err = None
 
     for model_name in models:
         try:
-            if model_name == "groq-llama-3.3-70b":
+            if model_name == "groq-gpt-oss-120b":
                 groq_api_key = os.getenv("GROQ_API_KEY")
                 if not groq_api_key:
                     raise Exception("GROQ_API_KEY is not configured")
@@ -81,7 +81,7 @@ User's Projects:
                     "Content-Type": "application/json"
                 }
                 payload = {
-                    "model": "llama-3.3-70b-versatile",
+                    "model": "openai/gpt-oss-120b",
                     "messages": [
                         {"role": "system", "content": "You are a professional resume scorer."},
                         {"role": "user", "content": prompt}
